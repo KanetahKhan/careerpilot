@@ -1,0 +1,17 @@
+# deps
+/node_modules
+# next
+/.next/
+/out/
+# env — NEVER commit your keys
+.env
+.env.local
+.env*.local
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+/coverage
+.vercel
+*.tsbuildinfo
+next-env.d.ts
