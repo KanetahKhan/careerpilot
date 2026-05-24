@@ -34,6 +34,44 @@
                                                          + goals + dashboard)
 ```
 
+## Service boundaries (the microservices view)
+
+The app is one Next.js deploy, but the code is split into five domain services with
+hard boundaries. The `app/api/*` routes are a thin **API gateway**; all business
+logic and data access live in `lib/services/*` behind per-service `index.ts`
+contracts. See `lib/services/README.md` for the full contract table.
+
+```
+            ┌──────────────────────────────────────────────────────────┐
+   client ─▶│  app/api/*  — thin controllers (API gateway)              │
+            │  cv/upload   chat   jobs/search   applications   goals     │
+            └───┬─────────┬─────────┬───────────────┬──────────┬────────┘
+                ▼         ▼         ▼               ▼          ▼
+          ┌─────────┐┌─────────┐┌──────────┐ ┌──────────────┐┌─────────┐
+          │ profile ││assistant││  jobs    │ │  fit-score   ││ tracker │
+          │ ingest+ ││ ground+ ││ source   │ │ programmatic │││apps +   │
+          │ RAG     ││ prompt+ ││ cache→   │ │ 0..100 math  │││goals    │
+          │ (truth) ││ memory  ││ JSearch→ │ │              │││CRUD     │
+          │         ││         ││ seed     │ │              ││         │
+          └────┬────┘└────┬────┘└────┬─────┘ └──────┬───────┘└────┬────┘
+               │  ▲       │          │              │             │
+               │  └───────┘          │              │             │   (assistant +
+               │  consumes profile   │              │             │    fit-score both
+               ▼                     ▼              ▼             ▼    consume profile)
+          ┌───────────────────────────────────────────────────────────┐
+          │  shared kernel:  lib/ai.ts (Gemini + embeddings)            │
+          │                  lib/supabase.ts (Postgres + pgvector)      │
+          └───────────────────────────────────────────────────────────┘
+```
+
+**How it maps to microservices.** Each service is a side-effect-light module whose
+only public surface is its barrel. The natural function boundary already exists at
+`app/api/<svc>`: to split into independently deployed Vercel Functions (or separate
+repos), each route becomes its own serverless function and the shared kernel becomes
+a small published package — no business logic moves, only transport. We stop short
+of that split on purpose: a single Vercel app keeps cold starts, latency, and ops
+cost lowest for this workload (rationale in `docs/STACK_REPORT.md`).
+
 ## Runtime choices
 - **Node runtime** on CV upload (pdf-parse/mammoth need Node), chat, and agent routes.
 - **Streaming** on `/api/chat` so long answers don't hit function timeouts.
