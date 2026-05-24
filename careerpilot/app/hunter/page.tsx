@@ -8,7 +8,8 @@ type Fit = {
 };
 type Job = {
   id: string; role: string; company: string; location: string;
-  salary: string | null; link: string | null; fit: Fit;
+  salary: string | null; link: string | null; description?: string;
+  deadline?: string | null; fit: Fit;
 };
 
 function scoreColor(s: number) {
@@ -17,12 +18,31 @@ function scoreColor(s: number) {
   return "text-signal";
 }
 
+const FACTORS = ["semantic", "skills", "seniority", "education", "location"] as const;
+
+function FactorBars({ fit }: { fit: Fit }) {
+  return (
+    <div className="space-y-1.5">
+      {FACTORS.map((k) => (
+        <div key={k} className="flex items-center gap-2">
+          <span className="w-20 font-mono text-[10px] uppercase text-chalk-faint">{k}</span>
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-ink-700">
+            <div className="h-full rounded-full bg-signal/70" style={{ width: `${fit[k]}%` }} />
+          </div>
+          <span className="w-7 text-right font-mono text-[10px] text-chalk-dim">{fit[k]}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function HunterPage() {
   const [query, setQuery] = useState("remote react frontend internship");
   const [loading, setLoading] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [trace, setTrace] = useState<string[]>([]);
   const [saved, setSaved] = useState<Set<string>>(new Set());
+  const [detail, setDetail] = useState<Job | null>(null);
 
   async function run() {
     setLoading(true);
@@ -92,7 +112,12 @@ export default function HunterPage() {
           <div key={j.id} className="panel animate-fade-up p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="font-display text-lg font-bold leading-tight">{j.role}</p>
+                <button
+                  onClick={() => setDetail(j)}
+                  className="text-left font-display text-lg font-bold leading-tight hover:text-signal"
+                >
+                  {j.role}
+                </button>
                 <p className="text-sm text-chalk-dim">{j.company} · {j.location}</p>
                 {j.salary && <p className="mt-1 text-xs text-chalk-faint">{j.salary}</p>}
               </div>
@@ -102,25 +127,8 @@ export default function HunterPage() {
               </div>
             </div>
 
-            {/* breakdown bars */}
-            <div className="mt-4 space-y-1.5">
-              {([
-                ["semantic", j.fit.semantic],
-                ["skills", j.fit.skills],
-                ["seniority", j.fit.seniority],
-                ["education", j.fit.education],
-                ["location", j.fit.location],
-              ] as const).map(
-                ([k, v]) => (
-                  <div key={k} className="flex items-center gap-2">
-                    <span className="w-20 font-mono text-[10px] uppercase text-chalk-faint">{k}</span>
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-ink-700">
-                      <div className="h-full rounded-full bg-signal/70" style={{ width: `${v}%` }} />
-                    </div>
-                    <span className="w-7 text-right font-mono text-[10px] text-chalk-dim">{v}</span>
-                  </div>
-                )
-              )}
+            <div className="mt-4">
+              <FactorBars fit={j.fit} />
             </div>
 
             {j.fit.matchedSkills.length > 0 && (
@@ -142,6 +150,7 @@ export default function HunterPage() {
               >
                 {saved.has(j.id) ? "✓ Tracked" : "+ Track"}
               </button>
+              <button onClick={() => setDetail(j)} className="btn-ghost text-xs">Details →</button>
               {j.link && (
                 <a href={j.link} target="_blank" className="btn-ghost text-xs">Open ↗</a>
               )}
@@ -149,6 +158,71 @@ export default function HunterPage() {
           </div>
         ))}
       </div>
+
+      {/* job detail modal — full description + full fit breakdown */}
+      {detail && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink-900/80 p-4 backdrop-blur-sm"
+          onClick={() => setDetail(null)}
+        >
+          <div
+            className="panel animate-fade-up my-8 w-full max-w-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="font-display text-2xl font-bold leading-tight">{detail.role}</h2>
+                <p className="text-sm text-chalk-dim">{detail.company} · {detail.location}</p>
+                {detail.salary && <p className="mt-1 text-xs text-chalk-faint">{detail.salary}</p>}
+              </div>
+              <div className="text-right">
+                <p className={`font-display text-4xl font-bold ${scoreColor(detail.fit.score)}`}>
+                  {detail.fit.score}
+                </p>
+                <p className="label">fit</p>
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <p className="label mb-2">Fit breakdown (computed, not stated)</p>
+              <FactorBars fit={detail.fit} />
+              <p className="mt-3 text-sm leading-relaxed text-chalk-dim">{detail.fit.explanation}</p>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-1">
+              {detail.fit.matchedSkills.map((s) => (
+                <span key={s} className="chip bg-mint/10 text-mint">✓ {s}</span>
+              ))}
+              {detail.fit.missingSkills.map((s) => (
+                <span key={s} className="chip bg-signal/10 text-signal">✗ {s}</span>
+              ))}
+            </div>
+
+            {detail.description && (
+              <div className="mt-5">
+                <p className="label mb-2">Full description</p>
+                <p className="max-h-64 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-chalk-dim">
+                  {detail.description}
+                </p>
+              </div>
+            )}
+
+            <div className="mt-6 flex items-center gap-2">
+              <button
+                onClick={() => track(detail)}
+                disabled={saved.has(detail.id)}
+                className="btn-signal text-xs disabled:opacity-50"
+              >
+                {saved.has(detail.id) ? "✓ Tracked" : "+ Track this"}
+              </button>
+              {detail.link && (
+                <a href={detail.link} target="_blank" className="btn-ghost text-xs">Open posting ↗</a>
+              )}
+              <button onClick={() => setDetail(null)} className="btn-ghost ml-auto text-xs">Close ✕</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
