@@ -19,3 +19,4 @@
 export { extractText, chunkCv, type Chunk } from "./cv";
 export { ingestCv, type IngestResult } from "./ingest";
 export { retrieveChunks, formatContext, type RetrievedChunk } from "./rag";
+export { getCvProfile, type CvProfile, type ProfileSection } from "./profile";
