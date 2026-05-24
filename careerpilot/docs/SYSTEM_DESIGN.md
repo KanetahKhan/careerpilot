@@ -16,6 +16,12 @@
 | Supabase Pro | backups + headroom | 25 |
 | **Per user** | $639 / 10,000 | **≈ $0.064** |
 
+> **AI-call budget note (post-upgrade).** The new features barely move this number:
+> intent routing is heuristic-first (an LLM call only for ambiguous queries); the
+> 5-factor fit score added education + location as **pure-math** factors with zero
+> extra model calls; roadmaps are an occasional structured-output call. The per-user
+> cost above stays essentially flat.
+
 ## Bottlenecks & mitigation
 1. **Gemini rate limits in spikes** → provider fallback to Groq (one-line SDK swap).
 2. **Ingestion > Vercel function timeout** → move embedding to Supabase Edge Functions
@@ -32,3 +38,7 @@
   best-effort persistence) so a single 429 never crashes a user flow.
 - Job search degrades to cache → seed; assistant degrades to "no CV context yet"
   rather than erroring.
+- Intent classification fails safe to "general", so the chat never breaks on it.
+- **CI/CD & monitoring:** GitHub Actions keeps `main` lint/typecheck/build-green on
+  every push and PR; `/api/health` gives uptime monitors a dependency-free liveness
+  signal that won't false-alarm on a Gemini/Supabase rate limit.
