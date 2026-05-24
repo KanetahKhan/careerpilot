@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { generateText, tool } from "ai";
 import { z } from "zod";
 import { chatModel } from "@/lib/ai";
-import { searchJobs, type Job } from "@/lib/jobs";
-import { computeFitScore } from "@/lib/fit-score";
+import { searchJobs, type Job } from "@/lib/services/jobs";
+import { computeFitScore } from "@/lib/services/fit-score";
 import { DEMO_USER_ID } from "@/lib/supabase";
 
 export const runtime = "nodejs";

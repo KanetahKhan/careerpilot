@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { supabaseAdmin } from "./supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 import { SEED_JOBS } from "./seed-jobs";
 
 export type Job = {

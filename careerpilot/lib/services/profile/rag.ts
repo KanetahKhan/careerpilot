@@ -1,5 +1,5 @@
-import { supabaseAdmin } from "./supabase";
-import { embedText } from "./ai";
+import { supabaseAdmin } from "@/lib/supabase";
+import { embedText } from "@/lib/ai";
 
 export type RetrievedChunk = {
   id: number;
