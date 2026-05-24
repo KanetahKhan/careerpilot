@@ -1,5 +1,7 @@
 # CareerPilot 🧭
 
+[![CI](https://github.com/KanetahKhan/careerpilot/actions/workflows/ci.yml/badge.svg)](https://github.com/KanetahKhan/careerpilot/actions/workflows/ci.yml)
+
 > Your agentic, **CV-grounded** career co-pilot. Built for CodeSprint 2026 (IUT Computer Society · Poridhi.io).
 
 Upload your CV once. Every job match, fit score, roadmap, and cover letter is grounded in your **actual** experience via a RAG layer over your resume — no hallucinated generic profiles.
