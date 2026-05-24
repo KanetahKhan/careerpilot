@@ -14,9 +14,9 @@ Upload your CV once. Every job match, fit score, roadmap, and cover letter is gr
 
 | # | Pillar | What it does | Route |
 |---|--------|--------------|-------|
-| 1 | **Job Hunter Agent** | NL search → live jobs (JSearch) → tool-calling loop → ranked cards with a **computed** fit score | `/hunter` |
-| 2 | **Resume Intelligence (RAG core)** | CV → section-aware chunking → Gemini embeddings → pgvector | `/` (upload) |
-| 3 | **AI Assistant** | Chat grounded strictly in your CV, with session memory; roadmaps, gap analysis, cover letters | `/assistant` |
+| 1 | **Job Hunter Agent** | NL search → live jobs (JSearch) → tool-calling loop → ranked cards with a **computed 5-factor** fit score (+ detail view) | `/hunter` |
+| 2 | **Resume Intelligence (RAG core)** | CV → section-aware chunking → Gemini embeddings → pgvector; guided onboarding + a profile view of the exact retrieved chunks | `/onboarding` · `/profile` |
+| 3 | **AI Assistant** | Chat grounded strictly in your CV, with **intent routing** + session memory; readiness, gap analysis, cover letters, and a structured week-by-week roadmap | `/assistant` · `/roadmap` |
 | 4 | **Progress Tracker** | Kanban board, goals/to-dos, live progress dashboard | `/tracker` |
 
 ---
@@ -69,14 +69,14 @@ npm run eval         # runs the documented test suite against your dev server
 
 This is the core thesis — the AI never invents your background.
 
-1. **Ingest** (`/api/cv/upload` → `lib/cv.ts`): the PDF/DOCX is parsed, then
-   **chunked by section** (Experience, Education, Projects, Skills…) so each chunk
-   carries a section tag.
+1. **Ingest** (`/api/cv/upload` → `lib/services/profile/`): the PDF/DOCX is parsed,
+   then **chunked by section** (Experience, Education, Projects, Skills…) so each
+   chunk carries a section tag. The `/profile` view renders these chunks back.
 2. **Embed** (`lib/ai.ts`): each chunk → a 768-d vector via `gemini-embedding-001`.
 3. **Store** (`supabase/migrations/0001_init.sql`): vectors live in a `cv_chunks`
    table with an **HNSW pgvector index**.
-4. **Retrieve** (`lib/rag.ts`): every assistant question and every fit-score
-   computation embeds the query and pulls the top-k chunks via the
+4. **Retrieve** (`lib/services/profile/rag.ts`): every assistant question and every
+   fit-score computation embeds the query and pulls the top-k chunks via the
    `match_cv_chunks` RPC (cosine similarity).
 5. **Ground**: retrieved chunks are injected into the system prompt as context,
    and the assistant is instructed to **cite the section** and to say "your CV
@@ -84,25 +84,37 @@ This is the core thesis — the AI never invents your background.
 
 ### The fit score is computed, not stated
 
-`lib/fit-score.ts` returns a real number from TypeScript math, not an LLM opinion:
+`lib/services/fit-score/` returns a real number from TypeScript math, not an LLM
+opinion — **five** auditable factors:
 
 ```
-fit = 0.55·semantic + 0.30·skill_overlap + 0.15·seniority
+fit = 0.40·semantic + 0.30·skills + 0.10·seniority + 0.10·education + 0.10·location
 ```
 
 - **semantic** — cosine(job embedding, centroid of CV chunk embeddings)
-- **skill_overlap** — matched ÷ required skills (skills extracted via structured output)
+- **skills** — matched ÷ required skills (skills extracted via structured output)
 - **seniority** — years required vs. years in CV
+- **education** — candidate's highest degree vs. the level the job asks for
+- **location** — remote → 100; otherwise the job's place matched against the CV
 
-The UI shows the full breakdown + matched/missing skills, so the score is auditable.
+The LLM only extracts skill lists; the factors, weights, and blend are all
+TypeScript. A separate `explainFit()` turns the breakdown into prose (scoring never
+writes prose). The Hunter UI shows all five bars + matched/missing skills, and a
+**detail view** with the full description — so the score is fully auditable.
 
 ---
 
 ## Architecture
 
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full data-flow diagram,
-[`docs/STACK_REPORT.md`](docs/STACK_REPORT.md) for stack justification, and
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full data-flow + service-
+boundary diagrams, [`docs/STACK_REPORT.md`](docs/STACK_REPORT.md) for stack
+justification (incl. why monolith-on-Vercel, not a separate Python backend), and
 [`docs/SYSTEM_DESIGN.md`](docs/SYSTEM_DESIGN.md) for the 10K-user scaling analysis.
+
+The code is organized into five documented domain services behind thin API routes —
+see [`lib/services/README.md`](lib/services/README.md). **CI** (lint → typecheck →
+build) runs on every push/PR via GitHub Actions; `/api/health` is a dependency-free
+liveness probe.
 
 ```
 CV upload ─▶ parse ─▶ chunk(section) ─▶ embed(Gemini) ─▶ pgvector

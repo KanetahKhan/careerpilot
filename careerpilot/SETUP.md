@@ -124,6 +124,10 @@ monitors and never fails on a free-tier rate limit.
 
 Newest at the top. Format: `YYYY-MM-DD — name — what changed`.
 
+- 2026-05-25 — features — reorganized `lib/` into five documented domain services;
+  5-factor fit score (added education + location); assistant intent routing +
+  structured `/roadmap`; CV `/profile` view + guided `/onboarding`; job detail modal.
+  No new env vars or migration changes.
 - 2026-05-25 — devops — added GitHub Actions CI (lint + typecheck + build), ESLint
   config, `/api/health` endpoint, and a repo-root `.gitignore`. No new env vars.
 - 2026-05-24 — (initial) — project scaffolded; env vars + DB migration documented.
