@@ -1,0 +1,11 @@
+# The Next.js app and its own .gitignore live in careerpilot/.
+# This root .gitignore only keeps repo-root junk out of version control.
+
+# Stray lockfile that npm/editors recreate at the root (the real one is in careerpilot/)
+/package-lock.json
+/node_modules/
+
+# VS Code "Local History" extension artifacts
+/.history/
+
+.DS_Store
