@@ -1,5 +1,5 @@
-import { supabaseAdmin } from "./supabase";
-import { embedText, chatModel } from "./ai";
+import { supabaseAdmin } from "@/lib/supabase";
+import { embedText, chatModel } from "@/lib/ai";
 import { generateObject } from "ai";
 import { z } from "zod";
 
