@@ -1,0 +1,45 @@
+name: CI
+
+# The app lives in the careerpilot/ subdirectory; all run steps default there.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Don't pile up runs on rapid pushes to the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: careerpilot
+
+jobs:
+  verify:
+    name: lint · typecheck · build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: careerpilot/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
