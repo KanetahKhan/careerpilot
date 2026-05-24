@@ -105,6 +105,32 @@ const cases: Case[] = [
       return { pass: (j1.jobs?.length ?? 0) === (j2.jobs?.length ?? 0), actual: `run1=${j1.jobs?.length} run2=${j2.jobs?.length}` };
     },
   },
+  {
+    id: "EVAL-8",
+    desc: "Fit breakdown exposes all 5 factors, each in 0..100 (incl. education + location)",
+    run: async () => {
+      const r = await fetch(`${BASE}/api/jobs/search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: "backend developer dhaka" }),
+      });
+      const j = await r.json();
+      const factors = ["semantic", "skills", "seniority", "education", "location"] as const;
+      const jobs = j.jobs ?? [];
+      const ok =
+        jobs.length >= 1 &&
+        jobs.every((x: any) =>
+          factors.every((f) => typeof x.fit?.[f] === "number" && x.fit[f] >= 0 && x.fit[f] <= 100)
+        );
+      const sample = jobs[0]?.fit;
+      return {
+        pass: ok,
+        actual: sample
+          ? factors.map((f) => `${f}=${sample[f]}`).join(" ")
+          : "no jobs returned",
+      };
+    },
+  },
 ];
 
 async function main() {
