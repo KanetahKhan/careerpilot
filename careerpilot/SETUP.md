@@ -99,9 +99,32 @@ write the real values in this file.
 
 ---
 
-## 6. Change log (append a line whenever you change setup)
+## 6. CI & local checks (DevOps)
+
+Continuous integration runs in GitHub Actions (`.github/workflows/ci.yml`) on every
+push to `main` and every PR. It mirrors the checks you should run locally before
+committing:
+
+```bash
+npm run lint        # ESLint (eslint-config-next)
+npx tsc --noEmit    # TypeScript typecheck
+npm run build       # next build
+```
+
+If the CI badge at the top of the README is green, `main` lints, typechecks, and
+builds. The app deploys as a single Next.js app on Vercel — no separate backend.
+
+Health probe: `GET /api/health` → `{ status: "ok", time, uptime, version }`. It is
+dependency-free (no Supabase/Gemini), so it reflects web-tier liveness for uptime
+monitors and never fails on a free-tier rate limit.
+
+---
+
+## 7. Change log (append a line whenever you change setup)
 
 Newest at the top. Format: `YYYY-MM-DD — name — what changed`.
 
+- 2026-05-25 — devops — added GitHub Actions CI (lint + typecheck + build), ESLint
+  config, `/api/health` endpoint, and a repo-root `.gitignore`. No new env vars.
 - 2026-05-24 — (initial) — project scaffolded; env vars + DB migration documented.
 - _e.g. 2026-05-25 — chichi — added TAVILY_API_KEY for the agent web-search fallback; add it to .env.local and Vercel._
