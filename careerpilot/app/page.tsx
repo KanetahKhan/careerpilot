@@ -23,6 +23,12 @@ export default function Home() {
           Upload your CV once. Every job match, fit score, and cover letter is grounded in
           your real experience — not a generic AI guess.
         </p>
+        <p className="mt-4 text-sm text-chalk-dim">
+          New here?{" "}
+          <Link href="/onboarding" className="text-signal underline-offset-4 hover:underline">
+            Start the guided onboarding →
+          </Link>
+        </p>
       </section>
 
       {/* upload + pillar map */}
