@@ -3,6 +3,7 @@ import { useState } from "react";
 
 type Fit = {
   score: number; semantic: number; skills: number; seniority: number;
+  education: number; location: number;
   matchedSkills: string[]; missingSkills: string[]; explanation: string;
 };
 type Job = {
@@ -103,7 +104,13 @@ export default function HunterPage() {
 
             {/* breakdown bars */}
             <div className="mt-4 space-y-1.5">
-              {([["semantic", j.fit.semantic], ["skills", j.fit.skills], ["seniority", j.fit.seniority]] as const).map(
+              {([
+                ["semantic", j.fit.semantic],
+                ["skills", j.fit.skills],
+                ["seniority", j.fit.seniority],
+                ["education", j.fit.education],
+                ["location", j.fit.location],
+              ] as const).map(
                 ([k, v]) => (
                   <div key={k} className="flex items-center gap-2">
                     <span className="w-20 font-mono text-[10px] uppercase text-chalk-faint">{k}</span>

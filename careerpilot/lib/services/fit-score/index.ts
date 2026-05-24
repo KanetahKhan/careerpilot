@@ -7,11 +7,12 @@
  *
  * Public API:
  *   · computeFitScore(userId, jobDescription, jobLocation?) → FitBreakdown
- *   · type FitBreakdown   (score + per-factor sub-scores + matched/missing skills)
+ *   · explainFit(breakdown) → string   (prose justification; separate from scoring)
+ *   · type FitBreakdown   (score + 5 sub-scores + matched/missing skills)
  *
  * Inputs:  userId, job description text (+ optional job location).
  * Outputs: FitBreakdown with a full, auditable factor breakdown.
  * Depends on: core lib/ai (embeddings + skill extraction), core lib/supabase
  *             (the user's stored cv_chunks). Consumed by: Job Hunter agent + UI.
  */
-export { computeFitScore, type FitBreakdown } from "./fit-score";
+export { computeFitScore, explainFit, type FitBreakdown } from "./fit-score";

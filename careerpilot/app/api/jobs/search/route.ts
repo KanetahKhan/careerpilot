@@ -39,7 +39,13 @@ export async function POST(req: Request) {
           execute: async ({ query, location }) => {
             trace.push(`searchJobs("${query}", "${location ?? ""}")`);
             const jobs = await searchJobs(query, location ?? "");
-            return jobs.map((j) => ({ id: j.id, role: j.role, company: j.company, description: j.description }));
+            return jobs.map((j) => ({
+              id: j.id,
+              role: j.role,
+              company: j.company,
+              location: j.location,
+              description: j.description,
+            }));
           },
         }),
         scoreFit: tool({
@@ -55,7 +61,7 @@ export async function POST(req: Request) {
           }),
           execute: async (j) => {
             trace.push(`scoreFit("${j.role}")`);
-            const fit = await computeFitScore(DEMO_USER_ID, j.description);
+            const fit = await computeFitScore(DEMO_USER_ID, j.description, j.location ?? "");
             scored.push({
               id: j.jobId,
               role: j.role,
@@ -78,7 +84,7 @@ export async function POST(req: Request) {
     if (scored.length === 0) {
       const jobs = await searchJobs(query);
       for (const j of jobs.slice(0, 4)) {
-        const fit = await computeFitScore(DEMO_USER_ID, j.description);
+        const fit = await computeFitScore(DEMO_USER_ID, j.description, j.location);
         scored.push({ ...j, fit });
       }
       trace.push("fallback: direct search + score");
