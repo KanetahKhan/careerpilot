@@ -1,5 +1,6 @@
 import { retrieveChunks, formatContext } from "@/lib/services/profile";
 import { supabaseAdmin, DEMO_USER_ID } from "@/lib/supabase";
+import { intentGuidance, type Intent } from "./intent";
 
 export type RetrievedMeta = { section: string; similarity: number };
 
@@ -24,9 +25,12 @@ export async function buildGroundedContext(
 
 /**
  * The CV-grounded system prompt. The "say so if it's not in the CV" anti-
- * hallucination rule and the cite-the-section rule live here.
+ * hallucination rule and the cite-the-section rule live here. When an `intent`
+ * is supplied, per-intent formatting guidance is appended so the answer shape
+ * adapts (readiness verdict, gap list, week-by-week roadmap, cover letter).
  */
-export function assistantSystemPrompt(context: string): string {
+export function assistantSystemPrompt(context: string, intent: Intent = "general"): string {
+  const guidance = intentGuidance(intent);
   return `You are CareerPilot's assistant — a sharp, honest career co-pilot.
 You are grounded STRICTLY in the user's actual CV, provided below as context.
 
@@ -38,7 +42,7 @@ RULES:
   Experience section)".
 - Be concrete and concise. For roadmaps, give week-by-week structure. For cover
   letters, quote specific real items from the CV.
-
+${guidance ? `\n${guidance}\n` : ""}
 === USER CV CONTEXT ===
 ${context}
 =======================`;

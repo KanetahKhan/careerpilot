@@ -7,14 +7,15 @@
  * *honest* lives here so it is testable and reusable.
  *
  * Public API:
+ *   · classifyIntent(query) → Intent          (heuristic + cheap LLM fallback)
  *   · buildGroundedContext(query) → { context, retrieved }  (RAG retrieval)
- *   · assistantSystemPrompt(context) → string               (anti-hallucination prompt)
+ *   · assistantSystemPrompt(context, intent) → string       (intent-adapted prompt)
  *   · persistTurn(sessionId, userText, assistantText)        (best-effort memory)
+ *   · generateRoadmap(goal) → Roadmap          (structured, CV-grounded plan)
  *
- * Inputs:  user query + chat history.
- * Outputs: grounded context, system prompt, persisted turn.
- * Depends on: profile service (retrieval), core lib/supabase (chat_messages).
- *             Intent routing is layered on top of this in a later phase.
+ * Inputs:  user query + chat history; roadmap goal.
+ * Outputs: intent, grounded context, system prompt, persisted turn, roadmap.
+ * Depends on: profile service (retrieval), core lib/ai + lib/supabase.
  */
 export {
   buildGroundedContext,
@@ -22,3 +23,11 @@ export {
   persistTurn,
   type RetrievedMeta,
 } from "./assistant";
+export {
+  classifyIntent,
+  heuristicIntent,
+  intentGuidance,
+  INTENTS,
+  type Intent,
+} from "./intent";
+export { generateRoadmap, RoadmapSchema, type Roadmap } from "./roadmap";
