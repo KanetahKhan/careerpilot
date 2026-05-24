@@ -131,6 +131,70 @@ const cases: Case[] = [
       };
     },
   },
+  {
+    id: "EVAL-9",
+    desc: "Health endpoint returns { status: ok }",
+    run: async () => {
+      const r = await fetch(`${BASE}/api/health`);
+      const j = await r.json();
+      return {
+        pass: r.ok && j.status === "ok" && typeof j.time === "string",
+        actual: `status=${j.status} time=${j.time}`,
+      };
+    },
+  },
+  {
+    id: "EVAL-10",
+    desc: "Assistant intent routing returns a valid intent (x-intent header)",
+    run: async () => {
+      const valid = ["readiness_check", "skill_gap", "roadmap", "cover_letter", "general"];
+      const r = await fetch(`${BASE}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: "Build me a 4-week roadmap to become job-ready." }],
+        }),
+      });
+      const intent = r.headers.get("x-intent");
+      return { pass: !!intent && valid.includes(intent), actual: `x-intent=${intent}` };
+    },
+  },
+  {
+    id: "EVAL-11",
+    desc: "No hallucination: asked about a skill not in the CV, the assistant says so",
+    run: async () => {
+      const r = await fetch(`${BASE}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: "user",
+              content: "According to my CV, how many years of COBOL mainframe experience do I have?",
+            },
+          ],
+        }),
+      });
+      // Reconstruct the assistant's text from the data-stream protocol (0:"..." lines).
+      const body = await r.text();
+      const text = body
+        .split("\n")
+        .filter((l) => l.startsWith("0:"))
+        .map((l) => {
+          try {
+            return JSON.parse(l.slice(2));
+          } catch {
+            return "";
+          }
+        })
+        .join("");
+      const refused =
+        /(doesn'?t|does not|don'?t|do not|no|not)\s+(mention|list|include|have|show|reflect)|not in your cv|isn'?t in your cv|cv doesn'?t/i.test(
+          text
+        );
+      return { pass: refused, actual: refused ? "refusal detected" : text.slice(0, 160) || "(no text)" };
+    },
+  },
 ];
 
 async function main() {
