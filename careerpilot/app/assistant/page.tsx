@@ -21,7 +21,7 @@ const INTENT_LABELS: Record<string, string> = {
 export default function AssistantPage() {
   const sessionId = useRef(`sess-${Date.now()}`);
   const [intent, setIntent] = useState<string | null>(null);
-  const { messages, input, handleInputChange, handleSubmit, append, isLoading } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, append, isLoading, error } = useChat({
     api: "/api/chat",
     body: { sessionId: sessionId.current },
     onResponse: (res) => {
@@ -79,6 +79,12 @@ export default function AssistantPage() {
             </div>
           ))}
           {isLoading && <p className="text-sm text-amber animate-pulse-glow">Retrieving CV context…</p>}
+          {error && (
+            <div className="flex items-center gap-2 rounded-xl border-l-2 border-amber/60 bg-ink-900/60 px-4 py-3 text-sm text-amber">
+              <span aria-hidden>⏳</span>
+              <span>{error.message || "AI is busy — please wait a few seconds and try again."}</span>
+            </div>
+          )}
           <div ref={endRef} />
         </div>
 

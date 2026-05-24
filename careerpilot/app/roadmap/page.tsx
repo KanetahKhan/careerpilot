@@ -88,7 +88,12 @@ export default function RoadmapPage() {
           Retrieving CV context → drafting a grounded plan…
         </p>
       )}
-      {error && <p className="text-sm text-signal">⚠ {error}</p>}
+      {error && (
+        <div className="panel flex items-center gap-2 border-l-2 border-amber/60 p-4 text-sm text-amber">
+          <span aria-hidden>⏳</span>
+          <span>{error}</span>
+        </div>
+      )}
 
       {roadmap && (
         <div className="space-y-5">

@@ -43,11 +43,13 @@ export default function HunterPage() {
   const [trace, setTrace] = useState<string[]>([]);
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [detail, setDetail] = useState<Job | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   async function run() {
     setLoading(true);
     setJobs([]);
     setTrace([]);
+    setNotice(null);
     try {
       const res = await fetch("/api/jobs/search", {
         method: "POST",
@@ -57,6 +59,9 @@ export default function HunterPage() {
       const json = await res.json();
       setJobs(json.jobs ?? []);
       setTrace(json.trace ?? []);
+      setNotice(json.error ?? null);
+    } catch {
+      setNotice("Couldn't reach the server — please try again.");
     } finally {
       setLoading(false);
     }
@@ -104,6 +109,13 @@ export default function HunterPage() {
             ))}
             {loading && <span className="chip bg-ink-700 text-amber animate-pulse-glow">thinking…</span>}
           </div>
+        </div>
+      )}
+
+      {notice && (
+        <div className="panel flex items-center gap-2 border-l-2 border-amber/60 p-4 text-sm text-amber">
+          <span aria-hidden>⏳</span>
+          <span>{notice}</span>
         </div>
       )}
 

@@ -15,6 +15,17 @@ export type FitBreakdown = {
   explanation: string;
 };
 
+/**
+ * The per-request CV snapshot — everything that's identical across all jobs in a
+ * single search, so we compute it once instead of once per job.
+ */
+export type CvContext = {
+  text: string;
+  centroid: number[];
+  skills: Set<string>;
+  years: number;
+};
+
 /** Five programmatic factors. Tuned so semantic + skills still dominate. */
 const WEIGHTS = {
   semantic: 0.4,
@@ -127,6 +138,29 @@ export function explainFit(
 }
 
 /**
+ * Load everything about the user's CV that does NOT change between jobs: the CV
+ * text, the embedding centroid, the extracted skill set, and years of experience.
+ * Build this ONCE per request and pass it to computeFitScore so the expensive
+ * CV-skill extraction (an LLM call) runs once, not once per job.
+ */
+export async function loadCvContext(userId: string): Promise<CvContext> {
+  const supabase = supabaseAdmin();
+  const { data: chunks } = await supabase
+    .from("cv_chunks")
+    .select("content, embedding")
+    .eq("user_id", userId);
+
+  const text = (chunks ?? []).map((c: any) => c.content).join("\n");
+  const vectors: number[][] = (chunks ?? [])
+    .map((c: any) => c.embedding)
+    .filter(Boolean)
+    .map((e: any) => (typeof e === "string" ? JSON.parse(e) : e));
+
+  const skills = new Set(await extractSkills(text, "candidate CV"));
+  return { text, centroid: centroid(vectors), skills, years: estimateYears(text) };
+}
+
+/**
  * Compute a fit score for a job description against a user's CV.
  * THIS IS PROGRAMMATIC — the number comes from TypeScript math, not from the
  * LLM "deciding" a score. The LLM only extracts skill lists; the five factors
@@ -136,47 +170,32 @@ export function explainFit(
 export async function computeFitScore(
   userId: string,
   jobDescription: string,
-  jobLocation = ""
+  jobLocation = "",
+  cvContext?: CvContext
 ): Promise<FitBreakdown> {
-  const supabase = supabaseAdmin();
+  // Reuse a prebuilt CV context when scoring many jobs; otherwise load it now.
+  const cv = cvContext ?? (await loadCvContext(userId));
 
-  // 1. Pull this user's CV chunks + their stored embeddings.
-  const { data: chunks } = await supabase
-    .from("cv_chunks")
-    .select("content, embedding")
-    .eq("user_id", userId);
-
-  const cvText = (chunks ?? []).map((c: any) => c.content).join("\n");
-  const cvVectors: number[][] = (chunks ?? [])
-    .map((c: any) => c.embedding)
-    .filter(Boolean)
-    .map((e: any) => (typeof e === "string" ? JSON.parse(e) : e));
-
-  // 2. Semantic similarity: job embedding vs. CV centroid.
+  // Semantic similarity: job embedding vs. CV centroid.
   const jobEmbedding = await embedText(jobDescription);
-  const cvCentroid = centroid(cvVectors);
-  const sem = cvCentroid.length ? Math.max(0, cosine(jobEmbedding, cvCentroid)) : 0;
+  const sem = cv.centroid.length ? Math.max(0, cosine(jobEmbedding, cv.centroid)) : 0;
   const semantic = Math.round(sem * 100);
 
-  // 3. Skill overlap (matched / required).
-  const [jobSkills, cvSkills] = await Promise.all([
-    extractSkills(jobDescription, "job description"),
-    extractSkills(cvText, "candidate CV"),
-  ]);
-  const cvSet = new Set(cvSkills);
-  const matched = jobSkills.filter((s) => cvSet.has(s));
-  const missing = jobSkills.filter((s) => !cvSet.has(s));
+  // Skill overlap (matched / required). Only the JOB skills are extracted here;
+  // the CV skills come from the context, so they're extracted once per request.
+  const jobSkills = await extractSkills(jobDescription, "job description");
+  const matched = jobSkills.filter((s) => cv.skills.has(s));
+  const missing = jobSkills.filter((s) => !cv.skills.has(s));
   const skills =
     jobSkills.length === 0 ? 60 : Math.round((matched.length / jobSkills.length) * 100);
 
-  // 4. Seniority match (years).
+  // Seniority match (years).
   const required = estimateYears(jobDescription);
-  const have = estimateYears(cvText);
-  const seniority = required === 0 ? 80 : have >= required ? 100 : 50;
+  const seniority = required === 0 ? 80 : cv.years >= required ? 100 : 50;
 
-  // 5. Education + location match (pure, deterministic string analysis).
-  const education = educationScore(jobDescription, cvText);
-  const location = locationScore(jobLocation, cvText);
+  // Education + location match (pure, deterministic string analysis).
+  const education = educationScore(jobDescription, cv.text);
+  const location = locationScore(jobLocation, cv.text);
 
   // 6. Weighted blend.
   const score = Math.round(

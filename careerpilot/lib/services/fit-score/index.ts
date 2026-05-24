@@ -6,7 +6,8 @@
  * extracts skill lists. This is the project's defensible differentiator.
  *
  * Public API:
- *   · computeFitScore(userId, jobDescription, jobLocation?) → FitBreakdown
+ *   · loadCvContext(userId) → CvContext  (per-request CV snapshot; build once)
+ *   · computeFitScore(userId, jobDescription, jobLocation?, cvContext?) → FitBreakdown
  *   · explainFit(breakdown) → string   (prose justification; separate from scoring)
  *   · type FitBreakdown   (score + 5 sub-scores + matched/missing skills)
  *
@@ -15,4 +16,10 @@
  * Depends on: core lib/ai (embeddings + skill extraction), core lib/supabase
  *             (the user's stored cv_chunks). Consumed by: Job Hunter agent + UI.
  */
-export { computeFitScore, explainFit, type FitBreakdown } from "./fit-score";
+export {
+  computeFitScore,
+  loadCvContext,
+  explainFit,
+  type FitBreakdown,
+  type CvContext,
+} from "./fit-score";

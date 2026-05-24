@@ -1,5 +1,5 @@
 import { streamText, type CoreMessage } from "ai";
-import { chatModel } from "@/lib/ai";
+import { chatModel, AI_BUSY_MESSAGE, isRateLimitError } from "@/lib/ai";
 import {
   buildGroundedContext,
   assistantSystemPrompt,
@@ -42,5 +42,8 @@ export async function POST(req: Request) {
       "x-retrieved": Buffer.from(JSON.stringify(retrieved)).toString("base64"),
       "x-intent": intent,
     },
+    // Surface a calm message (esp. on rate limits) instead of a raw stack trace.
+    getErrorMessage: (error) =>
+      isRateLimitError(error) ? AI_BUSY_MESSAGE : "Something went wrong — please try again.",
   });
 }

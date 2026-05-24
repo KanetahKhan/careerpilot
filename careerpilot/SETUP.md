@@ -79,8 +79,12 @@ write the real values in this file.
   skipped running `supabase/migrations/0001_init.sql`. Run it in the SQL editor.
 - **pgvector error?** The migration runs `create extension vector;` — if it fails,
   enable the "vector" extension under Supabase → Database → Extensions, then re-run.
-- **Gemini 429 (rate limit):** you hit the free-tier cap. Wait for the reset, or
-  use your own separate key. We do **not** enable billing anywhere.
+- **Gemini 429 (rate limit):** you hit the free-tier cap. Mitigations already in
+  place: the chat model is `gemini-2.5-flash-lite` (higher free quota), CV skills
+  are extracted once per search instead of per job, and the UI shows a calm
+  "AI is busy — please wait a few seconds and try again" notice instead of a red
+  error. If you still hit it, wait for the reset or use your own separate key. We
+  do **not** enable billing anywhere.
 - **`.env.local` not loading?** Restart `npm run dev` after editing env files.
 - **Fonts / build error about Google Fonts:** only happens with no internet; works
   fine on Vercel and normal connections.
@@ -124,6 +128,9 @@ monitors and never fails on a free-tier rate limit.
 
 Newest at the top. Format: `YYYY-MM-DD — name — what changed`.
 
+- 2026-05-25 — quota — chat model → `gemini-2.5-flash-lite` (embeddings unchanged);
+  fit-score extracts CV skills once per request (not per job); rate-limit (429)
+  errors now show a calm "AI is busy" message. No new env vars.
 - 2026-05-25 — features — reorganized `lib/` into five documented domain services;
   5-factor fit score (added education + location); assistant intent routing +
   structured `/roadmap`; CV `/profile` view + guided `/onboarding`; job detail modal.
@@ -132,3 +139,4 @@ Newest at the top. Format: `YYYY-MM-DD — name — what changed`.
   config, `/api/health` endpoint, and a repo-root `.gitignore`. No new env vars.
 - 2026-05-24 — (initial) — project scaffolded; env vars + DB migration documented.
 - _e.g. 2026-05-25 — chichi — added TAVILY_API_KEY for the agent web-search fallback; add it to .env.local and Vercel._
+-added RAPIDAPI_KEY
