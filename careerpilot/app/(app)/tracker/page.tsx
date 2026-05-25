@@ -5,6 +5,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea
 import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from "recharts";
 import { FadeIn } from "@/components/FadeIn";
 import { AddApplicationButton } from "@/components/AddApplicationButton";
+import { Calendar } from "@/components/Calendar";
 import { cn } from "@/lib/utils";
 
 interface Application {
@@ -15,6 +16,7 @@ interface Application {
   fit_score?: number;
   status: string;
   link?: string;
+  created_at?: string;
 }
 
 interface Goal {
@@ -37,6 +39,7 @@ export default function TrackerPage() {
   const [apps, setApps] = useState<Application[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [view, setView] = useState<"board" | "calendar">("board");
 
   async function load() {
     const [a, g] = await Promise.all([
@@ -125,6 +128,32 @@ export default function TrackerPage() {
         </div>
       </div>
 
+      {/* view toggle: Kanban board vs month calendar */}
+      <div className="inline-flex rounded-xl border border-border bg-secondary/30 p-1 text-sm">
+        <button
+          onClick={() => setView("board")}
+          className={cn(
+            "rounded-lg px-4 py-1.5 font-medium transition-colors",
+            view === "board" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Board
+        </button>
+        <button
+          onClick={() => setView("calendar")}
+          className={cn(
+            "rounded-lg px-4 py-1.5 font-medium transition-colors",
+            view === "calendar" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Calendar
+        </button>
+      </div>
+
+      {view === "calendar" && <Calendar applications={apps} goals={goals} />}
+
+      {view === "board" && (
+        <>
       {/* Kanban with Drag-and-Drop */}
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="grid gap-3 md:grid-cols-4">
@@ -220,6 +249,8 @@ export default function TrackerPage() {
           {goals.length === 0 && <p className="text-sm text-muted-foreground">No goals yet.</p>}
         </div>
       </div>
+        </>
+      )}
     </div>
     </FadeIn>
   );
