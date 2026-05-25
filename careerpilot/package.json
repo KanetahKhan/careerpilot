@@ -13,6 +13,7 @@
   "dependencies": {
     "@ai-sdk/google": "^1.2.0",
     "@hello-pangea/dnd": "^18.0.1",
+    "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.45.0",
     "ai": "^4.3.0",
     "framer-motion": "^12.40.0",

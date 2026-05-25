@@ -1,36 +1,34 @@
 import { extractText, chunkCv } from "./cv";
 import { embedBatch } from "@/lib/ai";
-import { supabaseAdmin, DEMO_USER_ID } from "@/lib/supabase";
+import { createAdminClient } from "@/lib/supabase";
 
 export type IngestResult = { fileName: string; chunks: number; sections: string[] };
 
-/**
- * Full CV ingestion pipeline: parse → section-aware chunk → embed → store.
- * Replaces any prior CV for the demo user (single-CV demo model). This is the
- * write side of the profile service; retrieval (rag.ts) is the read side.
- */
-export async function ingestCv(buffer: Buffer, fileName: string): Promise<IngestResult> {
+export async function ingestCv(
+  userId: string,
+  buffer: Buffer,
+  fileName: string
+): Promise<IngestResult> {
   const text = await extractText(buffer, fileName);
   if (!text.trim()) throw new Error("Could not extract text from file");
 
   const chunks = chunkCv(text);
   const embeddings = await embedBatch(chunks.map((c) => c.content));
 
-  const supabase = supabaseAdmin();
+  const supabase = createAdminClient();
 
-  // fresh upload → clear this user's old CV data (demo simplicity)
-  await supabase.from("cv_chunks").delete().eq("user_id", DEMO_USER_ID);
-  await supabase.from("cv_documents").delete().eq("user_id", DEMO_USER_ID);
+  await supabase.from("cv_chunks").delete().eq("user_id", userId);
+  await supabase.from("cv_documents").delete().eq("user_id", userId);
 
   const { data: doc, error: docErr } = await supabase
     .from("cv_documents")
-    .insert({ user_id: DEMO_USER_ID, file_name: fileName, raw_text: text })
+    .insert({ user_id: userId, file_name: fileName, raw_text: text })
     .select("id")
     .single();
   if (docErr) throw docErr;
 
   const rows = chunks.map((c, i) => ({
-    user_id: DEMO_USER_ID,
+    user_id: userId,
     document_id: doc.id,
     section: c.section,
     content: c.content,

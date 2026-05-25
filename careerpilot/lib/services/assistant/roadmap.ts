@@ -2,9 +2,7 @@ import { generateObject } from "ai";
 import { z } from "zod";
 import { chatModel } from "@/lib/ai";
 import { retrieveChunks, formatContext } from "@/lib/services/profile";
-import { DEMO_USER_ID } from "@/lib/supabase";
 
-/** A structured, week-by-week plan grounded in the user's CV gaps. */
 export const RoadmapSchema = z.object({
   goal: z.string().describe("the target role/outcome this plan works toward"),
   summary: z.string().describe("1-2 sentence framing of the plan and the main gaps it closes"),
@@ -25,18 +23,13 @@ export const RoadmapSchema = z.object({
 });
 export type Roadmap = z.infer<typeof RoadmapSchema>;
 
-/**
- * Generate a structured roadmap for a goal, grounded STRICTLY in the user's CV.
- * Uses RAG to retrieve relevant chunks, then a single structured-output call so
- * the result renders as clean cards (not free text).
- */
-export async function generateRoadmap(goal: string): Promise<Roadmap> {
+export async function generateRoadmap(userId: string, goal: string): Promise<Roadmap> {
   const target = goal.trim() || "becoming job-ready for the user's target roles";
 
   let context = "(No CV uploaded yet.)";
   try {
     const chunks = await retrieveChunks(
-      DEMO_USER_ID,
+      userId,
       `${target} — relevant skills, experience, and gaps`,
       6
     );
@@ -59,6 +52,5 @@ ${context}
 =======================`,
   });
 
-  // Make sure the echoed goal reflects the user's input when they gave one.
   return { ...object, goal: goal.trim() || object.goal };
 }

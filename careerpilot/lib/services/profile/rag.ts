@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase";
+import { createAdminClient } from "@/lib/supabase";
 import { embedText } from "@/lib/ai";
 
 export type RetrievedChunk = {
@@ -18,7 +18,7 @@ export async function retrieveChunks(
   k = 5
 ): Promise<RetrievedChunk[]> {
   const queryEmbedding = await embedText(query);
-  const supabase = supabaseAdmin();
+  const supabase = createAdminClient();
   const { data, error } = await supabase.rpc("match_cv_chunks", {
     p_user_id: userId,
     query_embedding: queryEmbedding,
