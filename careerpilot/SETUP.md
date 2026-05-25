@@ -73,6 +73,7 @@ write the real values in this file.
 | `SUPABASE_SERVICE_ROLE_KEY` | ✅ yes | Supabase → Project Settings → API → service_role key (**server-only secret**) |
 | `GROQ_API_KEY` | ⬜ recommended | https://console.groq.com/keys (free, no card). LLM fallback — see note below |
 | `RAPIDAPI_KEY` | ⬜ optional | RapidAPI → JSearch → subscribe to **Basic ($0)** → copy key. Leave blank to use bundled seed jobs |
+| `TAVILY_API_KEY` | ⬜ optional | https://app.tavily.com (free, no card). Web-search fallback for the Job Hunter — see note below |
 
 > **LLM fallback (Gemini → Groq).** Gemini Flash-Lite is the primary model. If any
 > LLM call hits a rate-limit / quota error (429), the app **automatically retries
@@ -82,6 +83,14 @@ write the real values in this file.
 > unset, the fallback is skipped and rate-limited calls show a calm "AI is busy"
 > message instead. **Add `GROQ_API_KEY` in Vercel too** (Project → Settings →
 > Environment Variables) so the deployed demo has the same safety net.
+
+> **Web-search fallback (Tavily).** The Job Hunter agent sources jobs from JSearch
+> (cache → live → bundled seed). If `TAVILY_API_KEY` is set, the agent gains a
+> `webSearchJobs` tool it calls **only when JSearch returns nothing**, surfacing
+> job leads from the open web (scored with the same programmatic fit-score). The
+> agent's trace shows which tool ran, so the fallback is visible in the UI. If the
+> key is unset (or Tavily fails), behavior is unchanged — never crashes. **Add
+> `TAVILY_API_KEY` in Vercel too** if you want the fallback in the deployed demo.
 
 > `DEMO_USER_ID` has been removed — the app now uses **real Supabase Auth**.
 > Every user gets their own account, and data is scoped per user via RLS.
@@ -226,6 +235,11 @@ real browser never sends the header, so it cannot affect live user sessions. If
 
 Newest at the top. Format: `YYYY-MM-DD — name — what changed`.
 
+- 2026-05-25 — jobs — wired Tavily as a web-search fallback tool for the Job
+  Hunter agent. New env var `TAVILY_API_KEY` (optional; also add in Vercel). The
+  agent calls `webSearchJobs` only when JSearch returns nothing; web leads are
+  fit-scored like any job and the trace shows which tool ran. No new dependencies;
+  graceful if the key is missing or the call fails.
 - 2026-05-25 — nudges — added Pillar 4 AI nudges. New `notifications` table
   (**run `supabase/migrations/0004_notifications.sql`**), `/api/nudges` route
   (GET/POST/PATCH), and a "Generate today's nudges" panel on the Tracker. POST

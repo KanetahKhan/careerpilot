@@ -22,7 +22,7 @@ Built in 14 days for [CodeSprint 2026](https://poridhi.io) (IUT Computer Society
 
 | # | Pillar | What it does | Route |
 |---|--------|--------------|-------|
-| 1 | **Job Hunter Agent** | Natural language search via a tool-calling agent loop (JSearch live API → Supabase cache → bundled seed fallback), programmatic fit scores with 5-factor breakdown (semantic, skills, seniority, education, location) | `/hunter` |
+| 1 | **Job Hunter Agent** | Natural language search via a tool-calling agent loop (JSearch live API → Supabase cache → bundled seed fallback, plus a **Tavily open-web fallback** when JSearch is empty), programmatic fit scores with 5-factor breakdown (semantic, skills, seniority, education, location) | `/hunter` |
 | 2 | **CV Brain (RAG Core)** | PDF/DOCX/TXT upload, section-aware chunking, Gemini embeddings, pgvector HNSW storage, contextual retrieval | `/onboarding` · `/profile` |
 | 3 | **AI Coach** | Streaming chat with RAG-grounded responses, **citation chips** showing which CV sections were used, intent detection, roadmap generation, cover letter drafting | `/assistant` · `/roadmap` |
 | 4 | **Tracker** | Drag-and-drop Kanban (Applied → Interviewing → Offer → Rejected), goals/to-dos, progress dashboard with Recharts, manual application entry, a **month-view calendar** (events + goal deadlines + application dates), and **AI nudges** — proactive, data-grounded reminders generated from your real activity | `/tracker` (Board / Calendar tabs) |
@@ -98,6 +98,7 @@ The LLM only extracts skill lists; the factors, weights, and blend are all TypeS
 | LLM (fallback) | Groq Llama 3.3 70B | Auto-retry on a Gemini rate-limit (429) |
 | AI SDK | Vercel AI SDK 4.3 + @ai-sdk/google + @ai-sdk/groq | Streaming, tool calls, provider fallback |
 | Job Search | JSearch (RapidAPI) + Supabase cache + seed | Live search, cached to stay free-tier, honest seed fallback when no key/quota |
+| Web search (fallback) | Tavily | Agent's `webSearchJobs` tool — open-web job leads when JSearch returns nothing |
 | DnD | @hello-pangea/dnd 18 | Kanban drag-and-drop |
 | Charts | Recharts 2.13 | Dashboard statistics |
 | Icons | Lucide React 1.16 | UI icons |
@@ -142,6 +143,11 @@ GROQ_API_KEY=your_groq_key_here
 
 # RapidAPI → JSearch — BASIC ($0) plan only — optional; falls back to seed data
 RAPIDAPI_KEY=your_rapidapi_key_here
+
+# Tavily — free tier, no card — https://app.tavily.com
+# Web-search fallback: the Job Hunter agent uses it for open-web job leads only
+# when JSearch returns nothing. Optional; behavior is unchanged if unset.
+TAVILY_API_KEY=your_tavily_key_here
 ```
 
 > **Cost:** every dependency runs on a free tier. **Do not enable billing** on any service — the worst case is a rate-limit (429), never a charge.
