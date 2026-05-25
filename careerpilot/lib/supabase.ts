@@ -1,23 +1,17 @@
-import { createClient } from "@supabase/supabase-js";
-
 /**
- * Server-side Supabase client using the SERVICE ROLE key.
- * NEVER import this in a client component — the service role bypasses RLS.
- * In demo mode this is how every API route reads/writes the demo user's data.
+ * Supabase client entry point.
+ *
+ * Re-exports helpers from the /supabase directory so every file in the
+ * project can keep importing from "@/lib/supabase".
+ *
+ *   - createAdminClient()    — service-role client (bypasses RLS; server-only)
+ *   - createClient()         — browser client (client components)
+ *   - createServerClient()   — server client (route handlers, server actions)
+ *
+ * The DEMO_USER_ID constant has been removed — use the authenticated
+ * user's id from the session instead.
  */
-export function supabaseAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) {
-    throw new Error(
-      "Missing Supabase env. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env.local"
-    );
-  }
-  return createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
 
-/** The single demo user id (swap for auth.uid() when you wire Supabase Auth). */
-export const DEMO_USER_ID =
-  process.env.DEMO_USER_ID ?? "00000000-0000-0000-0000-000000000001";
+export { createAdminClient } from "./supabase/admin";
+export { createClient as createBrowserClient } from "./supabase/client";
+export { createClient as createServerClient } from "./supabase/server";

@@ -1,4 +1,4 @@
-import { supabaseAdmin, DEMO_USER_ID } from "@/lib/supabase";
+import { createAdminClient } from "@/lib/supabase";
 
 export type ProfileSection = {
   section: string;
@@ -11,18 +11,13 @@ export type CvProfile = {
   totalChunks: number;
 };
 
-/**
- * Read the user's parsed CV back out of the RAG store, grouped by section.
- * This is what the /profile view renders — visible proof that retrieval is
- * grounded in real, section-tagged chunks (not a generic profile).
- */
-export async function getCvProfile(): Promise<CvProfile> {
-  const supabase = supabaseAdmin();
+export async function getCvProfile(userId: string): Promise<CvProfile> {
+  const supabase = createAdminClient();
 
   const { data: doc } = await supabase
     .from("cv_documents")
     .select("file_name, created_at")
-    .eq("user_id", DEMO_USER_ID)
+    .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -30,7 +25,7 @@ export async function getCvProfile(): Promise<CvProfile> {
   const { data: chunks } = await supabase
     .from("cv_chunks")
     .select("section, position, content")
-    .eq("user_id", DEMO_USER_ID)
+    .eq("user_id", userId)
     .order("position", { ascending: true });
 
   const rows = (chunks ?? []) as { section: string; position: number; content: string }[];

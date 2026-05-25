@@ -27,6 +27,7 @@ cp .env.example .env.local
 # set up the database (one time per Supabase project)
 # open Supabase dashboard → SQL Editor → New query
 # → paste the entire contents of supabase/migrations/0001_init.sql → Run
+# → paste the entire contents of supabase/migrations/0002_auth.sql → Run
 
 # run it
 npm run dev          # http://localhost:3000
@@ -69,11 +70,63 @@ write the real values in this file.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ yes | Supabase → Project Settings → API → anon/public key |
 | `SUPABASE_SERVICE_ROLE_KEY` | ✅ yes | Supabase → Project Settings → API → service_role key (**server-only secret**) |
 | `RAPIDAPI_KEY` | ⬜ optional | RapidAPI → JSearch → subscribe to **Basic ($0)** → copy key. Leave blank to use bundled seed jobs |
-| `DEMO_USER_ID` | ✅ yes | keep the default in `.env.example` (matches the seeded profile) |
+
+> `DEMO_USER_ID` has been removed — the app now uses **real Supabase Auth**.
+> Every user gets their own account, and data is scoped per user via RLS.
 
 ---
 
-## 4. Gotchas / things that trip people up
+## 4. Supabase Auth setup (manual dashboard steps)
+
+The app uses **Supabase Auth** for email/password and Google OAuth sign-in.
+After creating your Supabase project, you must enable these providers.
+
+### 4a. Enable Email / Password auth
+
+1. Open your Supabase dashboard → **Authentication** → **Providers**.
+2. Click **Email** — it is enabled by default. Confirm it says **Enabled**.
+3. Under **Confirm email** (the "Confirm email" toggle), make sure it is **On**
+   so signups send a confirmation email (free tier includes email sending).
+4. Optionally configure **SMTP** under Authentication → Settings → SMTP if you
+   want to use your own email provider (not required for development).
+
+### 4b. Enable Google OAuth (requires Google Cloud project)
+
+To let users "Continue with Google", you need a Google Cloud OAuth client:
+
+1. Go to the **[Google Cloud Console](https://console.cloud.google.com)**.
+2. Create a new project (or select an existing one).
+3. Navigate to **APIs & Services** → **Credentials**.
+4. Click **Create Credentials** → **OAuth client ID**.
+   - If you haven't configured the OAuth consent screen yet, do so first:
+     - **User Type**: External (anyone with a Google account).
+     - Fill in the required fields (app name, support email, developer contact).
+     - Add `https://YOUR-PROJECT.supabase.co` as an Authorized Domain.
+     - Add your own email as a test user.
+5. Under **Application type**, choose **Web application**.
+6. Add these **Authorized redirect URIs** (replace `YOUR-PROJECT` with your actual Supabase project ref):
+   - `https://YOUR-PROJECT.supabase.co/auth/v1/callback`
+7. Copy the generated **Client ID** and **Client Secret**.
+
+Back in the Supabase dashboard:
+1. **Authentication** → **Providers** → **Google** → **Enabled**.
+2. Paste the **Client ID** and **Client Secret** from Google Cloud.
+3. Click **Save**.
+
+That's it — Google sign-in works on both localhost and production.
+
+### 4c. Site URL configuration
+
+1. Supabase dashboard → **Authentication** → **Settings** → **URL Configuration**.
+2. Set **Site URL** to `http://localhost:3000` (for development).
+3. Add `http://localhost:3000/**` and `https://your-vercel-app.vercel.app/**` to
+   **Redirect URLs**.
+4. Add `http://localhost:3000` and `https://your-vercel-app.vercel.app` to
+   **Additional redirect URLs**.
+
+---
+
+## 5. Gotchas / things that trip people up
 
 - **Database not set up?** If pages load but uploads/jobs error, you probably
   skipped running `supabase/migrations/0001_init.sql`. Run it in the SQL editor.
@@ -88,22 +141,31 @@ write the real values in this file.
 - **`.env.local` not loading?** Restart `npm run dev` after editing env files.
 - **Fonts / build error about Google Fonts:** only happens with no internet; works
   fine on Vercel and normal connections.
+- **Redirect loop after login?** Make sure the `redirectTo` URL in the login page
+  matches your Supabase "Site URL" configuration (see 4c above).
+- **Google sign-in not working?** Double-check the OAuth Client ID/Secret and the
+  Authorized Redirect URIs in both Google Cloud Console and Supabase.
+- **Email confirmation not sending?** Supabase's free tier includes email. If it's
+  not arriving, check the spam folder and verify "Confirm email" is enabled in
+  Authentication → Providers → Email.
 
 ---
 
-## 5. Deployment (Vercel)
+## 6. Deployment (Vercel)
 
 1. Push to GitHub.
 2. Import the repo at vercel.com → it auto-detects Next.js.
 3. Add **all** the env vars from section 3 in Vercel → Project → Settings →
    Environment Variables (the same keys you put in `.env.local`).
 4. Deploy. Re-deploy after adding new env vars.
+5. Update the Supabase **Site URL** and **Redirect URLs** to point to your
+   Vercel deployment URL (see 4c above).
 
 > Whoever sets up Vercel: note the live URL here → **Live URL: _____**
 
 ---
 
-## 6. CI & local checks (DevOps)
+## 7. CI & local checks (DevOps)
 
 Continuous integration runs in GitHub Actions (`.github/workflows/ci.yml`) on every
 push to `main` and every PR. It mirrors the checks you should run locally before
@@ -124,10 +186,14 @@ monitors and never fails on a free-tier rate limit.
 
 ---
 
-## 7. Change log (append a line whenever you change setup)
+## 8. Change log (append a line whenever you change setup)
 
 Newest at the top. Format: `YYYY-MM-DD — name — what changed`.
 
+- 2026-05-25 — auth — added real user auth via Supabase Auth (Google OAuth +
+  email/password). Replaced `DEMO_USER_ID` with per-user auth. Added `/login`,
+  `/signup`, middleware, auth trigger migration (`0002_auth.sql`). Removed
+  `DEMO_USER_ID` env var. See section 4 for manual configuration steps.
 - 2026-05-25 — quota — chat model → `gemini-2.5-flash-lite` (embeddings unchanged);
   fit-score extracts CV skills once per request (not per job); rate-limit (429)
   errors now show a calm "AI is busy" message. No new env vars.
@@ -138,5 +204,3 @@ Newest at the top. Format: `YYYY-MM-DD — name — what changed`.
 - 2026-05-25 — devops — added GitHub Actions CI (lint + typecheck + build), ESLint
   config, `/api/health` endpoint, and a repo-root `.gitignore`. No new env vars.
 - 2026-05-24 — (initial) — project scaffolded; env vars + DB migration documented.
-- _e.g. 2026-05-25 — chichi — added TAVILY_API_KEY for the agent web-search fallback; add it to .env.local and Vercel._
--added RAPIDAPI_KEY

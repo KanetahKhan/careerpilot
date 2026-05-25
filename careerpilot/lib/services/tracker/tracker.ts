@@ -1,4 +1,4 @@
-import { supabaseAdmin, DEMO_USER_ID } from "@/lib/supabase";
+import { createAdminClient } from "@/lib/supabase";
 
 export type ApplicationStatus = "applied" | "interviewing" | "offer" | "rejected";
 
@@ -11,23 +11,21 @@ export type NewApplication = {
   status?: ApplicationStatus | string;
 };
 
-/** List the demo user's applications, newest first. */
-export async function listApplications() {
-  const supabase = supabaseAdmin();
+export async function listApplications(userId: string) {
+  const supabase = createAdminClient();
   return supabase
     .from("applications")
     .select("*")
-    .eq("user_id", DEMO_USER_ID)
+    .eq("user_id", userId)
     .order("created_at", { ascending: false });
 }
 
-/** Create an application (from a tracked job card). */
-export async function createApplication(input: NewApplication) {
-  const supabase = supabaseAdmin();
+export async function createApplication(userId: string, input: NewApplication) {
+  const supabase = createAdminClient();
   return supabase
     .from("applications")
     .insert({
-      user_id: DEMO_USER_ID,
+      user_id: userId,
       role: input.role,
       company: input.company,
       location: input.location ?? null,
@@ -39,46 +37,42 @@ export async function createApplication(input: NewApplication) {
     .single();
 }
 
-/** Move an application along the Kanban pipeline. */
-export async function updateApplicationStatus(id: string, status: string) {
-  const supabase = supabaseAdmin();
+export async function updateApplicationStatus(id: string, userId: string, status: string) {
+  const supabase = createAdminClient();
   return supabase
     .from("applications")
     .update({ status, updated_at: new Date().toISOString() })
     .eq("id", id)
-    .eq("user_id", DEMO_USER_ID)
+    .eq("user_id", userId)
     .select("*")
     .single();
 }
 
-/** List the demo user's goals, soonest due first. */
-export async function listGoals() {
-  const supabase = supabaseAdmin();
+export async function listGoals(userId: string) {
+  const supabase = createAdminClient();
   return supabase
     .from("goals")
     .select("*")
-    .eq("user_id", DEMO_USER_ID)
+    .eq("user_id", userId)
     .order("due_date", { ascending: true });
 }
 
-/** Create a goal / to-do. */
-export async function createGoal(title: string, dueDate?: string | null) {
-  const supabase = supabaseAdmin();
+export async function createGoal(userId: string, title: string, dueDate?: string | null) {
+  const supabase = createAdminClient();
   return supabase
     .from("goals")
-    .insert({ user_id: DEMO_USER_ID, title, due_date: dueDate ?? null })
+    .insert({ user_id: userId, title, due_date: dueDate ?? null })
     .select("*")
     .single();
 }
 
-/** Toggle a goal's done state. */
-export async function setGoalDone(id: string, done: boolean) {
-  const supabase = supabaseAdmin();
+export async function setGoalDone(id: string, userId: string, done: boolean) {
+  const supabase = createAdminClient();
   return supabase
     .from("goals")
     .update({ done })
     .eq("id", id)
-    .eq("user_id", DEMO_USER_ID)
+    .eq("user_id", userId)
     .select("*")
     .single();
 }

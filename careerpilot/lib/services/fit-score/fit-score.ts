@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase";
+import { createAdminClient } from "@/lib/supabase";
 import { embedText, chatModel } from "@/lib/ai";
 import { generateObject } from "ai";
 import { z } from "zod";
@@ -144,7 +144,7 @@ export function explainFit(
  * CV-skill extraction (an LLM call) runs once, not once per job.
  */
 export async function loadCvContext(userId: string): Promise<CvContext> {
-  const supabase = supabaseAdmin();
+  const supabase = createAdminClient();
   const { data: chunks } = await supabase
     .from("cv_chunks")
     .select("content, embedding")

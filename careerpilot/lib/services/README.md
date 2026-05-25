@@ -18,7 +18,7 @@ lib/services/
   tracker/     applications (Kanban) + goals persistence
 lib/
   ai.ts        shared kernel — model + embeddings gateway (swap provider in 1 spot)
-  supabase.ts  shared kernel — service-role DB client + DEMO_USER_ID
+  supabase.ts  shared kernel — admin + browser + server DB clients
 ```
 
 ## Service contracts (responsibility · in → out · deps)

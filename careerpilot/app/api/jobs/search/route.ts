@@ -4,28 +4,20 @@ import { z } from "zod";
 import { chatModel, AI_BUSY_MESSAGE, isRateLimitError } from "@/lib/ai";
 import { searchJobs, type Job } from "@/lib/services/jobs";
 import { computeFitScore, loadCvContext } from "@/lib/services/fit-score";
-import { DEMO_USER_ID } from "@/lib/supabase";
+import { requireUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-/**
- * The Job Hunter AGENT. The LLM is given two tools and runs a tool-calling
- * loop (search → score → decide) until it has the best matches. We collect the
- * scored jobs out-of-band so the UI gets structured cards, not just prose.
- *
- * Quota note: the user's CV skills/centroid are loaded ONCE per request
- * (loadCvContext) and reused across every job, so we make far fewer AI calls.
- */
 export async function POST(req: Request) {
+  const user = await requireUser();
   const { query }: { query: string } = await req.json();
 
   const scored: (Job & { fit: Awaited<ReturnType<typeof computeFitScore>> })[] = [];
   const trace: string[] = [];
 
   try {
-    // Build the per-request CV snapshot once (one CV-skill extraction, not one per job).
-    const cvContext = await loadCvContext(DEMO_USER_ID);
+    const cvContext = await loadCvContext(user.id);
 
     try {
       await generateText({
@@ -68,7 +60,7 @@ export async function POST(req: Request) {
             }),
             execute: async (j) => {
               trace.push(`scoreFit("${j.role}")`);
-              const fit = await computeFitScore(DEMO_USER_ID, j.description, j.location ?? "", cvContext);
+              const fit = await computeFitScore(user.id, j.description, j.location ?? "", cvContext);
               scored.push({
                 id: j.jobId,
                 role: j.role,
@@ -86,21 +78,18 @@ export async function POST(req: Request) {
         },
       });
     } catch {
-      // Agent loop failed (e.g. rate limit). Fall through to a direct pass below;
-      // if that also fails it propagates to the outer handler.
+      // Agent loop failed — fall through to direct pass
     }
 
-    // Fallback: direct search + score so the demo still returns cards.
     if (scored.length === 0) {
       const jobs = await searchJobs(query);
       for (const j of jobs.slice(0, 4)) {
-        const fit = await computeFitScore(DEMO_USER_ID, j.description, j.location, cvContext);
+        const fit = await computeFitScore(user.id, j.description, j.location, cvContext);
         scored.push({ ...j, fit });
       }
       trace.push("fallback: direct search + score");
     }
   } catch (e) {
-    // Return 200 with a calm notice so the UI shows a friendly message, not a red error.
     const error = isRateLimitError(e) ? AI_BUSY_MESSAGE : "Search failed — please try again.";
     return NextResponse.json({ jobs: [], trace, error }, { status: 200 });
   }

@@ -92,7 +92,7 @@ The LLM only extracts skill lists; the factors, weights, and blend are all TypeS
 | Fonts | Geist Sans + Geist Mono | Typography |
 | Animations | Framer Motion 12.40 | Scroll/entry animations |
 | Database | Supabase Postgres + pgvector | Vector storage + relational data |
-| Auth | Demo mode (`DEMO_USER_ID`) | Single-user demo (Better Auth ready) |
+| Auth | Supabase Auth | Google OAuth + email/password, cookie sessions, RLS per user |
 | Embeddings | Gemini embedding-001 (768-d) | Vector embeddings |
 | LLM | Gemini 2.5 Flash Lite | Chat, scoring, roadmaps |
 | AI SDK | Vercel AI SDK 4.3 + @ai-sdk/google | Streaming, tool calls |
@@ -128,15 +128,13 @@ Create `.env.local` in the `careerpilot/` directory:
 GOOGLE_GENERATIVE_AI_API_KEY=your_gemini_key_here
 
 # Supabase — free project — https://supabase.com
+# See SETUP.md §4 for auth provider configuration (Google OAuth + email/password)
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 
 # RapidAPI → JSearch — BASIC ($0) plan only — optional; falls back to seed data
 RAPIDAPI_KEY=your_rapidapi_key_here
-
-# Demo user — single-user mode. Swap for Supabase Auth in production.
-DEMO_USER_ID=00000000-0000-0000-0000-000000000001
 ```
 
 > **Cost:** every dependency runs on a free tier. **Do not enable billing** on any service — the worst case is a rate-limit (429), never a charge.
@@ -157,6 +155,8 @@ npm install
 #    - Create a free project at https://supabase.com
 #    - SQL Editor → paste & run supabase/migrations/0001_init.sql
 #      (enables pgvector, creates tables + match_cv_chunks RPC + seed data)
+#    - Then paste & run supabase/migrations/0002_auth.sql
+#      (creates the auth trigger that auto-creates profiles on sign-up)
 
 # 4. Configure environment
 cp .env.example .env.local
@@ -241,8 +241,8 @@ Bottlenecks & mitigations:
 
 ## ⚠️ Known Limitations
 
-- **Authentication:** Currently runs in single-user demo mode (`DEMO_USER_ID`). RLS policies for multi-user auth are in the migration — swap `DEMO_USER_ID` for `auth.uid()` to go multi-tenant.
-- **Job Search:** Uses DuckDuckGo scraping with honest mock-data fallback labeled "Demo Mode." No paid job board API required for demo.
+- **Authentication:** Now uses **real Supabase Auth** (Google OAuth + email/password). Users must sign up at `/signup` or sign in at `/login`. See `SETUP.md` for manual dashboard configuration steps.
+- **Job Search:** Uses seed + cached job data with optional JSearch live search. No paid job board API required for demo.
 - **Calendar:** Events table exists in schema; full calendar view pending.
 - **LLM Fallback:** Auto-switches providers on rate-limit; manual retry on total exhaustion.
 

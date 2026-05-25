@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { supabaseAdmin } from "@/lib/supabase";
+import { createAdminClient } from "@/lib/supabase";
 import { SEED_JOBS } from "./seed-jobs";
 
 export type Job = {
@@ -44,7 +44,7 @@ function mapJSearch(j: any): Job {
  *      demo always shows real, structured cards.
  */
 export async function searchJobs(query: string, location = ""): Promise<Job[]> {
-  const supabase = supabaseAdmin();
+  const supabase = createAdminClient();
   const key = hash(query, location);
 
   // 1. cache
