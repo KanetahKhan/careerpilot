@@ -14,7 +14,7 @@ Built in 14 days for [CodeSprint 2026](https://poridhi.io) (IUT Computer Society
 
 **URL:** _add your Vercel/Render/Railway URL here_
 
-**Demo Credentials:** No login required — runs in demo mode with a pre-seeded CV. Just upload your own PDF to personalize.
+**Sign in:** Create an account at `/signup` (email + password) or use **Continue with Google**. Each user gets their own CV, applications, and chat history, isolated per account. After signing in, upload your CV from `/onboarding` to personalize everything.
 
 ---
 
@@ -22,7 +22,7 @@ Built in 14 days for [CodeSprint 2026](https://poridhi.io) (IUT Computer Society
 
 | # | Pillar | What it does | Route |
 |---|--------|--------------|-------|
-| 1 | **Job Hunter Agent** | Natural language search, live DuckDuckGo scraping + mock fallback, programmatic fit scores with 5-factor breakdown (semantic, skills, seniority, education, location) | `/hunter` |
+| 1 | **Job Hunter Agent** | Natural language search via a tool-calling agent loop (JSearch live API → Supabase cache → bundled seed fallback), programmatic fit scores with 5-factor breakdown (semantic, skills, seniority, education, location) | `/hunter` |
 | 2 | **CV Brain (RAG Core)** | PDF/DOCX/TXT upload, section-aware chunking, Gemini embeddings, pgvector HNSW storage, contextual retrieval | `/onboarding` · `/profile` |
 | 3 | **AI Coach** | Streaming chat with RAG-grounded responses, **citation chips** showing which CV sections were used, intent detection, roadmap generation, cover letter drafting | `/assistant` · `/roadmap` |
 | 4 | **Tracker** | Drag-and-drop Kanban (Applied → Interviewing → Offer → Rejected), goals/to-dos, progress dashboard with Recharts, manual application entry | `/tracker` |
@@ -96,7 +96,7 @@ The LLM only extracts skill lists; the factors, weights, and blend are all TypeS
 | Embeddings | Gemini embedding-001 (768-d) | Vector embeddings |
 | LLM | Gemini 2.5 Flash Lite | Chat, scoring, roadmaps |
 | AI SDK | Vercel AI SDK 4.3 + @ai-sdk/google | Streaming, tool calls |
-| Job Search | DuckDuckGo scraping + seed data | Live search with honest mock fallback |
+| Job Search | JSearch (RapidAPI) + Supabase cache + seed | Live search, cached to stay free-tier, honest seed fallback when no key/quota |
 | DnD | @hello-pangea/dnd 18 | Kanban drag-and-drop |
 | Charts | Recharts 2.13 | Dashboard statistics |
 | Icons | Lucide React 1.16 | UI icons |
@@ -185,9 +185,13 @@ open http://localhost:3000
 
 ## 🧪 Evaluation Suite
 
-Run the test suite against a running dev server:
+Run the test suite against a running dev server. The routes are auth-protected,
+so set `EVAL_SECRET` in `.env.local` first (any random string) — the suite sends
+it as a dev-only header that authenticates as the seeded eval user. This bypass
+is disabled in production. See [`SETUP.md`](SETUP.md) §7.
 
 ```bash
+# .env.local → EVAL_SECRET=some-random-dev-string
 npm run dev      # terminal 1 — start dev server
 npm run eval     # terminal 2 — run 11 automated cases
 ```
@@ -233,7 +237,7 @@ Test cases cover:
 | **Per user** | | **~$0.007** |
 
 Bottlenecks & mitigations:
-- **LLM rate limits** → Round-robin router (Gemini → Groq → OpenRouter) scaffolded in `lib/ai.ts`
+- **LLM rate limits** → model choice is centralized in `lib/ai.ts` for a one-line swap to a Groq fallback; we run `gemini-2.5-flash-lite` for its higher free-tier quota, and every call handles 429s gracefully with a calm "AI is busy" message (automated provider failover is a planned next step, not yet wired)
 - **CV ingestion timeout** → Background jobs (Inngest-ready architecture)
 - **Vector latency** → pgvector HNSW index (good to ~1M chunks)
 
@@ -243,8 +247,8 @@ Bottlenecks & mitigations:
 
 - **Authentication:** Now uses **real Supabase Auth** (Google OAuth + email/password). Users must sign up at `/signup` or sign in at `/login`. See `SETUP.md` for manual dashboard configuration steps.
 - **Job Search:** Uses seed + cached job data with optional JSearch live search. No paid job board API required for demo.
-- **Calendar:** Events table exists in schema; full calendar view pending.
-- **LLM Fallback:** Auto-switches providers on rate-limit; manual retry on total exhaustion.
+- **Calendar:** Not yet built — no calendar view or events table ships today (a candidate for the tracker post-MVP).
+- **LLM Fallback:** 429s are handled gracefully (calm "AI is busy" message); the provider is centralized in `lib/ai.ts` for a one-line Groq swap, but automatic failover is not yet implemented.
 
 ---
 
