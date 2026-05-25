@@ -1,0 +1,769 @@
+/* ============================================================
+   CV Profile Page — Portfolio Style Card System
+   ============================================================ */
+
+.cv-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.cv-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 24px;
+  align-items: start;
+}
+
+.cv-main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cv-sidebar {
+  position: sticky;
+  top: 24px;
+}
+
+/* ── Loading / Empty ──────────────────────────────────────── */
+.cv-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 12px;
+  color: #64748b;
+}
+
+.cv-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.cv-empty-card {
+  text-align: center;
+  max-width: 360px;
+}
+
+.cv-empty-card .empty-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
+  border-radius: 20px;
+  background: #eff6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+}
+
+.cv-empty-card h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+}
+
+.cv-empty-card p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0 0 24px 0;
+  line-height: 1.6;
+}
+
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+  transition: all 0.2s ease;
+}
+
+.upload-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+}
+
+/* ── Section Header Row (shared) ──────────────────────────── */
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.section-header-row h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.add-project-btn,
+.add-skill-btn {
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-project-btn:hover,
+.add-skill-btn:hover {
+  background: #2563eb;
+  color: white;
+}
+
+/* ── Profile Header ───────────────────────────────────────── */
+.profile-header-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 40px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.profile-avatar-section {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+
+.profile-name-block h1 {
+  font-size: 32px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.02em;
+}
+
+.profile-tagline {
+  font-size: 15px;
+  color: #64748b;
+  margin: 0;
+}
+
+.profile-contact-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.contact-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-size: 13px;
+  color: #475569;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.contact-chip:hover {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #2563eb;
+}
+
+.profile-social-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.social-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.social-btn.linkedin {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #dbeafe;
+}
+
+.social-btn.github {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+
+.social-btn.website {
+  background: #f0fdf4;
+  color: #059669;
+  border: 1px solid #bbf7d0;
+}
+
+.social-btn.disabled {
+  background: #f8fafc;
+  color: #cbd5e1;
+  border: 1px dashed #e2e8f0;
+  cursor: not-allowed;
+}
+
+.social-btn:hover:not(.disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.edit-profile-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-left: auto;
+  transition: all 0.2s ease;
+}
+
+.edit-profile-btn:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+/* ── Skills ───────────────────────────────────────────────── */
+.skills-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 28px;
+  position: sticky;
+  top: 24px;
+}
+
+.skills-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.skills-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.skill-group {
+  margin-bottom: 20px;
+}
+
+.skill-group:last-child {
+  margin-bottom: 0;
+}
+
+.skill-category {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 10px 0;
+}
+
+.skill-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.skill-chip {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.skill-chip:hover {
+  transform: scale(1.05);
+}
+
+/* ── Projects ─────────────────────────────────────────────── */
+.projects-section {
+  margin-bottom: 32px;
+}
+
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.project-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+}
+
+.project-card:hover {
+  box-shadow: 0 12px 40px -12px rgba(15, 23, 42, 0.1);
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+}
+
+.project-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.project-title-row h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.featured-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: #fef3c7;
+  color: #d97706;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.tech-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.tech-badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.project-desc {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #64748b;
+  margin: 0 0 12px 0;
+}
+
+.project-highlights {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.project-highlights li {
+  font-size: 13px;
+  color: #475569;
+  padding-left: 16px;
+  position: relative;
+  line-height: 1.5;
+}
+
+.project-highlights li::before {
+  content: "\2192";
+  position: absolute;
+  left: 0;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.project-links {
+  display: flex;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.project-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.project-link.github {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.project-link.github:hover {
+  background: #374151;
+  color: white;
+}
+
+.project-link.live {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.project-link.live:hover {
+  background: #2563eb;
+  color: white;
+}
+
+.project-link.disabled {
+  background: #f8fafc;
+  color: #cbd5e1;
+  cursor: not-allowed;
+}
+
+/* ── Education ────────────────────────────────────────────── */
+.education-section {
+  margin-bottom: 32px;
+}
+
+.education-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.edu-card {
+  position: relative;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px 24px 24px 40px;
+  margin-left: 16px;
+}
+
+.edu-timeline-line {
+  position: absolute;
+  left: -17px;
+  top: 0;
+  bottom: -16px;
+  width: 2px;
+  background: #e2e8f0;
+}
+
+.edu-card:last-child .edu-timeline-line {
+  display: none;
+}
+
+.edu-dot {
+  position: absolute;
+  left: -22px;
+  top: 28px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #2563eb;
+  border: 2px solid white;
+  box-shadow: 0 0 0 2px #dbeafe;
+}
+
+.edu-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.edu-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+
+.edu-degree {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}
+
+.gpa-badge {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: #fef3c7;
+  color: #d97706;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.gpa-badge small {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+.edu-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.edu-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ── Certifications ───────────────────────────────────────── */
+.certifications-section {
+  margin-bottom: 32px;
+}
+
+.certs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.cert-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px;
+  transition: all 0.2s ease;
+}
+
+.cert-card:hover {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.cert-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #fef3c7;
+  color: #d97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cert-content h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+  line-height: 1.4;
+}
+
+.cert-issuer {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0 0 8px 0;
+}
+
+.cert-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.cert-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cert-rank {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #dcfce7;
+  color: #16a34a;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* ── Extracurricular ──────────────────────────────────────── */
+.extra-section {
+  margin-bottom: 32px;
+}
+
+.extra-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.extra-item {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px 24px;
+}
+
+.extra-org {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+
+.extra-role {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+
+.extra-activities {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.extra-activities li {
+  font-size: 13px;
+  color: #475569;
+  padding-left: 16px;
+  position: relative;
+}
+
+.extra-activities li::before {
+  content: "\2022";
+  position: absolute;
+  left: 0;
+  color: #2563eb;
+}
+
+/* ── Dark Mode ────────────────────────────────────────────── */
+.dark .cv-page { background: transparent; }
+.dark .profile-header-card { background: #1a1a2e; border-color: #2a2a40; }
+.dark .profile-name-block h1 { color: #f0f0f5; }
+.dark .profile-tagline { color: #a0a0b0; }
+.dark .contact-chip { background: #222236; border-color: #333348; color: #c0c0d0; }
+.dark .edit-profile-btn { background: #1a1a2e; border-color: #333348; color: #a0a0b0; }
+.dark .edit-profile-btn:hover { background: #222236; color: #f0f0f5; }
+.dark .section-header-row h2 { color: #f0f0f5; }
+.dark .skills-card { background: #1a1a2e; border-color: #2a2a40; }
+.dark .skills-header h2 { color: #f0f0f5; }
+.dark .add-skill-btn { background: #222236; border-color: #333348; color: #60a5fa; }
+.dark .add-project-btn { background: #222236; border-color: #333348; color: #60a5fa; }
+.dark .project-card { background: #1a1a2e; border-color: #2a2a40; }
+.dark .project-title-row h3 { color: #f0f0f5; }
+.dark .project-desc { color: #a0a0b0; }
+.dark .project-highlights li { color: #c0c0d0; }
+.dark .project-links { border-color: #2a2a40; }
+.dark .project-link.github { background: #222236; color: #c0c0d0; }
+.dark .project-link.github:hover { background: #374151; color: white; }
+.dark .project-link.disabled { background: #1a1a2e; color: #333348; }
+.dark .edu-card { background: #1a1a2e; border-color: #2a2a40; }
+.dark .edu-header h3 { color: #f0f0f5; }
+.dark .edu-timeline-line { background: #333348; }
+.dark .edu-dot { border-color: #1a1a2e; box-shadow: 0 0 0 2px #333348; }
+.dark .cert-card { background: #1a1a2e; border-color: #2a2a40; }
+.dark .cert-card:hover { background: #222236; border-color: #d9770640; }
+.dark .cert-content h4 { color: #f0f0f5; }
+.dark .extra-item { background: #1a1a2e; border-color: #2a2a40; }
+.dark .extra-org { color: #f0f0f5; }
+.dark .extra-activities li { color: #c0c0d0; }
+.dark .cv-empty-card h2 { color: #f0f0f5; }
+.dark .cv-empty-card p { color: #a0a0b0; }
+.dark .cv-loading { color: #a0a0b0; }
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .cv-grid {
+    grid-template-columns: 1fr;
+  }
+  .cv-sidebar {
+    position: static;
+    order: -1;
+  }
+  .skills-card {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .projects-grid { grid-template-columns: 1fr; }
+  .certs-grid { grid-template-columns: 1fr; }
+  .profile-header-card { padding: 24px; }
+  .profile-avatar-section { flex-direction: column; text-align: center; }
+  .profile-contact-row { justify-content: center; }
+  .profile-social-row { justify-content: center; }
+  .edit-profile-btn { margin-left: 0; }
+}

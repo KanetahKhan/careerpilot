@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from "recharts";
+import { Plus } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
 import { AddApplicationButton } from "@/components/AddApplicationButton";
 import { Calendar } from "@/components/Calendar";
@@ -75,6 +76,11 @@ export default function TrackerPage() {
     });
   };
 
+  const [goalTitle, setGoalTitle] = useState("");
+  const [goalDue, setGoalDue] = useState("");
+  const [addingGoal, setAddingGoal] = useState(false);
+  const goalInput = useRef<HTMLInputElement>(null);
+
   async function toggleGoal(goal: Goal) {
     setGoals((prev) => prev.map((x) => (x.id === goal.id ? { ...x, done: !x.done } : x)));
     await fetch("/api/goals", {
@@ -82,6 +88,28 @@ export default function TrackerPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: goal.id, done: !goal.done }),
     });
+  }
+
+  async function addGoal() {
+    const title = goalTitle.trim();
+    if (!title) return;
+    setAddingGoal(true);
+    try {
+      const res = await fetch("/api/goals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, due_date: goalDue || null }),
+      });
+      const data = await res.json();
+      if (data.goal) {
+        setGoals((prev) => [...prev, data.goal]);
+        setGoalTitle("");
+        setGoalDue("");
+        goalInput.current?.focus();
+      }
+    } finally {
+      setAddingGoal(false);
+    }
   }
 
   const getAppsByStatus = (status: string) =>
@@ -233,6 +261,31 @@ export default function TrackerPage() {
       {/* goals */}
       <div className="panel p-5">
         <p className="label mb-3">Goals & to-dos</p>
+
+        <div className="mb-3 flex items-center gap-2">
+          <input
+            ref={goalInput}
+            value={goalTitle}
+            onChange={(e) => setGoalTitle(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addGoal()}
+            placeholder="Add a goal…"
+            className="flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
+          <input
+            type="date"
+            value={goalDue}
+            onChange={(e) => setGoalDue(e.target.value)}
+            className="w-36 rounded-md border border-border bg-background px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
+          <button
+            onClick={addGoal}
+            disabled={addingGoal || !goalTitle.trim()}
+            className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+          >
+            <Plus size={16} /> {addingGoal ? "Adding…" : "Add"}
+          </button>
+        </div>
+
         <div className="space-y-2">
           {goals.map((g) => (
             <button
