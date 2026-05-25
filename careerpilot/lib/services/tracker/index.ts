@@ -9,10 +9,11 @@
  *   Applications · listApplications() · createApplication(input)
  *               · updateApplicationStatus(id, status)
  *   Goals       · listGoals() · createGoal(title, dueDate?) · setGoalDone(id, done)
+ *   Events      · listEvents() · createEvent(input) · deleteEvent(id)
  *
- * Inputs:  application/goal payloads + ids.
+ * Inputs:  application/goal/event payloads + ids.
  * Outputs: Supabase query results ({ data, error }).
- * Depends on: core lib/supabase (applications, goals tables).
+ * Depends on: core lib/supabase (applications, goals, events tables).
  */
 export {
   listApplications,
@@ -21,6 +22,11 @@ export {
   listGoals,
   createGoal,
   setGoalDone,
+  listEvents,
+  createEvent,
+  deleteEvent,
   type ApplicationStatus,
   type NewApplication,
+  type EventType,
+  type NewEvent,
 } from "./tracker";

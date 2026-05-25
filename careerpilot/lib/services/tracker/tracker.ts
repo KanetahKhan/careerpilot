@@ -76,3 +76,50 @@ export async function setGoalDone(id: string, userId: string, done: boolean) {
     .select("*")
     .single();
 }
+
+// ── Calendar events ──────────────────────────────────────────────────────────
+export type EventType = "deadline" | "reminder" | "custom";
+
+export type NewEvent = {
+  title: string;
+  event_date: string; // YYYY-MM-DD
+  type?: EventType | string;
+  related_goal_id?: string | null;
+  related_application_id?: string | null;
+};
+
+export async function listEvents(userId: string) {
+  const supabase = createAdminClient();
+  return supabase
+    .from("events")
+    .select("*")
+    .eq("user_id", userId)
+    .order("event_date", { ascending: true });
+}
+
+export async function createEvent(userId: string, input: NewEvent) {
+  const supabase = createAdminClient();
+  return supabase
+    .from("events")
+    .insert({
+      user_id: userId,
+      title: input.title,
+      event_date: input.event_date,
+      type: input.type ?? "custom",
+      related_goal_id: input.related_goal_id ?? null,
+      related_application_id: input.related_application_id ?? null,
+    })
+    .select("*")
+    .single();
+}
+
+export async function deleteEvent(id: string, userId: string) {
+  const supabase = createAdminClient();
+  return supabase
+    .from("events")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select("*")
+    .single();
+}
