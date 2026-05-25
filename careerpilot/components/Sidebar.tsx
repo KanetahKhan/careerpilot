@@ -16,7 +16,10 @@ import {
   ChevronRight,
   Menu,
   X,
+  LogIn,
 } from "lucide-react";
+import { useAuth } from "./AuthProvider";
+import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/hunter", label: "Job Hunter", icon: Search, badge: null as null },
@@ -30,6 +33,7 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
+  const { user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -64,18 +68,22 @@ export function Sidebar() {
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
-      {/* logo */}
       <Link
         href="/"
-        className={`flex items-center gap-2 ${collapsed ? "justify-center px-0" : "px-4"} h-16 shrink-0 hover:opacity-80 transition-opacity`}
+        className={cn(
+          "flex items-center gap-2 h-16 shrink-0 hover:opacity-80 transition-opacity",
+          collapsed ? "justify-center px-0" : "px-4"
+        )}
       >
         <Sparkles className="h-5 w-5 text-primary flex-shrink-0" />
-        <span className={`font-bold text-foreground overflow-hidden whitespace-nowrap transition-all ${collapsed ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
+        <span className={cn(
+          "font-bold text-foreground overflow-hidden whitespace-nowrap transition-all",
+          collapsed ? "w-0 opacity-0" : "w-auto opacity-100"
+        )}>
           CareerPilot
         </span>
       </Link>
 
-      {/* nav */}
       <nav className="flex-1 space-y-1 px-2 py-4">
         {navItems.map((item) => {
           const active = pathname === item.href;
@@ -85,13 +93,13 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               onClick={() => setMobileOpen(false)}
-              className={`group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                collapsed ? "justify-center" : ""
-              } ${
+              className={cn(
+                "group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                collapsed ? "justify-center" : "",
                 active
                   ? "border-r-2 border-primary bg-primary/10 text-primary"
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-              }`}
+              )}
             >
               <item.icon className="h-5 w-5 shrink-0" />
               {!collapsed && (
@@ -109,48 +117,88 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* footer */}
-      <div className="border-t border-border p-4">
-        {collapsed ? (
-          <>
-            <button
-              onClick={() => setCollapsed(false)}
-              className="mx-auto mb-2 hidden md:grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="mx-auto flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-              aria-label="Toggle theme"
-            >
-              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
-          </>
+      <div className="mt-auto border-t border-border">
+        {user ? (
+          <div className="p-4">
+            <div className="flex items-center gap-3">
+              {user.user_metadata?.avatar_url ? (
+                <img
+                  src={user.user_metadata.avatar_url}
+                  alt=""
+                  className="h-8 w-8 rounded-full shrink-0"
+                />
+              ) : (
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-medium text-primary">
+                    {(user.email?.charAt(0) || "U").toUpperCase()}
+                  </span>
+                </div>
+              )}
+              {!collapsed && (
+                <div className="overflow-hidden">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {user.user_metadata?.full_name || user.email?.split("@")[0] || "User"}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                </div>
+              )}
+            </div>
+          </div>
         ) : (
-          <>
-            <button
-              onClick={() => setCollapsed(true)}
-              className="mb-2 hidden md:grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
+          <div className="p-4">
+            <Link
+              href="/login"
+              className={cn(
+                "flex items-center gap-2 text-sm text-primary hover:underline transition-colors",
+                collapsed && "justify-center"
+              )}
             >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-            >
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              <span>{theme === "dark" ? "Light" : "Dark"}</span>
-            </button>
-          </>
+              <LogIn size={16} />
+              {!collapsed && <span>Sign in</span>}
+            </Link>
+          </div>
         )}
+        <div className="p-4 pt-0">
+          {collapsed ? (
+            <>
+              <button
+                onClick={() => setCollapsed(false)}
+                className="mx-auto mb-2 hidden md:grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="mx-auto flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                aria-label="Toggle theme"
+              >
+                {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => setCollapsed(true)}
+                className="mb-2 hidden md:grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+              >
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                <span>{theme === "dark" ? "Light" : "Dark"}</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
 
   return (
     <>
-      {/* mobile hamburger */}
       <button
         onClick={() => setMobileOpen(true)}
         className="fixed left-4 top-4 z-50 grid h-10 w-10 place-items-center rounded-xl border border-border bg-background text-foreground shadow-md md:hidden"
@@ -158,7 +206,6 @@ export function Sidebar() {
         <Menu className="h-5 w-5" />
       </button>
 
-      {/* mobile overlay */}
       {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
@@ -166,11 +213,11 @@ export function Sidebar() {
         />
       )}
 
-      {/* mobile drawer */}
       <aside
-        className={`fixed left-0 top-0 z-50 h-full w-64 bg-background shadow-xl transition-transform duration-300 md:hidden ${
+        className={cn(
+          "fixed left-0 top-0 z-50 h-full w-64 bg-background shadow-xl transition-transform duration-300 md:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        )}
       >
         <button
           onClick={() => setMobileOpen(false)}
@@ -181,11 +228,11 @@ export function Sidebar() {
         {sidebarContent}
       </aside>
 
-      {/* desktop sidebar */}
       <aside
-        className={`hidden md:flex flex-col border-r border-border bg-background transition-all duration-200 ${
+        className={cn(
+          "hidden md:flex flex-col border-r border-border bg-background transition-all duration-200",
           collapsed ? "w-[72px]" : "w-64"
-        }`}
+        )}
       >
         {sidebarContent}
       </aside>
