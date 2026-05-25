@@ -29,6 +29,7 @@ cp .env.example .env.local
 # → paste the entire contents of supabase/migrations/0001_init.sql → Run
 # → paste the entire contents of supabase/migrations/0002_auth.sql → Run
 # → paste the entire contents of supabase/migrations/0003_events.sql → Run
+# → paste the entire contents of supabase/migrations/0004_notifications.sql → Run
 
 # run it
 npm run dev          # http://localhost:3000
@@ -225,6 +226,12 @@ real browser never sends the header, so it cannot affect live user sessions. If
 
 Newest at the top. Format: `YYYY-MM-DD — name — what changed`.
 
+- 2026-05-25 — nudges — added Pillar 4 AI nudges. New `notifications` table
+  (**run `supabase/migrations/0004_notifications.sql`**), `/api/nudges` route
+  (GET/POST/PATCH), and a "Generate today's nudges" panel on the Tracker. POST
+  reads the user's real applications/goals/CV-presence and makes ONE LLM call
+  (Gemini→Groq fallback) to write 2-4 grounded nudges; degrades to deterministic
+  rule-based nudges if AI is unavailable. No new dependencies.
 - 2026-05-25 — calendar — added Pillar 4 month-view calendar in the Tracker
   (Board/Calendar tabs). New `events` table (**run `supabase/migrations/0003_events.sql`
   in the Supabase SQL editor**), `/api/events` route (GET/POST/DELETE), and a

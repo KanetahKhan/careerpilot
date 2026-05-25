@@ -25,7 +25,7 @@ Built in 14 days for [CodeSprint 2026](https://poridhi.io) (IUT Computer Society
 | 1 | **Job Hunter Agent** | Natural language search via a tool-calling agent loop (JSearch live API → Supabase cache → bundled seed fallback), programmatic fit scores with 5-factor breakdown (semantic, skills, seniority, education, location) | `/hunter` |
 | 2 | **CV Brain (RAG Core)** | PDF/DOCX/TXT upload, section-aware chunking, Gemini embeddings, pgvector HNSW storage, contextual retrieval | `/onboarding` · `/profile` |
 | 3 | **AI Coach** | Streaming chat with RAG-grounded responses, **citation chips** showing which CV sections were used, intent detection, roadmap generation, cover letter drafting | `/assistant` · `/roadmap` |
-| 4 | **Tracker** | Drag-and-drop Kanban (Applied → Interviewing → Offer → Rejected), goals/to-dos, progress dashboard with Recharts, manual application entry, and a **month-view calendar** plotting events + goal deadlines + application dates | `/tracker` (Board / Calendar tabs) |
+| 4 | **Tracker** | Drag-and-drop Kanban (Applied → Interviewing → Offer → Rejected), goals/to-dos, progress dashboard with Recharts, manual application entry, a **month-view calendar** (events + goal deadlines + application dates), and **AI nudges** — proactive, data-grounded reminders generated from your real activity | `/tracker` (Board / Calendar tabs) |
 
 ---
 
@@ -117,6 +117,7 @@ The LLM only extracts skill lists; the factors, weights, and blend are all TypeS
 | `/api/applications` | GET / POST / PATCH | CRUD for job applications |
 | `/api/goals` | GET / PATCH | Goals and to-dos |
 | `/api/events` | GET / POST / DELETE | Calendar events (deadlines/reminders), linkable to goals/applications |
+| `/api/nudges` | GET / POST / PATCH | AI nudges — POST generates 2-4 data-grounded reminders (one LLM call), GET lists, PATCH marks read |
 | `/api/health` | GET | Liveness probe |
 
 ---
