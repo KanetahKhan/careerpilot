@@ -123,3 +123,36 @@ export async function deleteEvent(id: string, userId: string) {
     .select("*")
     .single();
 }
+
+// ── Notifications / AI nudges ────────────────────────────────────────────────
+export type NotificationType = "apply" | "goal" | "skill" | "general";
+
+export async function listNotifications(userId: string) {
+  const supabase = createAdminClient();
+  return supabase
+    .from("notifications")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+}
+
+/** Bulk-insert generated nudges; returns the inserted rows (with ids). */
+export async function insertNotifications(
+  userId: string,
+  items: { message: string; type: string }[]
+) {
+  const supabase = createAdminClient();
+  const rows = items.map((n) => ({ user_id: userId, message: n.message, type: n.type }));
+  return supabase.from("notifications").insert(rows).select("*");
+}
+
+export async function markNotificationRead(id: string, userId: string, read = true) {
+  const supabase = createAdminClient();
+  return supabase
+    .from("notifications")
+    .update({ read })
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select("*")
+    .single();
+}
