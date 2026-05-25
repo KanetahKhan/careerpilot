@@ -12,7 +12,7 @@ export function Footer() {
         <div className="footer-links">
           <div className="link-col">
             <h4>Product</h4>
-            <Link href="/cv">CV Brain</Link>
+            <Link href="/profile">CV Brain</Link>
             <Link href="/hunter">Job Hunter</Link>
             <Link href="/assistant">AI Coach</Link>
             <Link href="/tracker">Tracker</Link>

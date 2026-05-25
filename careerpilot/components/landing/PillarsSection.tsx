@@ -6,7 +6,7 @@ import Link from "next/link";
 
 const pillarRoutes: Record<string, string> = {
   "Job Hunter": "/jobs",
-  "CV Brain": "/cv",
+  "CV Brain": "/profile",
   "AI Coach": "/coach",
   "Tracker": "/tracker",
 };
