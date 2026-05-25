@@ -23,7 +23,8 @@
 > cost above stays essentially flat.
 
 ## Bottlenecks & mitigation
-1. **Gemini rate limits in spikes** → provider fallback to Groq (one-line SDK swap).
+1. **Gemini rate limits in spikes** → automatic provider failover to Groq on a 429
+   (implemented in `lib/ai.ts`; covers chat, fit-score, agent, roadmap, intent).
 2. **Ingestion > Vercel function timeout** → move embedding to Supabase Edge Functions
    or a queue (Inngest/QStash); stream progress to the UI.
 3. **Vector latency at >1M chunks** → migrate pgvector → Qdrant when p95 > 200ms

@@ -69,7 +69,17 @@ write the real values in this file.
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ yes | Supabase → Project Settings → API → Project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ yes | Supabase → Project Settings → API → anon/public key |
 | `SUPABASE_SERVICE_ROLE_KEY` | ✅ yes | Supabase → Project Settings → API → service_role key (**server-only secret**) |
+| `GROQ_API_KEY` | ⬜ recommended | https://console.groq.com/keys (free, no card). LLM fallback — see note below |
 | `RAPIDAPI_KEY` | ⬜ optional | RapidAPI → JSearch → subscribe to **Basic ($0)** → copy key. Leave blank to use bundled seed jobs |
+
+> **LLM fallback (Gemini → Groq).** Gemini Flash-Lite is the primary model. If any
+> LLM call hits a rate-limit / quota error (429), the app **automatically retries
+> the same operation on Groq** (`llama-3.3-70b-versatile`) — including the
+> streaming assistant chat, which falls back to streaming from Groq. This covers
+> the plan's "Gemini rate-limit mid-demo" critical risk. If `GROQ_API_KEY` is
+> unset, the fallback is skipped and rate-limited calls show a calm "AI is busy"
+> message instead. **Add `GROQ_API_KEY` in Vercel too** (Project → Settings →
+> Environment Variables) so the deployed demo has the same safety net.
 
 > `DEMO_USER_ID` has been removed — the app now uses **real Supabase Auth**.
 > Every user gets their own account, and data is scoped per user via RLS.
@@ -214,6 +224,11 @@ real browser never sends the header, so it cannot affect live user sessions. If
 
 Newest at the top. Format: `YYYY-MM-DD — name — what changed`.
 
+- 2026-05-25 — ai — added automatic Gemini→Groq fallback on rate-limit (429) for
+  every LLM call (chat stream, fit-score skill extraction, job-hunter agent,
+  roadmap, intent). New dep `@ai-sdk/groq`; new env var `GROQ_API_KEY` (also add
+  it in Vercel). Embeddings stay on Gemini. If both providers fail, the UI shows
+  a calm "AI is busy" message.
 - 2026-05-25 — eval — fixed the eval suite for real auth: routes now require a
   session, so the suite sends a dev-only `x-eval-secret` header that `lib/auth.ts`
   maps to the seeded eval user. New env var `EVAL_SECRET` (optional `EVAL_USER_ID`).

@@ -11,7 +11,7 @@ working agentic loop**, on a stack that deploys to Vercel with zero config.
 |-------|--------|----------|--------------------------|
 | Framework | Next.js 15 (App Router) | One repo for UI + API routes; deploys to Vercel free | Separate SPA + server = more moving parts |
 | AI orchestration | Vercel AI SDK v4 | Smallest abstraction; native streaming; `tool` + `maxSteps` agent loop in ~30 lines | LangChain.js: heavier bundle, no edge, slower to ship |
-| LLM | Gemini 2.5 Flash | Free tier; 1M context; one-line swap to Groq fallback | OpenAI/Anthropic: no free tier for sustained dev |
+| LLM | Gemini 2.5 Flash-Lite (+ Groq fallback) | Free tier; 1M context; automatic Groq failover on a 429 | OpenAI/Anthropic: no free tier for sustained dev |
 | Embeddings | gemini-embedding-001 (768-d) | Free; same SDK; Matryoshka truncation saves 4× storage | OpenAI text-embedding-3: not free |
 | Vector DB | Supabase pgvector (HNSW) | Free 500MB; same DB as app state → one connection | Pinecone: separate service + still need a relational DB |
 | App DB / Auth | Supabase Postgres / Auth | Google OAuth + email/password live; per-user isolation; free | Custom auth: slower, riskier |
@@ -47,6 +47,14 @@ working agentic loop**, on a stack that deploys to Vercel with zero config.
 - **AD-7 — CI in GitHub Actions.** Every push/PR runs lint → typecheck → build on
   Node 20 with npm caching. Rationale: own the "DevOps" half of the track; keep
   `main` always green and deployable.
+- **AD-8 — Automatic Gemini→Groq fallback for every LLM call.** Model selection and
+  the failover live in `lib/ai.ts` behind three wrappers (`generateTextWithFallback`,
+  `generateObjectWithFallback`, `streamTextWithFallback`). On a rate-limit/quota error
+  (429 / RESOURCE_EXHAUSTED) the same operation retries on Groq `llama-3.3-70b-versatile`;
+  the streaming chat falls back only if Gemini fails *before* emitting a token, so a
+  partial answer is never duplicated. If both providers fail, the user sees the calm
+  `AI_BUSY_MESSAGE` rather than a raw error. Embeddings stay on Gemini. Rationale:
+  directly neutralizes the plan's "Gemini rate-limit mid-demo" critical risk.
 
 ## Why a monolith on Vercel (not a separate Python backend)
 A common alternative is a split FastAPI/Python service + a separate React SPA. We
@@ -71,5 +79,5 @@ with eyes open:
 
 ## What we'd do with more time
 Cohere/BGE reranking after retrieval; hybrid BM25 + vector search; cross-session
-memory (mem0); background ingestion queue (Inngest/QStash); automated LLM provider
-failover (Gemini → Groq) and per-user rate quotas.
+memory (mem0); background ingestion queue (Inngest/QStash); per-user rate quotas and
+prompt caching to bound LLM cost at scale.

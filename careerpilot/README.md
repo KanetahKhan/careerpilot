@@ -94,8 +94,9 @@ The LLM only extracts skill lists; the factors, weights, and blend are all TypeS
 | Database | Supabase Postgres + pgvector | Vector storage + relational data |
 | Auth | Supabase Auth | Google OAuth + email/password, cookie sessions, RLS per user |
 | Embeddings | Gemini embedding-001 (768-d) | Vector embeddings |
-| LLM | Gemini 2.5 Flash Lite | Chat, scoring, roadmaps |
-| AI SDK | Vercel AI SDK 4.3 + @ai-sdk/google | Streaming, tool calls |
+| LLM (primary) | Gemini 2.5 Flash Lite | Chat, scoring, roadmaps |
+| LLM (fallback) | Groq Llama 3.3 70B | Auto-retry on a Gemini rate-limit (429) |
+| AI SDK | Vercel AI SDK 4.3 + @ai-sdk/google + @ai-sdk/groq | Streaming, tool calls, provider fallback |
 | Job Search | JSearch (RapidAPI) + Supabase cache + seed | Live search, cached to stay free-tier, honest seed fallback when no key/quota |
 | DnD | @hello-pangea/dnd 18 | Kanban drag-and-drop |
 | Charts | Recharts 2.13 | Dashboard statistics |
@@ -132,6 +133,10 @@ GOOGLE_GENERATIVE_AI_API_KEY=your_gemini_key_here
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+
+# Groq — free tier, no card — https://console.groq.com/keys
+# LLM fallback: on a Gemini 429, the same call is retried on Groq. Recommended.
+GROQ_API_KEY=your_groq_key_here
 
 # RapidAPI → JSearch — BASIC ($0) plan only — optional; falls back to seed data
 RAPIDAPI_KEY=your_rapidapi_key_here
@@ -237,7 +242,7 @@ Test cases cover:
 | **Per user** | | **~$0.007** |
 
 Bottlenecks & mitigations:
-- **LLM rate limits** → model choice is centralized in `lib/ai.ts` for a one-line swap to a Groq fallback; we run `gemini-2.5-flash-lite` for its higher free-tier quota, and every call handles 429s gracefully with a calm "AI is busy" message (automated provider failover is a planned next step, not yet wired)
+- **LLM rate limits** → **automatic Gemini → Groq failover**: every LLM call (chat stream, fit-score, job-hunter agent, roadmap, intent) retries the same operation on Groq `llama-3.3-70b-versatile` on a 429; we also run `gemini-2.5-flash-lite` for its higher free-tier quota, and if both providers fail the UI shows a calm "AI is busy" message instead of an error
 - **CV ingestion timeout** → Background jobs (Inngest-ready architecture)
 - **Vector latency** → pgvector HNSW index (good to ~1M chunks)
 
@@ -248,7 +253,7 @@ Bottlenecks & mitigations:
 - **Authentication:** Now uses **real Supabase Auth** (Google OAuth + email/password). Users must sign up at `/signup` or sign in at `/login`. See `SETUP.md` for manual dashboard configuration steps.
 - **Job Search:** Uses seed + cached job data with optional JSearch live search. No paid job board API required for demo.
 - **Calendar:** Not yet built — no calendar view or events table ships today (a candidate for the tracker post-MVP).
-- **LLM Fallback:** 429s are handled gracefully (calm "AI is busy" message); the provider is centralized in `lib/ai.ts` for a one-line Groq swap, but automatic failover is not yet implemented.
+- **LLM Fallback:** automatic — on a Gemini rate-limit (429), every LLM call (including the streaming chat) retries on Groq `llama-3.3-70b-versatile`. Set `GROQ_API_KEY` to enable it; without a key, rate-limited calls fall back to a calm "AI is busy" message. Embeddings remain Gemini-only.
 
 ---
 
