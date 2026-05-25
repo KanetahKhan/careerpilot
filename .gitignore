@@ -9,3 +9,10 @@
 /.history/
 
 .DS_Store
+
+# IDE / AI tooling artifacts
+.claude/
+.puku/
+
+# Build output (separate dir used during TEMP verification builds)
+careerpilot/.next-build/
