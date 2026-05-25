@@ -33,6 +33,18 @@
 5. **LLM cost growth** → prompt caching (75% off cached input), context trimming,
    per-user daily quota.
 
+## Security & multi-tenancy
+- **Auth:** Supabase Auth (Google OAuth + email/password). Middleware refreshes the
+  session on every request and redirects unauthenticated users away from app routes.
+- **Isolation:** each API route resolves `auth.uid()` via `requireUser()` and scopes
+  every query by `user_id`, so one user can never read another's CV, applications, or
+  chat. Server-side data access uses the service-role key, which is never shipped to the
+  browser.
+- **Defense in depth:** RLS owner-policies (`auth.uid() = user_id`) are defined on all
+  per-user tables to protect any direct anon-key access path.
+- **PII to the LLM:** only the signed-in user's own retrieved CV chunks enter the
+  prompt — never another tenant's data, and never a raw full-document dump.
+
 ## Reliability
 - All external calls wrapped in try/catch with graceful fallbacks (seed jobs,
   best-effort persistence) so a single 429 never crashes a user flow.

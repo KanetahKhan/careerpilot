@@ -14,7 +14,7 @@ working agentic loop**, on a stack that deploys to Vercel with zero config.
 | LLM | Gemini 2.5 Flash | Free tier; 1M context; one-line swap to Groq fallback | OpenAI/Anthropic: no free tier for sustained dev |
 | Embeddings | gemini-embedding-001 (768-d) | Free; same SDK; Matryoshka truncation saves 4× storage | OpenAI text-embedding-3: not free |
 | Vector DB | Supabase pgvector (HNSW) | Free 500MB; same DB as app state → one connection | Pinecone: separate service + still need a relational DB |
-| App DB / Auth | Supabase Postgres / Auth | RLS-ready multi-tenancy; free | Custom auth: slower, riskier |
+| App DB / Auth | Supabase Postgres / Auth | Google OAuth + email/password live; per-user isolation; free | Custom auth: slower, riskier |
 | Jobs | JSearch (RapidAPI) + cache | Real Google-for-Jobs data; cache keeps us on free tier | Scraping: brittle, ToS risk |
 | Deploy | Vercel Hobby | 1M invocations free; git-push deploys | Self-host: ops overhead in a 14-day window |
 
@@ -27,8 +27,13 @@ working agentic loop**, on a stack that deploys to Vercel with zero config.
 - **AD-2 — Section-aware chunking.** We tag chunks by CV section so retrieval can be
   explained ("cited from Experience") and weighted later. Rationale: explainability.
   The `/profile` view renders these chunks back to make grounding visible.
-- **AD-3 — Service-role + demo user for the MVP.** Faster than full auth; RLS policies
-  are already written so production multi-tenancy is a small swap. Rationale: ship speed.
+- **AD-3 — Real Supabase Auth + service-role data access.** Users sign in with Google
+  OAuth or email/password. Middleware refreshes the session and gates the app routes;
+  every API route resolves `auth.uid()` via `requireUser()` and scopes each query by
+  `user_id`. Server-side data access uses the service-role key (never exposed to the
+  browser), and the RLS owner-policies (`auth.uid() = user_id`) ship as defense-in-depth
+  for any direct anon-key path. Rationale: real multi-tenant isolation with a single,
+  auditable enforcement point in the service layer.
 - **AD-4 — Seed/cache fallback for jobs.** The demo never depends on a live quota.
   Rationale: demo-day reliability. (Cached real data, not faked agent output.)
 - **AD-5 — Domain services behind a thin API gateway.** Logic lives in
@@ -66,4 +71,5 @@ with eyes open:
 
 ## What we'd do with more time
 Cohere/BGE reranking after retrieval; hybrid BM25 + vector search; cross-session
-memory (mem0); background ingestion queue (Inngest/QStash); full Supabase Auth.
+memory (mem0); background ingestion queue (Inngest/QStash); automated LLM provider
+failover (Gemini → Groq) and per-user rate quotas.
