@@ -184,12 +184,40 @@ Health probe: `GET /api/health` → `{ status: "ok", time, uptime, version }`. I
 dependency-free (no Supabase/Gemini), so it reflects web-tier liveness for uptime
 monitors and never fails on a free-tier rate limit.
 
+### Running the eval suite (`npm run eval`)
+
+The API routes require an authenticated user, but the eval suite runs without a
+browser session. To let it through **in development only**, set `EVAL_SECRET` in
+`.env.local` to any random string. The suite sends it as an `x-eval-secret`
+header, and `lib/auth.ts` then treats the request as the seeded eval user
+(`00000000-0000-0000-0000-000000000001`, created by `0001_init.sql`).
+
+```bash
+# .env.local
+EVAL_SECRET=some-random-dev-string
+```
+
+Then:
+
+```bash
+npm run dev      # terminal 1
+npm run eval     # terminal 2 — should print a PASS table
+```
+
+This bypass is safe: it is **disabled in production** (`NODE_ENV` guard) and a
+real browser never sends the header, so it cannot affect live user sessions. If
+`EVAL_SECRET` is unset, the suite warns you and the authed cases will fail.
+
 ---
 
 ## 8. Change log (append a line whenever you change setup)
 
 Newest at the top. Format: `YYYY-MM-DD — name — what changed`.
 
+- 2026-05-25 — eval — fixed the eval suite for real auth: routes now require a
+  session, so the suite sends a dev-only `x-eval-secret` header that `lib/auth.ts`
+  maps to the seeded eval user. New env var `EVAL_SECRET` (optional `EVAL_USER_ID`).
+  Eval loads `.env.local` via `@next/env`. No production impact (NODE_ENV guard).
 - 2026-05-25 — auth — added real user auth via Supabase Auth (Google OAuth +
   email/password). Replaced `DEMO_USER_ID` with per-user auth. Added `/login`,
   `/signup`, middleware, auth trigger migration (`0002_auth.sql`). Removed

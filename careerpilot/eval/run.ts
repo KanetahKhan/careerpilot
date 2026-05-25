@@ -5,7 +5,23 @@
  * Each case documents: input, expected behavior, actual, pass/fail.
  * This is the artifact judges can run to verify your claims.
  */
+import { loadEnvConfig } from "@next/env";
+
+// Load .env.local exactly like `next dev` does, so EVAL_SECRET / EVAL_BASE_URL
+// are picked up when this runs standalone under tsx.
+loadEnvConfig(process.cwd());
+
 const BASE = process.env.EVAL_BASE_URL ?? "http://localhost:3000";
+
+// The routes require an authenticated user. In dev, lib/auth.ts accepts a
+// matching `x-eval-secret` header as the seeded eval user (see SETUP.md §7).
+const EVAL_SECRET = process.env.EVAL_SECRET ?? "";
+
+/** Shared headers: JSON + the dev-only eval auth secret. */
+const H: Record<string, string> = {
+  "Content-Type": "application/json",
+  ...(EVAL_SECRET ? { "x-eval-secret": EVAL_SECRET } : {}),
+};
 
 type Case = { id: string; desc: string; run: () => Promise<{ pass: boolean; actual: string }> };
 
@@ -16,7 +32,7 @@ const cases: Case[] = [
     run: async () => {
       const r = await fetch(`${BASE}/api/jobs/search`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: H,
         body: JSON.stringify({ query: "react frontend" }),
       });
       const j = await r.json();
@@ -32,7 +48,7 @@ const cases: Case[] = [
       const call = async () => {
         const r = await fetch(`${BASE}/api/jobs/search`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: H,
           body: JSON.stringify({ query: "node backend" }),
         });
         const j = await r.json();
@@ -49,7 +65,7 @@ const cases: Case[] = [
     run: async () => {
       const r = await fetch(`${BASE}/api/jobs/search`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: H,
         body: JSON.stringify({ query: "ml internship" }),
       });
       const j = await r.json();
@@ -62,7 +78,7 @@ const cases: Case[] = [
     run: async () => {
       const r = await fetch(`${BASE}/api/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: H,
         body: JSON.stringify({ messages: [{ role: "user", content: "Hello, who am I?" }] }),
       });
       const text = await r.text();
@@ -75,10 +91,10 @@ const cases: Case[] = [
     run: async () => {
       await fetch(`${BASE}/api/applications`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: H,
         body: JSON.stringify({ role: "Eval Role", company: "EvalCo", fit_score: 77 }),
       });
-      const r = await fetch(`${BASE}/api/applications`);
+      const r = await fetch(`${BASE}/api/applications`, { headers: H });
       const j = await r.json();
       const found = (j.applications ?? []).some((a: any) => a.company === "EvalCo");
       return { pass: found, actual: `${(j.applications ?? []).length} apps, EvalCo present=${found}` };
@@ -88,7 +104,7 @@ const cases: Case[] = [
     id: "EVAL-6",
     desc: "Goals API returns the seeded demo goals",
     run: async () => {
-      const r = await fetch(`${BASE}/api/goals`);
+      const r = await fetch(`${BASE}/api/goals`, { headers: H });
       const j = await r.json();
       return { pass: (j.goals ?? []).length >= 1, actual: `${(j.goals ?? []).length} goals` };
     },
@@ -98,9 +114,9 @@ const cases: Case[] = [
     desc: "Job cache works (repeat query is fast / consistent)",
     run: async () => {
       const q = { query: "full-stack engineer" };
-      const r1 = await fetch(`${BASE}/api/jobs/search`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(q) });
+      const r1 = await fetch(`${BASE}/api/jobs/search`, { method: "POST", headers: H, body: JSON.stringify(q) });
       const j1 = await r1.json();
-      const r2 = await fetch(`${BASE}/api/jobs/search`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(q) });
+      const r2 = await fetch(`${BASE}/api/jobs/search`, { method: "POST", headers: H, body: JSON.stringify(q) });
       const j2 = await r2.json();
       return { pass: (j1.jobs?.length ?? 0) === (j2.jobs?.length ?? 0), actual: `run1=${j1.jobs?.length} run2=${j2.jobs?.length}` };
     },
@@ -111,7 +127,7 @@ const cases: Case[] = [
     run: async () => {
       const r = await fetch(`${BASE}/api/jobs/search`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: H,
         body: JSON.stringify({ query: "backend developer dhaka" }),
       });
       const j = await r.json();
@@ -135,7 +151,7 @@ const cases: Case[] = [
     id: "EVAL-9",
     desc: "Health endpoint returns { status: ok }",
     run: async () => {
-      const r = await fetch(`${BASE}/api/health`);
+      const r = await fetch(`${BASE}/api/health`, { headers: H });
       const j = await r.json();
       return {
         pass: r.ok && j.status === "ok" && typeof j.time === "string",
@@ -150,7 +166,7 @@ const cases: Case[] = [
       const valid = ["readiness_check", "skill_gap", "roadmap", "cover_letter", "general"];
       const r = await fetch(`${BASE}/api/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: H,
         body: JSON.stringify({
           messages: [{ role: "user", content: "Build me a 4-week roadmap to become job-ready." }],
         }),
@@ -165,7 +181,7 @@ const cases: Case[] = [
     run: async () => {
       const r = await fetch(`${BASE}/api/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: H,
         body: JSON.stringify({
           messages: [
             {
@@ -199,6 +215,12 @@ const cases: Case[] = [
 
 async function main() {
   console.log(`\n  CareerPilot eval suite → ${BASE}\n`);
+  if (!EVAL_SECRET) {
+    console.log(
+      "  ⚠ EVAL_SECRET is not set. The authed routes will reject these requests.\n" +
+        "    Set EVAL_SECRET in .env.local (same value the dev server uses) — see SETUP.md §7.\n"
+    );
+  }
   let passed = 0;
   for (const c of cases) {
     try {
