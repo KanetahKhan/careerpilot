@@ -1,6 +1,5 @@
-import { generateObject } from "ai";
 import { z } from "zod";
-import { chatModel } from "@/lib/ai";
+import { generateObjectWithFallback } from "@/lib/ai";
 
 /** The intents the assistant adapts its answer format to. */
 export const INTENTS = [
@@ -36,8 +35,7 @@ export async function classifyIntent(query: string): Promise<Intent> {
   if (h !== "general") return h;
   if (!query.trim()) return "general";
   try {
-    const { object } = await generateObject({
-      model: chatModel,
+    const { object } = await generateObjectWithFallback({
       schema: z.object({ intent: z.enum(INTENTS) }),
       prompt: `Classify this career question into exactly one intent.
 Intents: ${INTENTS.join(", ")}.

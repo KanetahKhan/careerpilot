@@ -1,6 +1,5 @@
-import { generateObject } from "ai";
 import { z } from "zod";
-import { chatModel } from "@/lib/ai";
+import { generateObjectWithFallback } from "@/lib/ai";
 import { retrieveChunks, formatContext } from "@/lib/services/profile";
 
 export const RoadmapSchema = z.object({
@@ -38,8 +37,7 @@ export async function generateRoadmap(userId: string, goal: string): Promise<Roa
     /* retrieval best-effort; the plan is still useful, just less personalized */
   }
 
-  const { object } = await generateObject({
-    model: chatModel,
+  const { object } = await generateObjectWithFallback({
     schema: RoadmapSchema,
     prompt: `You are CareerPilot. Build a focused, week-by-week roadmap toward this goal: "${target}".
 Ground it STRICTLY in the user's CV below: target their REAL gaps, build on REAL

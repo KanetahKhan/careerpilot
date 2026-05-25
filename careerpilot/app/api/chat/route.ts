@@ -1,5 +1,5 @@
-import { streamText, type CoreMessage } from "ai";
-import { chatModel, AI_BUSY_MESSAGE, isRateLimitError } from "@/lib/ai";
+import { type CoreMessage } from "ai";
+import { streamTextWithFallback } from "@/lib/ai";
 import {
   buildGroundedContext,
   assistantSystemPrompt,
@@ -24,21 +24,13 @@ export async function POST(req: Request) {
     buildGroundedContext(user.id, query),
   ]);
 
-  const result = streamText({
-    model: chatModel,
+  return streamTextWithFallback({
     system: assistantSystemPrompt(context, intent),
     messages,
-    onFinish: async ({ text }) => {
-      await persistTurn(user.id, sessionId ?? "default", query, text);
-    },
-  });
-
-  return result.toDataStreamResponse({
+    onFinish: (text) => persistTurn(user.id, sessionId ?? "default", query, text),
     headers: {
       "x-retrieved": Buffer.from(JSON.stringify(retrieved)).toString("base64"),
       "x-intent": intent,
     },
-    getErrorMessage: (error) =>
-      isRateLimitError(error) ? AI_BUSY_MESSAGE : "Something went wrong — please try again.",
   });
 }

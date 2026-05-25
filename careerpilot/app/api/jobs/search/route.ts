@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { generateText, tool } from "ai";
+import { tool } from "ai";
 import { z } from "zod";
-import { chatModel, AI_BUSY_MESSAGE, isRateLimitError } from "@/lib/ai";
+import { generateTextWithFallback, AI_BUSY_MESSAGE, isRateLimitError } from "@/lib/ai";
 import { searchJobs, type Job } from "@/lib/services/jobs";
 import { computeFitScore, loadCvContext } from "@/lib/services/fit-score";
 import { requireUser } from "@/lib/auth";
@@ -20,8 +20,7 @@ export async function POST(req: Request) {
     const cvContext = await loadCvContext(user.id);
 
     try {
-      await generateText({
-        model: chatModel,
+      await generateTextWithFallback({
         maxSteps: 8,
         system: `You are a job-hunting agent. Given the user's natural-language request:
 1. Call searchJobs with a clean query (and location if implied).

@@ -1,6 +1,5 @@
 import { createAdminClient } from "@/lib/supabase";
-import { embedText, chatModel } from "@/lib/ai";
-import { generateObject } from "ai";
+import { embedText, generateObjectWithFallback } from "@/lib/ai";
 import { z } from "zod";
 
 export type FitBreakdown = {
@@ -60,8 +59,7 @@ function centroid(vectors: number[][]): number[] {
 /** Extract a normalized skill list from arbitrary text via structured output. */
 async function extractSkills(text: string, label: string): Promise<string[]> {
   try {
-    const { object } = await generateObject({
-      model: chatModel,
+    const { object } = await generateObjectWithFallback({
       schema: z.object({ skills: z.array(z.string()) }),
       prompt: `Extract a flat list of concrete technical skills, tools, languages, and frameworks mentioned in the following ${label}. Return lowercase, deduplicated, no soft skills.\n\n${text.slice(0, 6000)}`,
     });
