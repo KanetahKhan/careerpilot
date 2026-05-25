@@ -28,7 +28,7 @@ export function CvUploader({ onDone }: { onDone?: (r: any) => void }) {
     <div className="panel p-6">
       <p className="label mb-3">Pillar 2 · RAG Core</p>
       <label
-        className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-ink-600 bg-ink-900/40 px-6 py-10 text-center transition-colors hover:border-signal/50"
+        className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-background/40 px-6 py-10 text-center transition-colors hover:border-primary/50"
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault();
@@ -36,10 +36,10 @@ export function CvUploader({ onDone }: { onDone?: (r: any) => void }) {
           if (f) handleFile(f);
         }}
       >
-        <div className="grid h-12 w-12 place-items-center rounded-xl bg-signal/15 text-signal text-xl">↑</div>
+        <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary/15 text-primary text-xl">↑</div>
         <div>
-          <p className="font-medium text-chalk">Drop your CV or click to upload</p>
-          <p className="text-sm text-chalk-faint">PDF or DOCX · chunked → embedded → pgvector</p>
+          <p className="font-medium text-foreground">Drop your CV or click to upload</p>
+          <p className="text-sm text-muted-foreground">PDF or DOCX · chunked → embedded → pgvector</p>
         </div>
         <input
           type="file"
@@ -53,20 +53,20 @@ export function CvUploader({ onDone }: { onDone?: (r: any) => void }) {
       </label>
 
       {status === "uploading" && (
-        <p className="mt-4 text-sm text-amber animate-pulse-glow">
+        <p className="mt-4 text-sm text-amber-400 animate-pulse-glow">
           Parsing → chunking by section → embedding with Gemini…
         </p>
       )}
-      {status === "error" && <p className="mt-4 text-sm text-signal">⚠ {error}</p>}
+      {status === "error" && <p className="mt-4 text-sm text-primary">⚠ {error}</p>}
       {status === "done" && result && (
-        <div className="mt-4 animate-fade-up rounded-xl border border-mint/30 bg-mint/5 p-4">
-          <p className="text-sm font-medium text-mint">
+        <div className="mt-4 animate-fade-up rounded-xl border border-emerald-400/30 bg-emerald-400/5 p-4">
+          <p className="text-sm font-medium text-emerald-400">
             ✓ Indexed <span className="font-mono">{result.fileName}</span>
           </p>
-          <p className="mt-1 text-sm text-chalk-dim">
+          <p className="mt-1 text-sm text-muted-foreground">
             {result.chunks} chunks across:{" "}
             {result.sections.map((s: string) => (
-              <span key={s} className="chip mr-1 bg-ink-700 text-chalk-dim">
+              <span key={s} className="chip mr-1 bg-secondary text-muted-foreground">
                 {s}
               </span>
             ))}

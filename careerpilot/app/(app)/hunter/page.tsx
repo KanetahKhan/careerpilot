@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import { FadeIn } from "@/components/FadeIn";
+import { StaggerContainer, StaggerItem } from "@/components/StaggerContainer";
 
 type Fit = {
   score: number; semantic: number; skills: number; seniority: number;
@@ -13,9 +15,9 @@ type Job = {
 };
 
 function scoreColor(s: number) {
-  if (s >= 75) return "text-mint";
-  if (s >= 55) return "text-amber";
-  return "text-signal";
+  if (s >= 75) return "text-emerald-400 bg-emerald-400/10 border-emerald-400/20";
+  if (s >= 55) return "text-amber-400 bg-amber-400/10 border-amber-400/20";
+  return "text-rose-400 bg-rose-400/10 border-rose-400/20";
 }
 
 const FACTORS = ["semantic", "skills", "seniority", "education", "location"] as const;
@@ -25,11 +27,11 @@ function FactorBars({ fit }: { fit: Fit }) {
     <div className="space-y-1.5">
       {FACTORS.map((k) => (
         <div key={k} className="flex items-center gap-2">
-          <span className="w-20 font-mono text-[10px] uppercase text-chalk-faint">{k}</span>
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-ink-700">
-            <div className="h-full rounded-full bg-signal/70" style={{ width: `${fit[k]}%` }} />
+          <span className="w-20 font-mono text-[10px] uppercase text-muted-foreground">{k}</span>
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
+            <div className="h-full rounded-full bg-primary/70" style={{ width: `${fit[k]}%` }} />
           </div>
-          <span className="w-7 text-right font-mono text-[10px] text-chalk-dim">{fit[k]}</span>
+          <span className="w-7 text-right font-mono text-[10px] text-muted-foreground">{fit[k]}</span>
         </div>
       ))}
     </div>
@@ -43,13 +45,11 @@ export default function HunterPage() {
   const [trace, setTrace] = useState<string[]>([]);
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [detail, setDetail] = useState<Job | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   async function run() {
     setLoading(true);
     setJobs([]);
     setTrace([]);
-    setNotice(null);
     try {
       const res = await fetch("/api/jobs/search", {
         method: "POST",
@@ -59,9 +59,6 @@ export default function HunterPage() {
       const json = await res.json();
       setJobs(json.jobs ?? []);
       setTrace(json.trace ?? []);
-      setNotice(json.error ?? null);
-    } catch {
-      setNotice("Couldn't reach the server — please try again.");
     } finally {
       setLoading(false);
     }
@@ -80,6 +77,7 @@ export default function HunterPage() {
   }
 
   return (
+    <FadeIn>
     <div className="space-y-6 py-4">
       <div>
         <p className="label mb-2">Pillar 1 · Job Hunter Agent</p>
@@ -92,9 +90,9 @@ export default function HunterPage() {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && run()}
           placeholder='e.g. "ML internships in Dhaka open this month"'
-          className="flex-1 rounded-xl border border-ink-600 bg-ink-900/60 px-4 py-3 text-chalk outline-none placeholder:text-chalk-faint focus:border-signal/60"
+          className="flex-1 rounded-xl border border-border bg-background/60 px-4 py-3 text-foreground outline-none placeholder:text-muted-foreground focus:border-primary/60"
         />
-        <button onClick={run} disabled={loading} className="btn-signal disabled:opacity-50">
+        <button onClick={run} disabled={loading} className="btn-primary disabled:opacity-50">
           {loading ? "Agent working…" : "Hunt jobs →"}
         </button>
       </div>
@@ -105,36 +103,30 @@ export default function HunterPage() {
           <p className="label mb-2">Agent trace</p>
           <div className="flex flex-wrap gap-2 font-mono text-xs">
             {trace.map((t, i) => (
-              <span key={i} className="chip bg-ink-700 text-sky animate-fade-up">{t}</span>
+              <span key={i} className="chip bg-secondary text-sky-400 animate-fade-up">{t}</span>
             ))}
-            {loading && <span className="chip bg-ink-700 text-amber animate-pulse-glow">thinking…</span>}
+            {loading && <span className="chip bg-secondary text-amber-400 animate-pulse-glow">thinking…</span>}
           </div>
         </div>
       )}
 
-      {notice && (
-        <div className="panel flex items-center gap-2 border-l-2 border-amber/60 p-4 text-sm text-amber">
-          <span aria-hidden>⏳</span>
-          <span>{notice}</span>
-        </div>
-      )}
-
-      <div className="grid gap-4 md:grid-cols-2">
+      <StaggerContainer className="grid gap-4 md:grid-cols-2">
         {jobs.map((j) => (
-          <div key={j.id} className="panel animate-fade-up p-5">
+          <StaggerItem key={j.id}>
+          <div className="panel animate-fade-up p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <button
                   onClick={() => setDetail(j)}
-                  className="text-left font-display text-lg font-bold leading-tight hover:text-signal"
+                  className="text-left font-display text-lg font-bold leading-tight hover:text-primary"
                 >
                   {j.role}
                 </button>
-                <p className="text-sm text-chalk-dim">{j.company} · {j.location}</p>
-                {j.salary && <p className="mt-1 text-xs text-chalk-faint">{j.salary}</p>}
+                <p className="text-sm text-muted-foreground">{j.company} · {j.location}</p>
+                {j.salary && <p className="mt-1 text-xs text-muted-foreground">{j.salary}</p>}
               </div>
               <div className="text-right">
-                <p className={`font-display text-3xl font-bold ${scoreColor(j.fit.score)}`}>{j.fit.score}</p>
+                <p className={`font-display text-3xl font-bold ${scoreColor(j.fit.score).split(" ")[0]}`}>{j.fit.score}</p>
                 <p className="label">fit</p>
               </div>
             </div>
@@ -146,10 +138,10 @@ export default function HunterPage() {
             {j.fit.matchedSkills.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1">
                 {j.fit.matchedSkills.slice(0, 5).map((s) => (
-                  <span key={s} className="chip bg-mint/10 text-mint">✓ {s}</span>
+                  <span key={s} className="chip bg-emerald-400/10 text-emerald-400">✓ {s}</span>
                 ))}
                 {j.fit.missingSkills.slice(0, 3).map((s) => (
-                  <span key={s} className="chip bg-signal/10 text-signal">✗ {s}</span>
+                  <span key={s} className="chip bg-rose-400/10 text-rose-400">✗ {s}</span>
                 ))}
               </div>
             )}
@@ -168,13 +160,14 @@ export default function HunterPage() {
               )}
             </div>
           </div>
+          </StaggerItem>
         ))}
-      </div>
+      </StaggerContainer>
 
       {/* job detail modal — full description + full fit breakdown */}
       {detail && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink-900/80 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 backdrop-blur-sm"
           onClick={() => setDetail(null)}
         >
           <div
@@ -184,11 +177,11 @@ export default function HunterPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="font-display text-2xl font-bold leading-tight">{detail.role}</h2>
-                <p className="text-sm text-chalk-dim">{detail.company} · {detail.location}</p>
-                {detail.salary && <p className="mt-1 text-xs text-chalk-faint">{detail.salary}</p>}
+                <p className="text-sm text-muted-foreground">{detail.company} · {detail.location}</p>
+                {detail.salary && <p className="mt-1 text-xs text-muted-foreground">{detail.salary}</p>}
               </div>
               <div className="text-right">
-                <p className={`font-display text-4xl font-bold ${scoreColor(detail.fit.score)}`}>
+                <p className={`font-display text-4xl font-bold ${scoreColor(detail.fit.score).split(" ")[0]}`}>
                   {detail.fit.score}
                 </p>
                 <p className="label">fit</p>
@@ -198,22 +191,22 @@ export default function HunterPage() {
             <div className="mt-5">
               <p className="label mb-2">Fit breakdown (computed, not stated)</p>
               <FactorBars fit={detail.fit} />
-              <p className="mt-3 text-sm leading-relaxed text-chalk-dim">{detail.fit.explanation}</p>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{detail.fit.explanation}</p>
             </div>
 
             <div className="mt-4 flex flex-wrap gap-1">
               {detail.fit.matchedSkills.map((s) => (
-                <span key={s} className="chip bg-mint/10 text-mint">✓ {s}</span>
+                <span key={s} className="chip bg-emerald-400/10 text-emerald-400">✓ {s}</span>
               ))}
               {detail.fit.missingSkills.map((s) => (
-                <span key={s} className="chip bg-signal/10 text-signal">✗ {s}</span>
+                <span key={s} className="chip bg-rose-400/10 text-rose-400">✗ {s}</span>
               ))}
             </div>
 
             {detail.description && (
               <div className="mt-5">
                 <p className="label mb-2">Full description</p>
-                <p className="max-h-64 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-chalk-dim">
+                <p className="max-h-64 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
                   {detail.description}
                 </p>
               </div>
@@ -223,7 +216,7 @@ export default function HunterPage() {
               <button
                 onClick={() => track(detail)}
                 disabled={saved.has(detail.id)}
-                className="btn-signal text-xs disabled:opacity-50"
+                className="btn-primary text-xs disabled:opacity-50"
               >
                 {saved.has(detail.id) ? "✓ Tracked" : "+ Track this"}
               </button>
@@ -236,5 +229,6 @@ export default function HunterPage() {
         </div>
       )}
     </div>
+    </FadeIn>
   );
 }

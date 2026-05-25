@@ -1,140 +1,260 @@
-# CareerPilot 🧭
+# CareerPilot — Your Agentic Career Co-pilot
 
 [![CI](https://github.com/KanetahKhan/careerpilot/actions/workflows/ci.yml/badge.svg)](https://github.com/KanetahKhan/careerpilot/actions/workflows/ci.yml)
 
-> Your agentic, **CV-grounded** career co-pilot. Built for CodeSprint 2026 (IUT Computer Society · Poridhi.io).
+> Stop applying blindly. CareerPilot reads your CV, scores job fit with real math, and tracks every application — all grounded in your actual experience, not generic advice.
 
-Upload your CV once. Every job match, fit score, roadmap, and cover letter is grounded in your **actual** experience via a RAG layer over your resume — no hallucinated generic profiles.
+Built in 14 days for [CodeSprint 2026](https://poridhi.io) (IUT Computer Society).
 
 **Live demo:** _add your Vercel URL_ · **Demo video:** _add your link_
 
 ---
 
-## The four pillars
+## 🚀 Live Demo
+
+**URL:** _add your Vercel/Render/Railway URL here_
+
+**Demo Credentials:** No login required — runs in demo mode with a pre-seeded CV. Just upload your own PDF to personalize.
+
+---
+
+## The Four Pillars
 
 | # | Pillar | What it does | Route |
 |---|--------|--------------|-------|
-| 1 | **Job Hunter Agent** | NL search → live jobs (JSearch) → tool-calling loop → ranked cards with a **computed 5-factor** fit score (+ detail view) | `/hunter` |
-| 2 | **Resume Intelligence (RAG core)** | CV → section-aware chunking → Gemini embeddings → pgvector; guided onboarding + a profile view of the exact retrieved chunks | `/onboarding` · `/profile` |
-| 3 | **AI Assistant** | Chat grounded strictly in your CV, with **intent routing** + session memory; readiness, gap analysis, cover letters, and a structured week-by-week roadmap | `/assistant` · `/roadmap` |
-| 4 | **Progress Tracker** | Kanban board, goals/to-dos, live progress dashboard | `/tracker` |
+| 1 | **Job Hunter Agent** | Natural language search, live DuckDuckGo scraping + mock fallback, programmatic fit scores with 5-factor breakdown (semantic, skills, seniority, education, location) | `/hunter` |
+| 2 | **CV Brain (RAG Core)** | PDF/DOCX/TXT upload, section-aware chunking, Gemini embeddings, pgvector HNSW storage, contextual retrieval | `/onboarding` · `/profile` |
+| 3 | **AI Coach** | Streaming chat with RAG-grounded responses, **citation chips** showing which CV sections were used, intent detection, roadmap generation, cover letter drafting | `/assistant` · `/roadmap` |
+| 4 | **Tracker** | Drag-and-drop Kanban (Applied → Interviewing → Offer → Rejected), goals/to-dos, progress dashboard with Recharts, manual application entry | `/tracker` |
 
 ---
 
-## Quick start
+## 🏗️ Architecture
 
-> 📋 **New teammate?** Read [`SETUP.md`](SETUP.md) first — it's the living team
-> setup log. Whenever anyone changes `.env.local` or any config, they update
-> `SETUP.md` in the same commit so the rest of the team stays in sync.
+```
+User Uploads CV
+  → pdf-parse / mammoth → raw text
+  → Section-aware chunking (Experience, Education, Skills, Projects)
+  → embed() → Gemini embedding-001 (768-d)
+  → Supabase pgvector (cv_chunks table, HNSW index)
 
-```bash
-# 1. install
-npm install
+User Asks Question / Searches Jobs
+  → embed(query) via Gemini
+  → match_cv_chunks() RPC → top-k similar chunks
+  → Inject chunks into LLM system prompt
+  → streamText() → Gemini 2.5 Flash
+  → Streamed response + citation chips (x-retrieved header)
 
-# 2. set up Supabase
-#    - create a free project at supabase.com
-#    - SQL Editor → paste & run supabase/migrations/0001_init.sql
-#      (enables pgvector, creates tables + match_cv_chunks RPC + seed data)
-
-# 3. configure env
-cp .env.example .env.local
-#    fill in: GOOGLE_GENERATIVE_AI_API_KEY, NEXT_PUBLIC_SUPABASE_URL,
-#    NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
-#    (RAPIDAPI_KEY optional — without it, job search uses bundled seed data)
-
-# 4. run
-npm run dev          # → http://localhost:3000
-
-# 5. (optional) verify everything works
-npm run eval         # runs the documented test suite against your dev server
+User Tracks Applications
+  → Drag-and-drop Kanban → PATCH /api/applications
+  → Recharts dashboard → real DB aggregation
 ```
 
-> **Cost:** every dependency runs on a free tier. **Do not enable billing** on any
-> service — without it the worst case is a rate-limit (429), never a charge.
-
-### Required environment variables
-
-| Var | Where | Notes |
-|-----|-------|-------|
-| `GOOGLE_GENERATIVE_AI_API_KEY` | aistudio.google.com/apikey | Gemini chat + embeddings (free tier) |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project settings | — |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase project settings | client reads |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase project settings | **server-only**, bypasses RLS |
-| `RAPIDAPI_KEY` | rapidapi.com → JSearch (Basic $0) | optional; falls back to seed jobs |
-| `DEMO_USER_ID` | — | single-user demo id (matches the seeded profile) |
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for full data-flow diagrams, [`docs/STACK_REPORT.md`](docs/STACK_REPORT.md) for stack justification, and [`docs/SYSTEM_DESIGN.md`](docs/SYSTEM_DESIGN.md) for the 10K-user scaling analysis.
 
 ---
 
-## How RAG is grounded in the CV
+## How RAG is Grounded in the CV
 
 This is the core thesis — the AI never invents your background.
 
-1. **Ingest** (`/api/cv/upload` → `lib/services/profile/`): the PDF/DOCX is parsed,
-   then **chunked by section** (Experience, Education, Projects, Skills…) so each
-   chunk carries a section tag. The `/profile` view renders these chunks back.
+1. **Ingest** (`/api/cv/upload`): the PDF/DOCX is parsed, then **chunked by section** (Experience, Education, Projects, Skills…) so each chunk carries a section tag.
 2. **Embed** (`lib/ai.ts`): each chunk → a 768-d vector via `gemini-embedding-001`.
-3. **Store** (`supabase/migrations/0001_init.sql`): vectors live in a `cv_chunks`
-   table with an **HNSW pgvector index**.
-4. **Retrieve** (`lib/services/profile/rag.ts`): every assistant question and every
-   fit-score computation embeds the query and pulls the top-k chunks via the
-   `match_cv_chunks` RPC (cosine similarity).
-5. **Ground**: retrieved chunks are injected into the system prompt as context,
-   and the assistant is instructed to **cite the section** and to say "your CV
-   doesn't mention X" rather than fabricate.
+3. **Store**: vectors live in a `cv_chunks` table with an **HNSW pgvector index**.
+4. **Retrieve** (`lib/services/profile/rag.ts`): every query embeds and pulls the top-k chunks via the `match_cv_chunks` RPC (cosine similarity).
+5. **Ground**: retrieved chunks are injected into the system prompt. The assistant **cites the section** and says "your CV doesn't mention X" rather than fabricate.
 
-### The fit score is computed, not stated
+### The Fit Score is Computed, Not Stated
 
-`lib/services/fit-score/` returns a real number from TypeScript math, not an LLM
-opinion — **five** auditable factors:
+`lib/services/fit-score/` returns a real number from TypeScript math, not an LLM opinion:
 
 ```
 fit = 0.40·semantic + 0.30·skills + 0.10·seniority + 0.10·education + 0.10·location
 ```
 
 - **semantic** — cosine(job embedding, centroid of CV chunk embeddings)
-- **skills** — matched ÷ required skills (skills extracted via structured output)
+- **skills** — matched ÷ required skills (extracted via structured output)
 - **seniority** — years required vs. years in CV
 - **education** — candidate's highest degree vs. the level the job asks for
-- **location** — remote → 100; otherwise the job's place matched against the CV
+- **location** — remote → 100; otherwise matched against the CV
 
-The LLM only extracts skill lists; the factors, weights, and blend are all
-TypeScript. A separate `explainFit()` turns the breakdown into prose (scoring never
-writes prose). The Hunter UI shows all five bars + matched/missing skills, and a
-**detail view** with the full description — so the score is fully auditable.
+The LLM only extracts skill lists; the factors, weights, and blend are all TypeScript. The Hunter UI shows all five bars + matched/missing skills.
 
 ---
 
-## Architecture
+## Tech Stack
 
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full data-flow + service-
-boundary diagrams, [`docs/STACK_REPORT.md`](docs/STACK_REPORT.md) for stack
-justification (incl. why monolith-on-Vercel, not a separate Python backend), and
-[`docs/SYSTEM_DESIGN.md`](docs/SYSTEM_DESIGN.md) for the 10K-user scaling analysis.
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| Framework | Next.js 15.5.7 (App Router) | Frontend + API routes |
+| Language | TypeScript 5.7 | Type safety |
+| Styling | Tailwind CSS 3.4 + CSS variables | Utility-first design system |
+| Fonts | Geist Sans + Geist Mono | Typography |
+| Animations | Framer Motion 12.40 | Scroll/entry animations |
+| Database | Supabase Postgres + pgvector | Vector storage + relational data |
+| Auth | Demo mode (`DEMO_USER_ID`) | Single-user demo (Better Auth ready) |
+| Embeddings | Gemini embedding-001 (768-d) | Vector embeddings |
+| LLM | Gemini 2.5 Flash Lite | Chat, scoring, roadmaps |
+| AI SDK | Vercel AI SDK 4.3 + @ai-sdk/google | Streaming, tool calls |
+| Job Search | DuckDuckGo scraping + seed data | Live search with honest mock fallback |
+| DnD | @hello-pangea/dnd 18 | Kanban drag-and-drop |
+| Charts | Recharts 2.13 | Dashboard statistics |
+| Icons | Lucide React 1.16 | UI icons |
+| Theme | next-themes 0.4 | Dark/light mode |
 
-The code is organized into five documented domain services behind thin API routes —
-see [`lib/services/README.md`](lib/services/README.md). **CI** (lint → typecheck →
-build) runs on every push/PR via GitHub Actions; `/api/health` is a dependency-free
-liveness probe.
+---
 
+## 🔌 API Routes
+
+| Endpoint | Methods | Description |
+|----------|---------|-------------|
+| `/api/cv/upload` | POST | Upload PDF/DOCX/TXT, parse, chunk, embed, store |
+| `/api/cv/profile` | GET | Retrieve parsed CV chunks by section |
+| `/api/jobs/search` | POST | Natural language job search + fit scoring |
+| `/api/chat` | POST | Streaming AI assistant with RAG context + citation headers |
+| `/api/roadmap` | POST | Generate structured learning roadmap |
+| `/api/applications` | GET / POST / PATCH | CRUD for job applications |
+| `/api/goals` | GET / PATCH | Goals and to-dos |
+| `/api/health` | GET | Liveness probe |
+
+---
+
+## 🔑 Environment Variables
+
+Create `.env.local` in the `careerpilot/` directory:
+
+```env
+# Google AI Studio — free tier, no billing — https://aistudio.google.com/apikey
+GOOGLE_GENERATIVE_AI_API_KEY=your_gemini_key_here
+
+# Supabase — free project — https://supabase.com
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+
+# RapidAPI → JSearch — BASIC ($0) plan only — optional; falls back to seed data
+RAPIDAPI_KEY=your_rapidapi_key_here
+
+# Demo user — single-user mode. Swap for Supabase Auth in production.
+DEMO_USER_ID=00000000-0000-0000-0000-000000000001
 ```
-CV upload ─▶ parse ─▶ chunk(section) ─▶ embed(Gemini) ─▶ pgvector
-                                                            │
- user query ─▶ embed ─▶ match_cv_chunks ─▶ context ─┬──▶ Assistant (stream)
-                                                     └──▶ Fit score (semantic part)
- NL job request ─▶ Agent(loop): searchJobs → scoreFit → ranked cards
+
+> **Cost:** every dependency runs on a free tier. **Do not enable billing** on any service — the worst case is a rate-limit (429), never a charge.
+
+---
+
+## 🛠️ Local Setup
+
+```bash
+# 1. Clone
+git clone https://github.com/yourusername/careerpilot.git
+cd careerpilot/careerpilot  # app lives in nested directory
+
+# 2. Install dependencies
+npm install
+
+# 3. Set up Supabase
+#    - Create a free project at https://supabase.com
+#    - SQL Editor → paste & run supabase/migrations/0001_init.sql
+#      (enables pgvector, creates tables + match_cv_chunks RPC + seed data)
+
+# 4. Configure environment
+cp .env.example .env.local
+# Edit .env.local with your keys
+
+# 5. Start dev server
+npm run dev
+
+# 6. Open browser
+open http://localhost:3000
 ```
 
-## Tech stack
+---
 
-Next.js 15 (App Router) · Vercel AI SDK · Google Gemini 2.5 Flash · `gemini-embedding-001` ·
-Supabase Postgres + pgvector · JSearch (RapidAPI) · Tailwind CSS · Recharts · deployed on Vercel.
+## 📜 Scripts
 
-## Notes & honesty
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Start development server (Next.js 15) |
+| `npm run build` | Production build |
+| `npm run start` | Start production server |
+| `npm run lint` | Run ESLint |
+| `npm run eval` | Run evaluation suite against dev server |
 
-- **Demo mode** uses a single seeded user (`DEMO_USER_ID`) and the Supabase service
-  role server-side. RLS policies for real multi-user auth are already in the migration
-  — wire Supabase Auth and swap `DEMO_USER_ID` for `auth.uid()` to go multi-tenant.
-- Job data falls back to bundled **real-shaped seed data** when no `RAPIDAPI_KEY` is
-  set or the free quota is exhausted. This is cached real data, not faked agent output.
-- Built with AI assistance (see `PROMPTS.md` if you keep one) — core logic written and
-  reviewed during the hackathon.
+---
+
+## 🧪 Evaluation Suite
+
+Run the test suite against a running dev server:
+
+```bash
+npm run dev      # terminal 1 — start dev server
+npm run eval     # terminal 2 — run 11 automated cases
+```
+
+Test cases cover:
+
+| ID | What it verifies |
+|----|------------------|
+| EVAL-1 | Job search returns structured, fit-scored cards (0..100) |
+| EVAL-2 | Fit score is deterministic (±5 on repeat) |
+| EVAL-3 | Agent trace is exposed (proves tool-calling loop) |
+| EVAL-4 | Assistant chat endpoint streams a response |
+| EVAL-5 | Applications API round-trips (create → list) |
+| EVAL-6 | Goals API returns seeded demo goals |
+| EVAL-7 | Job cache works (repeat query is consistent) |
+| EVAL-8 | Fit breakdown exposes all 5 factors (0..100) |
+| EVAL-9 | Health endpoint returns `{ status: "ok" }` |
+| EVAL-10 | Assistant intent routing returns a valid intent |
+| EVAL-11 | Hallucination guard: says "not in your CV" for missing skills |
+
+---
+
+## 🎬 5-Minute Demo Flow
+
+1. **Landing** — "Stop applying blindly" hook + trust signals (RAG-grounded, programmatic scoring, agentic AI)
+2. **Upload CV** — Drag-and-drop PDF → watch chunks appear in section view
+3. **Job Search** — "Remote React internship" → agent trace → scored cards → hover for 5-factor breakdown
+4. **AI Coach** — "What skills am I missing?" → see **citation chips**: "Based on: Experience, Skills"
+5. **Roadmap** — "3-month plan" → week-by-week with cited projects
+6. **Tracker** — Drag application to Interviewing → dashboard updates instantly
+7. **Architecture** — $0 stack, Gemini embeddings, LLM streaming, scaling to 10K users
+
+---
+
+## 📈 Scaling to 10,000 Users
+
+| Item | Calculation | Cost/month |
+|------|-------------|------------|
+| Vector storage | 10K × 30 chunks × 768d × 4B ≈ 92MB | $0 (Supabase free tier) |
+| Embeddings | Gemini embedding-001 API | ~$0.07/10K docs |
+| LLM (Gemini Flash Lite) | ~320K requests | ~$28 |
+| Hosting (Vercel Hobby) | 1 seat | $0 |
+| **Per user** | | **~$0.007** |
+
+Bottlenecks & mitigations:
+- **LLM rate limits** → Round-robin router (Gemini → Groq → OpenRouter) scaffolded in `lib/ai.ts`
+- **CV ingestion timeout** → Background jobs (Inngest-ready architecture)
+- **Vector latency** → pgvector HNSW index (good to ~1M chunks)
+
+---
+
+## ⚠️ Known Limitations
+
+- **Authentication:** Currently runs in single-user demo mode (`DEMO_USER_ID`). RLS policies for multi-user auth are in the migration — swap `DEMO_USER_ID` for `auth.uid()` to go multi-tenant.
+- **Job Search:** Uses DuckDuckGo scraping with honest mock-data fallback labeled "Demo Mode." No paid job board API required for demo.
+- **Calendar:** Events table exists in schema; full calendar view pending.
+- **LLM Fallback:** Auto-switches providers on rate-limit; manual retry on total exhaustion.
+
+---
+
+## 👥 Team
+
+Built in 14 days for CodeSprint 2026 (IUT Computer Society · Poridhi.io).
+
+- **Person A:** AI/Backend — RAG pipeline, LLM router, fit score algorithm
+- **Person B:** Frontend/UI — Sidebar shell, DnD tracker, animations, design system
+
+---
+
+*See [`SETUP.md`](SETUP.md) for the team's living setup log, [`PROMPTS.md`](PROMPTS.md) for the prompt engineering artifacts, and [`docs/`](docs/) for the full system design documents.*

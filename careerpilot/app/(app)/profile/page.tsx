@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { FadeIn } from "@/components/FadeIn";
 
 type ProfileSection = { section: string; chunks: { position: number; content: string }[] };
 type CvProfile = {
@@ -10,12 +11,12 @@ type CvProfile = {
 };
 
 const SECTION_COLOR: Record<string, string> = {
-  experience: "text-signal",
-  education: "text-sky",
-  projects: "text-mint",
-  skills: "text-amber",
-  summary: "text-chalk",
-  certifications: "text-mint",
+  experience: "text-primary",
+  education: "text-sky-400",
+  projects: "text-emerald-400",
+  skills: "text-amber-400",
+  summary: "text-foreground",
+  certifications: "text-emerald-400",
 };
 
 export default function ProfilePage() {
@@ -33,23 +34,24 @@ export default function ProfilePage() {
   const hasCv = profile?.document && profile.totalChunks > 0;
 
   return (
+    <FadeIn>
     <div className="space-y-6 py-4">
       <div>
         <p className="label mb-2">Pillar 2 · CV Profile</p>
         <h1 className="font-display text-3xl font-bold">Exactly what the AI sees.</h1>
-        <p className="mt-2 max-w-xl text-sm text-chalk-dim">
+        <p className="mt-2 max-w-xl text-sm text-muted-foreground">
           Your CV, parsed into section-tagged chunks and embedded in pgvector. Every
-          answer and fit score is retrieved from <span className="text-signal">these</span> chunks —
+          answer and fit score is retrieved from <span className="text-primary">these</span> chunks —
           this is the grounding made visible.
         </p>
       </div>
 
-      {loading && <p className="text-sm text-amber animate-pulse-glow">Loading your CV profile…</p>}
+      {loading && <p className="text-sm text-amber-400 animate-pulse-glow">Loading your CV profile…</p>}
 
       {!loading && !hasCv && (
         <div className="panel p-6 text-center">
-          <p className="text-chalk-dim">No CV indexed yet.</p>
-          <Link href="/onboarding" className="btn-signal mt-4 inline-flex">
+          <p className="text-muted-foreground">No CV indexed yet.</p>
+          <Link href="/onboarding" className="btn-primary mt-4 inline-flex">
             Upload your CV →
           </Link>
         </div>
@@ -60,15 +62,15 @@ export default function ProfilePage() {
           <div className="panel flex flex-wrap items-center justify-between gap-3 p-4">
             <div>
               <p className="label">indexed document</p>
-              <p className="font-mono text-sm text-chalk">{profile.document!.fileName}</p>
+              <p className="font-mono text-sm text-foreground">{profile.document!.fileName}</p>
             </div>
             <div className="flex gap-4 text-right">
               <div>
-                <p className="font-display text-2xl font-bold text-signal">{profile.totalChunks}</p>
+                <p className="font-display text-2xl font-bold text-primary">{profile.totalChunks}</p>
                 <p className="label">chunks</p>
               </div>
               <div>
-                <p className="font-display text-2xl font-bold text-mint">{profile.sections.length}</p>
+                <p className="font-display text-2xl font-bold text-emerald-400">{profile.sections.length}</p>
                 <p className="label">sections</p>
               </div>
             </div>
@@ -79,7 +81,7 @@ export default function ProfilePage() {
               <div key={s.section} className="space-y-2">
                 <p className="label">
                   Cited from:{" "}
-                  <span className={`font-semibold ${SECTION_COLOR[s.section] ?? "text-chalk"}`}>
+                  <span className={`font-semibold ${SECTION_COLOR[s.section] ?? "text-foreground"}`}>
                     {s.section}
                   </span>{" "}
                   · {s.chunks.length} chunk{s.chunks.length === 1 ? "" : "s"}
@@ -90,7 +92,7 @@ export default function ProfilePage() {
                       <p className="label mb-2">
                         {s.section} → #{c.position}
                       </p>
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-chalk-dim">
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
                         {c.content.length > 600 ? `${c.content.slice(0, 600)}…` : c.content}
                       </p>
                     </div>
@@ -102,5 +104,6 @@ export default function ProfilePage() {
         </>
       )}
     </div>
+    </FadeIn>
   );
 }
