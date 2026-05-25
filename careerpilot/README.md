@@ -25,7 +25,7 @@ Built in 14 days for [CodeSprint 2026](https://poridhi.io) (IUT Computer Society
 | 1 | **Job Hunter Agent** | Natural language search via a tool-calling agent loop (JSearch live API → Supabase cache → bundled seed fallback), programmatic fit scores with 5-factor breakdown (semantic, skills, seniority, education, location) | `/hunter` |
 | 2 | **CV Brain (RAG Core)** | PDF/DOCX/TXT upload, section-aware chunking, Gemini embeddings, pgvector HNSW storage, contextual retrieval | `/onboarding` · `/profile` |
 | 3 | **AI Coach** | Streaming chat with RAG-grounded responses, **citation chips** showing which CV sections were used, intent detection, roadmap generation, cover letter drafting | `/assistant` · `/roadmap` |
-| 4 | **Tracker** | Drag-and-drop Kanban (Applied → Interviewing → Offer → Rejected), goals/to-dos, progress dashboard with Recharts, manual application entry | `/tracker` |
+| 4 | **Tracker** | Drag-and-drop Kanban (Applied → Interviewing → Offer → Rejected), goals/to-dos, progress dashboard with Recharts, manual application entry, and a **month-view calendar** plotting events + goal deadlines + application dates | `/tracker` (Board / Calendar tabs) |
 
 ---
 
@@ -116,6 +116,7 @@ The LLM only extracts skill lists; the factors, weights, and blend are all TypeS
 | `/api/roadmap` | POST | Generate structured learning roadmap |
 | `/api/applications` | GET / POST / PATCH | CRUD for job applications |
 | `/api/goals` | GET / PATCH | Goals and to-dos |
+| `/api/events` | GET / POST / DELETE | Calendar events (deadlines/reminders), linkable to goals/applications |
 | `/api/health` | GET | Liveness probe |
 
 ---
@@ -161,7 +162,9 @@ npm install
 #    - SQL Editor → paste & run supabase/migrations/0001_init.sql
 #      (enables pgvector, creates tables + match_cv_chunks RPC + seed data)
 #    - Then paste & run supabase/migrations/0002_auth.sql
-#      (creates the auth trigger that auto-creates profiles on sign-up)
+#      (auth trigger that auto-creates profiles on sign-up)
+#    - Then paste & run supabase/migrations/0003_events.sql
+#      (creates the events table for the calendar)
 
 # 4. Configure environment
 cp .env.example .env.local
@@ -252,7 +255,7 @@ Bottlenecks & mitigations:
 
 - **Authentication:** Now uses **real Supabase Auth** (Google OAuth + email/password). Users must sign up at `/signup` or sign in at `/login`. See `SETUP.md` for manual dashboard configuration steps.
 - **Job Search:** Uses seed + cached job data with optional JSearch live search. No paid job board API required for demo.
-- **Calendar:** Not yet built — no calendar view or events table ships today (a candidate for the tracker post-MVP).
+- **Calendar:** Month-view calendar in the Tracker (Board / Calendar tabs), backed by an `events` table. It plots custom events, goal due dates, and application dates, with click-to-add events and prev/next navigation. Application *deadlines* are not stored separately yet — applications are plotted by their created date.
 - **LLM Fallback:** automatic — on a Gemini rate-limit (429), every LLM call (including the streaming chat) retries on Groq `llama-3.3-70b-versatile`. Set `GROQ_API_KEY` to enable it; without a key, rate-limited calls fall back to a calm "AI is busy" message. Embeddings remain Gemini-only.
 
 ---

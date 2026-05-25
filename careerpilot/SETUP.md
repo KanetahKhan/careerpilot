@@ -28,6 +28,7 @@ cp .env.example .env.local
 # open Supabase dashboard → SQL Editor → New query
 # → paste the entire contents of supabase/migrations/0001_init.sql → Run
 # → paste the entire contents of supabase/migrations/0002_auth.sql → Run
+# → paste the entire contents of supabase/migrations/0003_events.sql → Run
 
 # run it
 npm run dev          # http://localhost:3000
@@ -224,6 +225,11 @@ real browser never sends the header, so it cannot affect live user sessions. If
 
 Newest at the top. Format: `YYYY-MM-DD — name — what changed`.
 
+- 2026-05-25 — calendar — added Pillar 4 month-view calendar in the Tracker
+  (Board/Calendar tabs). New `events` table (**run `supabase/migrations/0003_events.sql`
+  in the Supabase SQL editor**), `/api/events` route (GET/POST/DELETE), and a
+  custom calendar component that plots events + goal due dates + application dates.
+  No new dependencies.
 - 2026-05-25 — ai — added automatic Gemini→Groq fallback on rate-limit (429) for
   every LLM call (chat stream, fit-score skill extraction, job-hunter agent,
   roadmap, intent). New dep `@ai-sdk/groq`; new env var `GROQ_API_KEY` (also add
