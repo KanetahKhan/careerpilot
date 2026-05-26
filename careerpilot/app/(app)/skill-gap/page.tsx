@@ -12,7 +12,6 @@ type SkillGapResult = {
   benchmarkSkills: string[];
   have: string[];
   missing: string[];
-  extra: string[];
 };
 
 const SUGGESTED_ROLES = [
@@ -23,7 +22,7 @@ const SUGGESTED_ROLES = [
   "devops engineer",
   "mobile engineer",
   "machine learning engineer",
-  "product manager",
+  "swe intern",
 ];
 
 export default function SkillGapPage() {
@@ -31,6 +30,7 @@ export default function SkillGapPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SkillGapResult | null>(null);
+  const [lastRole, setLastRole] = useState("");
 
   async function analyze(given?: string) {
     const target = (given ?? role).trim();
@@ -41,6 +41,7 @@ export default function SkillGapPage() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setLastRole(target);
     try {
       const res = await fetch("/api/skill-gap", {
         method: "POST",
@@ -57,6 +58,11 @@ export default function SkillGapPage() {
     }
   }
 
+  const missingSkills = result?.missing ?? [];
+  const roadmapGoal = missingSkills.length > 0
+    ? `Learn ${missingSkills.slice(0, 5).join(", ")}${missingSkills.length > 5 ? ` +${missingSkills.length - 5} more` : ""} for a ${lastRole} role`
+    : "";
+
   return (
     <FadeIn>
       <div className="space-y-6 py-4">
@@ -67,8 +73,8 @@ export default function SkillGapPage() {
           </h1>
           <p className="mt-2 max-w-xl text-sm text-muted-foreground">
             Pick a role and we&apos;ll compare your CV&apos;s skills against a
-            benchmark profile — showing exactly what you have, what you&apos;re
-            missing, and what you already bring that goes beyond the role.
+            benchmark profile — showing exactly what you have and what you&apos;re
+            missing, prioritized by importance.
           </p>
         </div>
 
@@ -77,7 +83,7 @@ export default function SkillGapPage() {
             value={role}
             onChange={(e) => setRole(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && analyze()}
-            placeholder='e.g. "frontend engineer"'
+            placeholder='e.g. "swe intern"'
             className="flex-1 rounded-xl border border-border bg-background/60 px-4 py-3 text-foreground outline-none placeholder:text-muted-foreground focus:border-primary/60"
           />
           <button
@@ -116,7 +122,6 @@ export default function SkillGapPage() {
 
         {result && (
           <div className="space-y-5">
-            {/* Coverage card */}
             <div className="panel animate-fade-up p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -136,7 +141,6 @@ export default function SkillGapPage() {
               </div>
             </div>
 
-            {/* Skill lists */}
             <div className="grid gap-4 md:grid-cols-2">
               {result.have.length > 0 && (
                 <div className="panel animate-fade-up p-5">
@@ -161,7 +165,7 @@ export default function SkillGapPage() {
                 <div className="panel animate-fade-up p-5">
                   <p className="label mb-2 flex items-center gap-1.5">
                     <span className="text-rose-400">✗</span>
-                    Missing ({result.missing.length}/{result.benchmarkSkills.length})
+                    Missing — focus here ({result.missing.length}/{result.benchmarkSkills.length})
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {result.missing.map((s) => (
@@ -177,23 +181,7 @@ export default function SkillGapPage() {
               )}
             </div>
 
-            {result.extra.length > 0 && (
-              <div className="panel animate-fade-up p-5">
-                <p className="label mb-2">Extra skills (beyond the role)</p>
-                <div className="flex flex-wrap gap-1">
-                  {result.extra.map((s) => (
-                    <span
-                      key={`extra-${s}`}
-                      className="chip bg-sky-400/10 text-sky-400"
-                    >
-                      + {s}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {result.missing.length > 0 && (
+            {missingSkills.length > 0 && (
               <div className="panel animate-fade-up p-5">
                 <p className="label mb-2">Close the gap</p>
                 <p className="text-sm text-muted-foreground">
@@ -201,7 +189,7 @@ export default function SkillGapPage() {
                   week-by-week roadmap.
                 </p>
                 <Link
-                  href="/roadmap"
+                  href={`/roadmap?goal=${encodeURIComponent(roadmapGoal)}`}
                   className="btn-primary mt-3 inline-flex items-center gap-2 px-4 py-2 text-sm"
                 >
                   <Route size={14} />

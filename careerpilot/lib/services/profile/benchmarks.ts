@@ -5,82 +5,92 @@ import { generateObjectWithFallback } from "@/lib/ai";
 export type RoleBenchmark = {
   roleTitle: string;
   skills: string[];
-  seniorityYears: number;
-  educationLevel: string | null;
-  commonTools: string[];
 };
+
+function toSlug(raw: string): string {
+  return raw
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
 
 const BenchmarkSchema = z.object({
   skills: z.array(z.string()),
-  seniorityYears: z.number(),
-  educationLevel: z.string(),
-  commonTools: z.array(z.string()),
 });
 
 async function generateBenchmark(role: string): Promise<RoleBenchmark> {
   const { object } = await generateObjectWithFallback({
     schema: BenchmarkSchema,
     prompt: `You are a career coach. For the role "${role}", return:
-- skills: an array of 10-15 concrete technical and domain skills required (lowercase)
-- seniorityYears: typical years of experience expected
-- educationLevel: typical degree level ("bachelor's", "master's", "phd", or empty string)
-- commonTools: an array of 5-8 most common tools/frameworks (lowercase)`,
+- skills: an array of 10-15 concrete technical and domain skills required (lowercase, no duplicates)
+Do not include soft skills. Only hard, job-relevant technical skills.`,
     schemaName: "role_benchmark",
     temperature: 0.3,
   });
   return {
     roleTitle: role,
-    skills: object.skills,
-    seniorityYears: object.seniorityYears,
-    educationLevel: object.educationLevel || null,
-    commonTools: object.commonTools,
+    skills: [...new Set(object.skills.map((s) => s.toLowerCase().trim()))].filter(Boolean),
   };
 }
+
+const FALLBACK_BENCHMARK: RoleBenchmark = {
+  roleTitle: "software engineer",
+  skills: [
+    "python", "javascript", "git", "sql", "rest api",
+    "data structures", "algorithms", "debugging", "linux", "testing",
+  ],
+};
 
 /**
  * Resolve a role benchmark by title.
  *
  * Strategy:
- * 1. Look up the `role_benchmarks` table (seeded + previously cached rows).
- * 2. If not found, generate via LLM and cache the result for future requests.
+ * 1. Normalise the input to a slug (lowercase, hyphens, alphanumeric only).
+ * 2. Look up `role_benchmarks` by `role_slug` (ILIKE).
+ * 3. On a miss, generate via LLM and cache the result for future requests.
+ * 4. On total failure (LLM + DB both down), return a small generic set.
  *
- * The seed covers ~10 common roles; any other role triggers a one-time LLM
- * call whose output is persisted so subsequent lookups are instant.
+ * Never throws.
  */
 export async function getBenchmark(role: string): Promise<RoleBenchmark> {
   const supabase = createAdminClient();
-  const normalized = role.toLowerCase().trim().replace(/\s+/g, " ");
+  const slug = toSlug(role);
 
   // 1. DB lookup
-  const { data } = await supabase
-    .from("role_benchmarks")
-    .select("*")
-    .ilike("role_title", normalized)
-    .maybeSingle();
+  try {
+    const { data } = await supabase
+      .from("role_benchmarks")
+      .select("role_slug, role_label, skills")
+      .ilike("role_slug", slug)
+      .maybeSingle();
 
-  if (data) {
-    return {
-      roleTitle: data.role_title,
-      skills: data.skills ?? [],
-      seniorityYears: data.seniority_years ?? 0,
-      educationLevel: data.education_level ?? null,
-      commonTools: data.common_tools ?? [],
-    };
+    if (data) {
+      return {
+        roleTitle: data.role_label ?? data.role_slug,
+        skills: data.skills ?? [],
+      };
+    }
+  } catch {
+    // DB down — fall through to LLM
   }
 
   // 2. LLM generation + cache
-  const benchmark = await generateBenchmark(normalized);
-  await supabase
-    .from("role_benchmarks")
-    .insert({
-      role_title: normalized,
-      skills: benchmark.skills,
-      seniority_years: benchmark.seniorityYears,
-      education_level: benchmark.educationLevel,
-      common_tools: benchmark.commonTools,
-      source: "llm",
-    })
-    .maybeSingle();
-
-  return benchmark;
+  try {
+    const benchmark = await generateBenchmark(role);
+    await supabase
+      .from("role_benchmarks")
+      .insert({
+        role_slug: slug,
+        role_label: role,
+        skills: benchmark.skills,
+        source: "llm",
+      })
+      .maybeSingle();
+    return benchmark;
+  } catch {
+    return FALLBACK_BENCHMARK;
+  }
 }

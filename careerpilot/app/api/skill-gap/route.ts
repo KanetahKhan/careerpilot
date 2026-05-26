@@ -42,9 +42,6 @@ export async function POST(req: NextRequest) {
 
     const have = benchmarkSkillsLower.filter((s) => cvSkillsLower.has(s));
     const missing = benchmarkSkillsLower.filter((s) => !cvSkillsLower.has(s));
-    const extra = [...cv.skills]
-      .filter((s) => !benchmarkSkillsLower.includes(s.toLowerCase().trim()))
-      .slice(0, 20);
 
     const coverage =
       benchmarkSkillsLower.length === 0
@@ -57,7 +54,6 @@ export async function POST(req: NextRequest) {
       benchmarkSkills: benchmark.skills,
       have,
       missing,
-      extra,
     });
   } catch (e: any) {
     if (isRateLimitError(e)) {

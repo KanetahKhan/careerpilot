@@ -13,8 +13,8 @@ Natural-language job search with programmatic fit scoring. The agent loop search
 A CV-grounded chat assistant. Every response is backed by RAG-retrieved chunks from the user's ingested CV, with cited sections displayed in the UI. Intent classification (heuristic + cheap LLM fallback) adapts the assistant's formatting per query type.
 
 ### Pillar 3: Roadmap, Skill Gap & Tracker
-- **Roadmap** (`/roadmap`): generates a week-by-week learning plan grounded in CV gaps, materializable as real tracker entries.
-- **Skill Gap** (`/skill-gap`): compares the user's CV skills against benchmark profiles for common roles, producing a coverage ratio and explicit have/missing/extra lists.
+- **Roadmap** (`/roadmap`): generates a week-by-week learning plan grounded in CV gaps, materializable as real tracker entries. Supports `?goal=` query param for prefilled goals from other pages.
+- **Skill Gap** (`/skill-gap`): compares the user's CV skills against benchmark profiles for common roles, producing a coverage ratio and explicit have/missing lists. Missing skills link to `/roadmap?goal=Learn ...` to build a plan.
 - **Tracker** (`/tracker`): Kanban-style application tracking + goals + calendar events. Pushes nudge notifications based on activity.
 
 ## Data Model
@@ -78,18 +78,37 @@ An LLM scoring a candidate is opaque, expensive, and inconsistent. Every `comput
 ## Skill-Gap Analysis
 
 ### Benchmark profiles
-A `role_benchmarks` table stores canonical "what this role requires" profiles:
-- **Seed rows**: 10 common roles (frontend, backend, fullstack, data scientist, devops, mobile, ML, PM, UX, data engineer) shipped with the app
-- **LLM-generated rows**: any role not in the seed triggers a single structured-output LLM call, then caches the result in the DB
+A `role_benchmarks` table stores canonical "what this role requires" profiles with `role_slug` (unique key, ILIKE-matched) and `role_label` (display name):
+
+| Column | Type | Purpose |
+|--------|------|---------|
+| id | bigint PK | auto-increment |
+| role_slug | text UNIQUE | normalised lookup key (e.g. `swe-intern`) |
+| role_label | text | human-readable display (e.g. "SWE Intern (general)") |
+| skills | text[] | expected technical skills (lowercase, deduplicated) |
+| source | text | `'seed'` (shipped) or `'llm'` (generated + cached) |
+| created_at | timestamptz | row creation time |
+
+- **Seed rows**: 10 roles shipped with the app: ML Engineer, Data Engineer, Frontend Engineer, Backend Engineer, Full-Stack Engineer, DevOps Engineer, Data Scientist, Mobile Engineer (RN), Embedded / Robotics Engineer, SWE Intern (general)
+- **LLM-generated rows**: any role not in the seed triggers one structured-output LLM call; the result is cached in the DB so subsequent lookups are instant
+- **Fallback**: if the DB and LLM both fail, `getBenchmark` returns a small generic set — it never throws
+
+### Lookup (`getBenchmark`)
+1. Normalise input to slug (lowercase, spaces→hyphens, strip non-alphanumeric)
+2. ILIKE-match against `role_slug`
+3. On miss: generate via LLM, cache, return
+4. On total failure: return generic fallback
 
 ### Comparison
 Given the user's extracted CV skills (from `loadCvContext`) and a benchmark:
 - **Coverage** = `round(have.length / benchmarkSkills.length * 100)`
-- **Have** = benchmark skills found in CV
-- **Missing** = benchmark skills not in CV
-- **Extra** = CV skills not in benchmark (capped at 20)
+- **Have** = benchmark skills found in CV (case-insensitive set intersection)
+- **Missing** = benchmark skills not in CV (kept in benchmark priority order)
 
-The coverage ratio uses the same color tiers as fit score (≥75 emerald, ≥55 amber, else rose).
+The coverage ratio uses the same color tiers as fit score (≥75 emerald, ≥55 amber, else rose). The "Build roadmap" button links to `/roadmap?goal=Learn ...` to prefill a goal based on the missing skills.
+
+### Assistant integration
+When the chat intent classifier detects `skill_gap` and the query names a target role (extracted by regex after "for" or "as"), the chat route calls `getBenchmark` and appends the expected skills to the system prompt context. This makes the assistant's skill-gap answer consistent with what the dedicated `/skill-gap` page would produce.
 
 ## RAG Assistant
 

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { CalendarPlus } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
@@ -29,6 +29,17 @@ export default function RoadmapPage() {
   const [applying, setApplying] = useState(false);
   const [applyResult, setApplyResult] = useState<ApplyResult | null>(null);
   const [applyError, setApplyError] = useState("");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const prefilled = params.get("goal");
+    if (prefilled) {
+      setGoal(prefilled);
+      generate(prefilled);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function generate(g?: string) {
     const target = (g ?? goal).trim();
