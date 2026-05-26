@@ -103,6 +103,7 @@ The LLM only extracts skill lists; the factors, weights, and blend are all TypeS
 | Charts | Recharts 2.13 | Dashboard statistics |
 | Icons | Lucide React 1.16 | UI icons |
 | Theme | next-themes 0.4 | Dark/light mode |
+| Hero 3D | `three` 0.184 + `@react-three/fiber` 9 + `@react-three/drei` 10 | Landing-only particle field behind the hero; lazy-loaded (`ssr:false`) behind a CSS-only static poster, theme-aware via CSS variables, skipped entirely on `prefers-reduced-motion`. Never loaded inside the authenticated app |
 | Document export | `docx` 9.x | Server-side `.docx` build for cover letters and the CV. PDF is produced by a print-styled route + browser "Save as PDF" — no PDF library |
 
 ---
@@ -116,6 +117,7 @@ The LLM only extracts skill lists; the factors, weights, and blend are all TypeS
 | `/api/cv/build` | GET / POST | GET returns current CV as structured builder JSON (for editor prefill); POST accepts structured CV JSON, serializes to sections, chunks, embeds, and stores |
 | `/api/jobs/search` | POST | Natural language job search + fit scoring |
 | `/api/fit/score` | POST | Score a single pasted JD (or URL) against the user's CV with the same 5-factor fit engine the Hunter uses — programmatic TS math, not an LLM opinion |
+| `/api/skill-gap` | POST | Compare the user's CV skills against a role benchmark profile — returns coverage %, have / missing / extra skill lists; backed by a seeded DB table with ~10 common roles + LLM fallback for any other role |
 | `/api/fit/tailor` | POST | Rewrite up to 6 CV bullets to match a JD, grounded strictly in retrieved CV chunks; also returns honest gaps the CV doesn't cover |
 | `/api/chat` | POST | Streaming AI assistant with RAG context + citation headers |
 | `/api/chat/history` | GET | Replay a session's persisted chat_messages so the assistant survives refresh |

@@ -15,7 +15,7 @@ export type Intent = (typeof INTENTS)[number];
 const RULES: { intent: Intent; re: RegExp }[] = [
   { intent: "cover_letter", re: /\bcover[\s-]?letter|write me a letter|draft a letter\b/i },
   { intent: "roadmap", re: /\broad\s?map|study plan|learning plan|week[\s-]?by[\s-]?week|plan to (become|get|land|be)|get (me )?job[\s-]?ready|become job[\s-]?ready|\d+[\s-]?(week|month) plan\b/i },
-  { intent: "skill_gap", re: /\bskill gaps?|what (skills? )?(am i missing|do i (need|lack))|what'?s missing|am i lacking|what should i learn\b/i },
+  { intent: "skill_gap", re: /\bskill gaps?|what (skills? )?(am i missing|do i (need|lack))|what'?s missing|am i lacking|what should i learn|what.*(need|lack|miss).*(role|job|position)\b/i },
   { intent: "readiness_check", re: /\bam i ready|ready for|qualified for|good fit for|can i apply|how ready|my chances?\b/i },
 ];
 
@@ -58,7 +58,7 @@ export function intentGuidance(intent: Intent): string {
     case "readiness_check":
       return `INTENT: readiness check. Open with a one-line verdict (Ready / Nearly there / Not yet), then 2-4 concrete reasons grounded in the CV, then the single most important next step.`;
     case "skill_gap":
-      return `INTENT: skill gap. List the specific skills the target role needs that the CV does NOT evidence, ordered by priority. Only flag a gap you can justify against the CV; note existing strengths briefly.`;
+      return `INTENT: skill gap. List the specific skills the target role needs that the CV does NOT evidence, ordered by priority. Only flag a gap you can justify against the CV; note existing strengths briefly. Suggest the dedicated /skill-gap page for a benchmark-based comparison against specific roles.`;
     case "roadmap":
       return `INTENT: roadmap. Produce a numbered week-by-week plan that closes the user's REAL gaps from the CV. Each week: a focus + 2-3 concrete actions; end with a measurable milestone. Mention that the /roadmap page renders a structured version.`;
     case "cover_letter":
