@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { FadeIn } from "@/components/FadeIn";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerContainer";
 
@@ -39,14 +40,25 @@ function FactorBars({ fit }: { fit: Fit }) {
 }
 
 export default function HunterPage() {
-  const [query, setQuery] = useState("remote react frontend internship");
+  return (
+    <Suspense fallback={null}>
+      <HunterInner />
+    </Suspense>
+  );
+}
+
+function HunterInner() {
+  const searchParams = useSearchParams();
+  const initialQ = searchParams.get("q")?.trim();
+  const [query, setQuery] = useState(initialQ || "remote react frontend internship");
   const [loading, setLoading] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [trace, setTrace] = useState<string[]>([]);
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [detail, setDetail] = useState<Job | null>(null);
+  const autoRanRef = useRef(false);
 
-  async function run() {
+  const run = useCallback(async (q: string) => {
     setLoading(true);
     setJobs([]);
     setTrace([]);
@@ -54,7 +66,7 @@ export default function HunterPage() {
       const res = await fetch("/api/jobs/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query: q }),
       });
       const json = await res.json();
       setJobs(json.jobs ?? []);
@@ -62,7 +74,15 @@ export default function HunterPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  // Auto-run once on first mount when ?q= is supplied (e.g. arriving from a nudge).
+  useEffect(() => {
+    if (autoRanRef.current) return;
+    if (!initialQ) return;
+    autoRanRef.current = true;
+    run(initialQ);
+  }, [initialQ, run]);
 
   async function track(j: Job) {
     await fetch("/api/applications", {
@@ -88,11 +108,11 @@ export default function HunterPage() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && run()}
+          onKeyDown={(e) => e.key === "Enter" && run(query)}
           placeholder='e.g. "ML internships in Dhaka open this month"'
           className="flex-1 rounded-xl border border-border bg-background/60 px-4 py-3 text-foreground outline-none placeholder:text-muted-foreground focus:border-primary/60"
         />
-        <button onClick={run} disabled={loading} className="btn-primary disabled:opacity-50">
+        <button onClick={() => run(query)} disabled={loading} className="btn-primary disabled:opacity-50">
           {loading ? "Agent working…" : "Hunt jobs →"}
         </button>
       </div>

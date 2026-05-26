@@ -122,7 +122,7 @@ The LLM only extracts skill lists; the factors, weights, and blend are all TypeS
 | `/api/applications` | GET / POST / PATCH | CRUD for job applications |
 | `/api/goals` | GET / PATCH | Goals and to-dos |
 | `/api/events` | GET / POST / DELETE | Calendar events (deadlines/reminders), linkable to goals/applications |
-| `/api/nudges` | GET / POST / PATCH | AI nudges — POST generates 2-4 data-grounded reminders (one LLM call), GET lists, PATCH marks read |
+| `/api/nudges` | GET / POST / PATCH | AI nudges — POST generates 2-4 data-grounded reminders (one LLM call), GET lists, PATCH marks read. Each nudge may carry an optional `action` (today: `{ type: "hunter_search", query }`) that the tracker UI turns into a one-click Hunter search |
 | `/api/profile` | GET / PATCH | Editable profile (display_name, avatar_url); creates row lazily on first GET |
 | `/api/profile/avatar` | POST / DELETE | Upload (multipart `file`, png/jpeg/webp, ≤2 MB) or remove the avatar in the `avatars` storage bucket |
 | `/api/health` | GET | Liveness probe |
@@ -182,6 +182,10 @@ npm install
 #      (creates the notifications table for AI nudges)
 #    - Then paste & run supabase/migrations/0005_profiles_avatar.sql
 #      (adds display_name/avatar_url + the public `avatars` storage bucket)
+#    - Then paste & run supabase/migrations/0006_chat_messages_index.sql
+#      (composite index for the chat history reload)
+#    - Then paste & run supabase/migrations/0007_notifications_action.sql
+#      (adds nullable `action jsonb` to notifications for actionable nudges)
 
 # 4. Configure environment
 cp .env.example .env.local

@@ -139,10 +139,15 @@ export async function listNotifications(userId: string) {
 /** Bulk-insert generated nudges; returns the inserted rows (with ids). */
 export async function insertNotifications(
   userId: string,
-  items: { message: string; type: string }[]
+  items: { message: string; type: string; action?: unknown }[]
 ) {
   const supabase = createAdminClient();
-  const rows = items.map((n) => ({ user_id: userId, message: n.message, type: n.type }));
+  const rows = items.map((n) => ({
+    user_id: userId,
+    message: n.message,
+    type: n.type,
+    action: n.action ?? null,
+  }));
   return supabase.from("notifications").insert(rows).select("*");
 }
 
