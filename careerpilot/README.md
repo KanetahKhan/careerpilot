@@ -119,6 +119,8 @@ The LLM only extracts skill lists; the factors, weights, and blend are all TypeS
 | `/api/goals` | GET / PATCH | Goals and to-dos |
 | `/api/events` | GET / POST / DELETE | Calendar events (deadlines/reminders), linkable to goals/applications |
 | `/api/nudges` | GET / POST / PATCH | AI nudges — POST generates 2-4 data-grounded reminders (one LLM call), GET lists, PATCH marks read |
+| `/api/profile` | GET / PATCH | Editable profile (display_name, avatar_url); creates row lazily on first GET |
+| `/api/profile/avatar` | POST / DELETE | Upload (multipart `file`, png/jpeg/webp, ≤2 MB) or remove the avatar in the `avatars` storage bucket |
 | `/api/health` | GET | Liveness probe |
 
 ---
@@ -172,6 +174,10 @@ npm install
 #      (auth trigger that auto-creates profiles on sign-up)
 #    - Then paste & run supabase/migrations/0003_events.sql
 #      (creates the events table for the calendar)
+#    - Then paste & run supabase/migrations/0004_notifications.sql
+#      (creates the notifications table for AI nudges)
+#    - Then paste & run supabase/migrations/0005_profiles_avatar.sql
+#      (adds display_name/avatar_url + the public `avatars` storage bucket)
 
 # 4. Configure environment
 cp .env.example .env.local
