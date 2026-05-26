@@ -119,6 +119,7 @@ The LLM only extracts skill lists; the factors, weights, and blend are all TypeS
 | `/api/chat/history` | GET | Replay a session's persisted chat_messages so the assistant survives refresh |
 | `/api/export/docx` | POST | Build a `.docx` for a cover letter or the structured CV (one shared route, `kind: "cover_letter" \| "cv"`); PDF export is a print-route + browser "Save as PDF" — no PDF library |
 | `/api/roadmap` | POST | Generate structured learning roadmap |
+| `/api/roadmap/apply` | POST | Materialise a roadmap into real tracker entries — one goal per week action, one deadline event per week's milestone (dated `startDate + weekIndex*7`, default today) |
 | `/api/applications` | GET / POST / PATCH | CRUD for job applications |
 | `/api/goals` | GET / PATCH | Goals and to-dos |
 | `/api/events` | GET / POST / DELETE | Calendar events (deadlines/reminders), linkable to goals/applications |

@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
+import { CalendarPlus } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
 
 type Week = { week: number; focus: string; actions: string[]; milestone: string };
@@ -16,17 +18,25 @@ const SUGGESTIONS = [
   "Get ready for an ML/RAG engineer position",
 ];
 
+type ApplyResult = { goalsCreated: number; eventsCreated: number };
+
 export default function RoadmapPage() {
   const [goal, setGoal] = useState("");
   const [loading, setLoading] = useState(false);
   const [roadmap, setRoadmap] = useState<Roadmap | null>(null);
   const [error, setError] = useState("");
 
+  const [applying, setApplying] = useState(false);
+  const [applyResult, setApplyResult] = useState<ApplyResult | null>(null);
+  const [applyError, setApplyError] = useState("");
+
   async function generate(g?: string) {
     const target = (g ?? goal).trim();
     setLoading(true);
     setError("");
     setRoadmap(null);
+    setApplyResult(null);
+    setApplyError("");
     try {
       const res = await fetch("/api/roadmap", {
         method: "POST",
@@ -40,6 +50,30 @@ export default function RoadmapPage() {
       setError(e.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function applyToTracker() {
+    if (!roadmap || applying) return;
+    setApplying(true);
+    setApplyError("");
+    setApplyResult(null);
+    try {
+      const res = await fetch("/api/roadmap/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roadmap }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Failed to add to tracker");
+      setApplyResult({
+        goalsCreated: json.goalsCreated ?? 0,
+        eventsCreated: json.eventsCreated ?? 0,
+      });
+    } catch (e: any) {
+      setApplyError(e.message);
+    } finally {
+      setApplying(false);
     }
   }
 
@@ -95,16 +129,43 @@ export default function RoadmapPage() {
       {roadmap && (
         <div className="space-y-5">
           <div className="panel animate-fade-up p-5">
-            <p className="label mb-1">Goal</p>
-            <p className="font-display text-lg font-bold">{roadmap.goal}</p>
-            <p className="mt-2 text-sm text-muted-foreground">{roadmap.summary}</p>
-            {roadmap.citedSections?.length > 0 && (
-              <div className="mt-3 flex flex-wrap items-center gap-1">
-                <span className="label mr-1">grounded in</span>
-                {roadmap.citedSections.map((s) => (
-                  <span key={s} className="chip bg-emerald-400/10 text-emerald-400">{s}</span>
-                ))}
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="label mb-1">Goal</p>
+                <p className="font-display text-lg font-bold">{roadmap.goal}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{roadmap.summary}</p>
+                {roadmap.citedSections?.length > 0 && (
+                  <div className="mt-3 flex flex-wrap items-center gap-1">
+                    <span className="label mr-1">grounded in</span>
+                    {roadmap.citedSections.map((s) => (
+                      <span key={s} className="chip bg-emerald-400/10 text-emerald-400">{s}</span>
+                    ))}
+                  </div>
+                )}
               </div>
+              <button
+                type="button"
+                onClick={applyToTracker}
+                disabled={applying}
+                className="btn-primary shrink-0 px-3 py-2 text-xs disabled:opacity-50"
+                title="Create to-dos and deadlines from this plan"
+              >
+                <CalendarPlus size={14} />
+                {applying ? "Adding…" : "Add to my plan"}
+              </button>
+            </div>
+
+            {applyResult && (
+              <p className="mt-3 text-sm text-emerald-400">
+                ✓ Added {applyResult.goalsCreated} to-do{applyResult.goalsCreated === 1 ? "" : "s"} and{" "}
+                {applyResult.eventsCreated} deadline{applyResult.eventsCreated === 1 ? "" : "s"} to your tracker.{" "}
+                <Link href="/tracker" className="underline underline-offset-4 hover:text-emerald-300">
+                  Open tracker →
+                </Link>
+              </p>
+            )}
+            {applyError && (
+              <p className="mt-3 text-sm text-primary">⚠ {applyError}</p>
             )}
           </div>
 
