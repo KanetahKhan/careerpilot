@@ -3,41 +3,13 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { FadeIn } from "@/components/FadeIn";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerContainer";
+import { FactorBars, fitScoreTextColor, type Fit } from "@/components/FitBreakdown";
 
-type Fit = {
-  score: number; semantic: number; skills: number; seniority: number;
-  education: number; location: number;
-  matchedSkills: string[]; missingSkills: string[]; explanation: string;
-};
 type Job = {
   id: string; role: string; company: string; location: string;
   salary: string | null; link: string | null; description?: string;
   deadline?: string | null; fit: Fit;
 };
-
-function scoreColor(s: number) {
-  if (s >= 75) return "text-emerald-400 bg-emerald-400/10 border-emerald-400/20";
-  if (s >= 55) return "text-amber-400 bg-amber-400/10 border-amber-400/20";
-  return "text-rose-400 bg-rose-400/10 border-rose-400/20";
-}
-
-const FACTORS = ["semantic", "skills", "seniority", "education", "location"] as const;
-
-function FactorBars({ fit }: { fit: Fit }) {
-  return (
-    <div className="space-y-1.5">
-      {FACTORS.map((k) => (
-        <div key={k} className="flex items-center gap-2">
-          <span className="w-20 font-mono text-[10px] uppercase text-muted-foreground">{k}</span>
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
-            <div className="h-full rounded-full bg-primary/70" style={{ width: `${fit[k]}%` }} />
-          </div>
-          <span className="w-7 text-right font-mono text-[10px] text-muted-foreground">{fit[k]}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 export default function HunterPage() {
   return (
@@ -146,7 +118,7 @@ function HunterInner() {
                 {j.salary && <p className="mt-1 text-xs text-muted-foreground">{j.salary}</p>}
               </div>
               <div className="text-right">
-                <p className={`font-display text-3xl font-bold ${scoreColor(j.fit.score).split(" ")[0]}`}>{j.fit.score}</p>
+                <p className={`font-display text-3xl font-bold ${fitScoreTextColor(j.fit.score)}`}>{j.fit.score}</p>
                 <p className="label">fit</p>
               </div>
             </div>
@@ -201,7 +173,7 @@ function HunterInner() {
                 {detail.salary && <p className="mt-1 text-xs text-muted-foreground">{detail.salary}</p>}
               </div>
               <div className="text-right">
-                <p className={`font-display text-4xl font-bold ${scoreColor(detail.fit.score).split(" ")[0]}`}>
+                <p className={`font-display text-4xl font-bold ${fitScoreTextColor(detail.fit.score)}`}>
                   {detail.fit.score}
                 </p>
                 <p className="label">fit</p>

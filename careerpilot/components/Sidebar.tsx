@@ -17,12 +17,14 @@ import {
   Menu,
   X,
   LogIn,
+  Target,
 } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/hunter", label: "Job Hunter", icon: Search, badge: null as null },
+  { href: "/fit", label: "Score a JD", icon: Target, badge: null as null },
   { href: "/assistant", label: "AI Coach", icon: Sparkles, badge: null as null },
   { href: "/tracker", label: "Tracker", icon: Kanban, badge: "apps" as const },
   { href: "/roadmap", label: "Roadmap", icon: Route, badge: "goals" as const },

@@ -40,7 +40,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/roadmap") ||
     pathname.startsWith("/profile") ||
     pathname.startsWith("/settings") ||
-    pathname.startsWith("/onboarding");
+    pathname.startsWith("/onboarding") ||
+    pathname.startsWith("/fit");
 
   const isAuthRoute =
     pathname.startsWith("/login") || pathname.startsWith("/signup");

@@ -115,6 +115,8 @@ The LLM only extracts skill lists; the factors, weights, and blend are all TypeS
 | `/api/cv/profile` | GET | Retrieve parsed CV chunks by section |
 | `/api/cv/build` | GET / POST | GET returns current CV as structured builder JSON (for editor prefill); POST accepts structured CV JSON, serializes to sections, chunks, embeds, and stores |
 | `/api/jobs/search` | POST | Natural language job search + fit scoring |
+| `/api/fit/score` | POST | Score a single pasted JD (or URL) against the user's CV with the same 5-factor fit engine the Hunter uses — programmatic TS math, not an LLM opinion |
+| `/api/fit/tailor` | POST | Rewrite up to 6 CV bullets to match a JD, grounded strictly in retrieved CV chunks; also returns honest gaps the CV doesn't cover |
 | `/api/chat` | POST | Streaming AI assistant with RAG context + citation headers |
 | `/api/chat/history` | GET | Replay a session's persisted chat_messages so the assistant survives refresh |
 | `/api/export/docx` | POST | Build a `.docx` for a cover letter or the structured CV (one shared route, `kind: "cover_letter" \| "cv"`); PDF export is a print-route + browser "Save as PDF" — no PDF library |
