@@ -122,6 +122,28 @@
   padding: 140px 24px 100px;
   text-align: center;
   position: relative;
+  isolation: isolate;
+}
+
+/* 3D background: anchored to the hero region but spans the full viewport
+   width, so the centered 800px content stays put while particles fill
+   the whole screen behind it. Stays click-through. */
+.hero-bg-wrap {
+  position: absolute;
+  top: 0;
+  bottom: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  max-width: 100vw;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
 }
 
 .hero-title {
@@ -146,6 +168,14 @@
   color: hsl(var(--muted-foreground));
   max-width: 560px;
   margin: 0 auto 32px;
+}
+
+.hero-typed {
+  font-weight: 600;
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .hero-cta-row {

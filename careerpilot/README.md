@@ -104,6 +104,7 @@ The LLM only extracts skill lists; the factors, weights, and blend are all TypeS
 | Icons | Lucide React 1.16 | UI icons |
 | Theme | next-themes 0.4 | Dark/light mode |
 | Hero 3D | `three` 0.184 + `@react-three/fiber` 9 + `@react-three/drei` 10 | Landing-only particle field behind the hero; lazy-loaded (`ssr:false`) behind a CSS-only static poster, theme-aware via CSS variables, skipped entirely on `prefers-reduced-motion`. Never loaded inside the authenticated app |
+| Hero typing | `react-typed` 2 | Landing-only typing animation in the hero subtitle (`components/landing/TypeWriter.tsx`) |
 | Document export | `docx` 9.x | Server-side `.docx` build for cover letters and the CV. PDF is produced by a print-styled route + browser "Save as PDF" — no PDF library |
 
 ---

@@ -17,6 +17,8 @@
     "@ai-sdk/google": "^1.2.0",
     "@ai-sdk/groq": "^1.2.9",
     "@hello-pangea/dnd": "^18.0.1",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.45.0",
     "ai": "^4.3.0",
@@ -30,8 +32,10 @@
     "pdf-parse": "^1.1.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-typed": "^2.0.12",
     "recharts": "^2.13.0",
     "tailwindcss-animate": "^1.0.7",
+    "three": "^0.184.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

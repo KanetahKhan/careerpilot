@@ -58,6 +58,11 @@ const config: Config = {
           "0%,100%": { opacity: "0.6" },
           "50%": { opacity: "1" },
         },
+        "shine-pulse": {
+          "0%": { backgroundPosition: "0% 0%" },
+          "50%": { backgroundPosition: "100% 100%" },
+          "100%": { backgroundPosition: "0% 0%" },
+        },
       },
       animation: {
         "fade-up": "fade-up 0.5s cubic-bezier(0.2,0.8,0.2,1) both",
