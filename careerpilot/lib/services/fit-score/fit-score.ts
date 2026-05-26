@@ -69,9 +69,121 @@ async function extractSkills(text: string, label: string): Promise<string[]> {
   }
 }
 
-function estimateYears(text: string): number {
-  // crude but transparent: count explicit "N years" mentions, else infer from dates
-  const m = text.match(/(\d+)\+?\s*(years|yrs)/i);
+/** Months elapsed for a [start, end) half-open interval (end can be "Present"). */
+function monthsBetween(start: string, end: string, now: Date): number {
+  const startD = parseDate(start);
+  if (!startD) return 0;
+  const endD = /^(present|current|now)$/i.test(end.trim()) ? now : parseDate(end) ?? now;
+  return Math.max(0, (endD.getFullYear() - startD.getFullYear()) * 12 + endD.getMonth() - startD.getMonth());
+}
+
+/** Parse a date from supported formats. Returns null on failure. */
+// "Jan 2022" / "January 2022"
+const MONTH_NAMES: Record<string, number> = {
+  jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2, apr: 3, april: 3,
+  may: 4, jun: 5, june: 5, jul: 6, july: 6, aug: 7, august: 7, sep: 8,
+  september: 8, oct: 9, october: 9, nov: 10, november: 10, dec: 11, december: 11,
+};
+function parseDate(s: string): Date | null {
+  const trimmed = s.trim();
+  // "MM/YYYY" or "MM/DD/YYYY"
+  const slashM = trimmed.match(/^(\d{1,2})\/(\d{4})$/);
+  if (slashM) {
+    const m = parseInt(slashM[1], 10) - 1;
+    return m >= 0 && m <= 11 ? new Date(parseInt(slashM[2], 10), m) : null;
+  }
+  // "MonthName YYYY" — e.g. "Jan 2022" or "January 2022"
+  const textM = trimmed.match(/^([a-zA-Z]+)\s+(\d{4})$/);
+  if (textM) {
+    const m = MONTH_NAMES[textM[1].toLowerCase()];
+    return m !== undefined ? new Date(parseInt(textM[2], 10), m) : null;
+  }
+  // bare "YYYY"
+  const yearM = trimmed.match(/^(\d{4})$/);
+  if (yearM) return new Date(parseInt(yearM[1], 10), 0);
+  return null;
+}
+
+/** Infer years of experience from date ranges in text. Merges overlapping
+ *  intervals before summing to avoid double-counting.
+ *
+ *  Handles: "Jan 2022 – Present", "January 2022 to Current",
+ *  "2021 – 2023", "06/2020 - 08/2021", "Mar 2019 — Feb 2021", "2020-2022".
+ */
+function estimateExperienceYears(cvText: string): number {
+  // 1. Try explicit "N years" phrase first as a floor/fallback.
+  const explicitM = cvText.match(/(\d+)\+?\s*(years|yrs)/i);
+  const explicit = explicitM ? parseInt(explicitM[1], 10) : 0;
+
+  const now = new Date();
+  const intervals: { start: number; end: number }[] = [];
+  const allRanges: [string, string][] = [];
+
+  // Pattern A: "MonthName YYYY – MonthName YYYY" or "MonthName YYYY – Present"
+  const patternA = /([a-zA-Z]+)\s+(\d{4})\s*[–—\-to]+\s*([a-zA-Z]+|present|current|now)\s+(\d{4}|present|current|now)/gi;
+  let m: RegExpExecArray | null;
+  while ((m = patternA.exec(cvText)) !== null) {
+    allRanges.push([`${m[1]} ${m[2]}`, /^(present|current|now)$/i.test(m[3]) && !m[4] ? "Present" : `${m[3]} ${m[4]}`]);
+  }
+
+  // Pattern B: "MM/YYYY – MM/YYYY"
+  const patternB = /(\d{1,2}\/\d{4})\s*[–—\-to]+\s*(\d{1,2}\/\d{4}|present|current|now)/gi;
+  while ((m = patternB.exec(cvText)) !== null) {
+    allRanges.push([m[1], /^(present|current|now)$/i.test(m[2]) ? "Present" : m[2]]);
+  }
+
+  // Pattern C: "YYYY – YYYY" (bare years)
+  const patternC = /(\d{4})\s*[–—\-to]+\s*(\d{4})/g;
+  while ((m = patternC.exec(cvText)) !== null) {
+    allRanges.push([m[1], m[2]]);
+  }
+
+  // Pattern D: "MM/YYYY - MM/YYYY" without spaces (already covered by B with optional spaces)
+
+  for (const [startStr, endStr] of allRanges) {
+    const months = monthsBetween(startStr, endStr, now);
+    if (months > 0) {
+      const startD = parseDate(startStr);
+      const endD = /^(present|current|now)$/i.test(endStr.trim()) ? now : parseDate(endStr) ?? now;
+      if (startD) {
+        const startMonth = startD.getFullYear() * 12 + startD.getMonth();
+        const endMonth = endD.getFullYear() * 12 + endD.getMonth();
+        intervals.push({ start: startMonth, end: endMonth });
+      }
+    }
+  }
+
+  // Merge overlapping intervals
+  if (intervals.length === 0) return explicit;
+
+  intervals.sort((a, b) => a.start - b.start);
+  const merged: { start: number; end: number }[] = [intervals[0]];
+  for (let i = 1; i < intervals.length; i++) {
+    const last = merged[merged.length - 1];
+    if (intervals[i].start <= last.end) {
+      last.end = Math.max(last.end, intervals[i].end);
+    } else {
+      merged.push(intervals[i]);
+    }
+  }
+
+  // Sum total months
+  let totalMonths = 0;
+  for (const iv of merged) {
+    totalMonths += iv.end - iv.start;
+  }
+
+  const inferred = Math.floor(totalMonths / 12);
+  return Math.max(explicit, inferred);
+}
+
+/**
+ * Estimate years of experience a job REQUIRES by matching explicit
+ * "N+ years" / "N yrs" phrases. This is what job descriptions say,
+ * not what a candidate has — so date-range inference is inappropriate.
+ */
+function estimateRequiredYears(jobText: string): number {
+  const m = jobText.match(/(\d+)\+?\s*(years|yrs)/i);
   if (m) return parseInt(m[1], 10);
   return 0;
 }
@@ -155,7 +267,7 @@ export async function loadCvContext(userId: string): Promise<CvContext> {
     .map((e: any) => (typeof e === "string" ? JSON.parse(e) : e));
 
   const skills = new Set(await extractSkills(text, "candidate CV"));
-  return { text, centroid: centroid(vectors), skills, years: estimateYears(text) };
+  return { text, centroid: centroid(vectors), skills, years: estimateExperienceYears(text) };
 }
 
 /**
@@ -188,7 +300,7 @@ export async function computeFitScore(
     jobSkills.length === 0 ? 60 : Math.round((matched.length / jobSkills.length) * 100);
 
   // Seniority match (years).
-  const required = estimateYears(jobDescription);
+  const required = estimateRequiredYears(jobDescription);
   const seniority = required === 0 ? 80 : cv.years >= required ? 100 : 50;
 
   // Education + location match (pure, deterministic string analysis).
