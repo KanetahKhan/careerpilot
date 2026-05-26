@@ -108,7 +108,12 @@ export default function RoadmapPage() {
           placeholder='Your goal, e.g. "land a React frontend internship"'
           className="flex-1 rounded-xl border border-border bg-background/60 px-4 py-3 text-foreground outline-none placeholder:text-muted-foreground focus:border-primary/60"
         />
-        <button onClick={() => generate()} disabled={loading} className="btn-primary disabled:opacity-50">
+        <button
+          onClick={() => generate()}
+          disabled={loading}
+          aria-busy={loading || undefined}
+          className="btn-primary disabled:opacity-50"
+        >
           {loading ? "Planning…" : "Build roadmap →"}
         </button>
       </div>
@@ -158,6 +163,7 @@ export default function RoadmapPage() {
                 type="button"
                 onClick={applyToTracker}
                 disabled={applying}
+                aria-busy={applying || undefined}
                 className="btn-primary shrink-0 px-3 py-2 text-xs disabled:opacity-50"
                 title="Create to-dos and deadlines from this plan"
               >

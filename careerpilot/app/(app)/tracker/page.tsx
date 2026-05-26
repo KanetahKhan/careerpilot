@@ -8,6 +8,7 @@ import { FadeIn } from "@/components/FadeIn";
 import { AddApplicationButton } from "@/components/AddApplicationButton";
 import { Calendar } from "@/components/Calendar";
 import { Nudges } from "@/components/Nudges";
+import { FunnelAnalytics } from "@/components/FunnelAnalytics";
 import { cn } from "@/lib/utils";
 
 interface Application {
@@ -303,6 +304,9 @@ export default function TrackerPage() {
           {goals.length === 0 && <p className="text-sm text-muted-foreground">No goals yet.</p>}
         </div>
       </div>
+
+      {/* Funnel analytics — deterministic conversion rates + one computed insight */}
+      <FunnelAnalytics />
 
       {/* AI nudges — proactive, data-grounded reminders */}
       <Nudges />

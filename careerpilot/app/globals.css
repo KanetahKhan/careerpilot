@@ -173,6 +173,11 @@ body::before {
   }
 }
 
+@keyframes btn-shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
 .animate-orb-slow {
   animation: orb-slow 20s ease-in-out infinite;
 }
@@ -194,13 +199,36 @@ body::before {
     @apply rounded-2xl border border-border bg-card backdrop-blur-sm;
   }
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-150
+           active:scale-[0.97] active:brightness-95;
   }
   .btn-primary {
-    @apply btn bg-primary text-primary-foreground font-semibold hover:opacity-90 active:scale-[0.98];
+    @apply btn bg-primary text-primary-foreground font-semibold hover:opacity-90;
   }
   .btn-ghost {
     @apply btn border border-border text-muted-foreground hover:text-foreground hover:border-primary/50;
+  }
+  /* Loading shimmer — opt in via `aria-busy="true"` on any .btn or .btn-* */
+  .btn[aria-busy="true"],
+  [aria-busy="true"].btn {
+    @apply relative overflow-hidden cursor-progress active:scale-100;
+    background-image: linear-gradient(
+      110deg,
+      transparent 30%,
+      hsl(var(--primary-foreground) / 0.22) 50%,
+      transparent 70%
+    );
+    background-repeat: no-repeat;
+    background-size: 200% 100%;
+    animation: btn-shimmer 1.1s linear infinite;
+  }
+  .btn-ghost[aria-busy="true"] {
+    background-image: linear-gradient(
+      110deg,
+      transparent 30%,
+      hsl(var(--foreground) / 0.12) 50%,
+      transparent 70%
+    );
   }
   .chip {
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium;

@@ -11,6 +11,15 @@ type Job = {
   deadline?: string | null; fit: Fit;
 };
 
+type SavedSearch = {
+  id: number;
+  label: string;
+  query: string;
+  location: string;
+  last_run_at: string | null;
+  created_at: string;
+};
+
 export default function HunterPage() {
   return (
     <Suspense fallback={null}>
@@ -28,6 +37,10 @@ function HunterInner() {
   const [trace, setTrace] = useState<string[]>([]);
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [detail, setDetail] = useState<Job | null>(null);
+  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [runningId, setRunningId] = useState<number | null>(null);
+  const [checkError, setCheckError] = useState<string | null>(null);
   const autoRanRef = useRef(false);
 
   const run = useCallback(async (q: string) => {
@@ -55,6 +68,56 @@ function HunterInner() {
     autoRanRef.current = true;
     run(initialQ);
   }, [initialQ, run]);
+
+  // Load saved searches on mount.
+  useEffect(() => {
+    fetch("/api/saved-searches")
+      .then((r) => r.json())
+      .then((d) => setSavedSearches(d.searches ?? []))
+      .catch(() => {});
+  }, []);
+
+  async function saveSearch() {
+    if (!query.trim() || saving) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/saved-searches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: query.trim() }),
+      });
+      const json = await res.json();
+      if (json.search) {
+        setSavedSearches((prev) => [json.search, ...prev]);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteSearch(id: number) {
+    await fetch(`/api/saved-searches?id=${id}`, { method: "DELETE" });
+    setSavedSearches((prev) => prev.filter((s) => s.id !== id));
+  }
+
+  async function runSaved(s: SavedSearch) {
+    setRunningId(s.id);
+    setCheckError(null);
+    try {
+      const res = await fetch(`/api/saved-searches/check?id=${s.id}`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Check failed");
+      // Refresh the saved search list so last_run_at updates
+      const refresh = await fetch("/api/saved-searches").then((r) => r.json());
+      setSavedSearches(refresh.searches ?? []);
+      // Also run the search in the main UI so the user sees results
+      run(s.query);
+    } catch (e: any) {
+      setCheckError(e.message);
+    } finally {
+      setRunningId(null);
+    }
+  }
 
   async function track(j: Job) {
     await fetch("/api/applications", {
@@ -84,10 +147,58 @@ function HunterInner() {
           placeholder='e.g. "ML internships in Dhaka open this month"'
           className="flex-1 rounded-xl border border-border bg-background/60 px-4 py-3 text-foreground outline-none placeholder:text-muted-foreground focus:border-primary/60"
         />
-        <button onClick={() => run(query)} disabled={loading} className="btn-primary disabled:opacity-50">
+        <button
+          onClick={() => run(query)}
+          disabled={loading}
+          aria-busy={loading || undefined}
+          className="btn-primary disabled:opacity-50"
+        >
           {loading ? "Agent working…" : "Hunt jobs →"}
         </button>
       </div>
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={saveSearch}
+          disabled={saving || !query.trim()}
+          className="btn-ghost px-3 py-1.5 text-xs disabled:opacity-50"
+        >
+          {saving ? "Saving…" : "Save this search"}
+        </button>
+        {checkError && <p className="text-xs text-primary">⚠ {checkError}</p>}
+      </div>
+
+      {/* Saved searches */}
+      {savedSearches.length > 0 && (
+        <div className="panel p-4">
+          <p className="label mb-2">Saved searches</p>
+          <div className="space-y-2">
+            {savedSearches.map((s) => (
+              <div key={s.id} className="flex items-center gap-2 rounded-lg border border-border bg-background/50 px-3 py-2">
+                <span className="flex-1 truncate text-sm text-foreground">{s.label}</span>
+                <span className="text-[10px] text-muted-foreground">
+                  {s.last_run_at
+                    ? new Date(s.last_run_at).toLocaleDateString()
+                    : "never"}
+                </span>
+                <button
+                  onClick={() => runSaved(s)}
+                  disabled={runningId === s.id}
+                  className="btn-ghost px-2 py-1 text-[10px] disabled:opacity-50"
+                >
+                  {runningId === s.id ? "Running…" : "Run now"}
+                </button>
+                <button
+                  onClick={() => deleteSearch(s.id)}
+                  className="btn-ghost px-2 py-1 text-[10px] text-rose-400 hover:text-rose-300"
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* agent trace — makes "agentic" visible */}
       {(loading || trace.length > 0) && (

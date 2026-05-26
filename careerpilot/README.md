@@ -120,17 +120,23 @@ The LLM only extracts skill lists; the factors, weights, and blend are all TypeS
 | `/api/fit/score` | POST | Score a single pasted JD (or URL) against the user's CV with the same 5-factor fit engine the Hunter uses — programmatic TS math, not an LLM opinion |
 | `/api/skill-gap` | POST | Compare the user's CV skills against a role benchmark profile — returns coverage %, have / missing / extra skill lists; backed by a seeded DB table with ~10 common roles + LLM fallback for any other role |
 | `/api/fit/tailor` | POST | Rewrite up to 6 CV bullets to match a JD, grounded strictly in retrieved CV chunks; also returns honest gaps the CV doesn't cover |
+| `/api/interview/start` | POST | Start a mock interview — takes a JD, retrieves CV context, generates 5 tailored questions (behavioral, role-specific, gap-probing) via structured LLM output, returns `{ sessionId, role, questions }` |
+| `/api/interview/turn` | POST | Stream the interviewer's next turn — sends the full transcript + question plan + CV context to the LLM and streams the interviewer's natural response (react + ask next question), persists each turn to `chat_messages` via `persistTurn` |
+| `/api/interview/feedback` | POST | Generate per-competency interview feedback — structured output with score (1-5), strengths quoted from the transcript, identified gaps, an overall assessment, and a `strongRecommend` boolean |
 | `/api/chat` | POST | Streaming AI assistant with RAG context + citation headers |
 | `/api/chat/history` | GET | Replay a session's persisted chat_messages so the assistant survives refresh |
 | `/api/export/docx` | POST | Build a `.docx` for a cover letter or the structured CV (one shared route, `kind: "cover_letter" \| "cv"`); PDF export is a print-route + browser "Save as PDF" — no PDF library |
 | `/api/roadmap` | POST | Generate structured learning roadmap |
 | `/api/roadmap/apply` | POST | Materialise a roadmap into real tracker entries — one goal per week action, one deadline event per week's milestone (dated `startDate + weekIndex*7`, default today) |
+| `/api/saved-searches` | GET / POST / DELETE | CRUD for saved job searches — GET lists the user's saved searches, POST saves a new one (label + query + location), DELETE removes one by ?id= |
+| `/api/saved-searches/check` | POST | Re-run saved searches, diff results against seen_job_keys, create a new-match nudge for any search with unseen jobs. Accepts optional ?id= to check a single search; without ?id=, checks all. Rate-limited to once per hour per search |
 | `/api/applications` | GET / POST / PATCH | CRUD for job applications |
 | `/api/goals` | GET / PATCH | Goals and to-dos |
 | `/api/events` | GET / POST / DELETE | Calendar events (deadlines/reminders), linkable to goals/applications |
 | `/api/nudges` | GET / POST / PATCH | AI nudges — POST generates 2-4 data-grounded reminders (one LLM call), GET lists, PATCH marks read. Each nudge may carry an optional `action` (today: `{ type: "hunter_search", query }`) that the tracker UI turns into a one-click Hunter search |
 | `/api/profile` | GET / PATCH | Editable profile (display_name, avatar_url); creates row lazily on first GET |
 | `/api/profile/avatar` | POST / DELETE | Upload (multipart `file`, png/jpeg/webp, ≤2 MB) or remove the avatar in the `avatars` storage bucket |
+| `/api/analytics/funnel` | GET | Applied → Interviewing → Offer conversion rates + one deterministic insight (best-slice by fit-score bucket, then role-keyword bucket, then overall). All numbers are TypeScript math over the user's applications; the takeaway sentence is templated from the computed values |
 | `/api/health` | GET | Liveness probe |
 
 ---

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Play } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Hero3DBackground } from "./Hero3DBackground";
 import { TypeWriter } from "./TypeWriter";
@@ -41,10 +41,6 @@ export function HeroSection() {
             Get Started Free
             <ArrowRight size={18} />
           </Link>
-          <button className="hero-secondary-btn">
-            <Play size={16} fill="currentColor" />
-            Watch Demo
-          </button>
         </div>
       </div>
     </section>

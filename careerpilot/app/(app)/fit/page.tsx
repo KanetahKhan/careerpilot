@@ -131,6 +131,7 @@ export default function FitPage() {
             <button
               onClick={onScore}
               disabled={scoring}
+              aria-busy={scoring || undefined}
               className="btn-primary disabled:opacity-50"
             >
               {scoring ? "Scoring…" : "Score fit →"}
@@ -156,6 +157,7 @@ export default function FitPage() {
               <button
                 onClick={onTailor}
                 disabled={tailoring}
+                aria-busy={tailoring || undefined}
                 className="btn-primary shrink-0 px-3 py-2 text-xs disabled:opacity-50"
                 title="Rewrite real CV bullets to target this job"
               >

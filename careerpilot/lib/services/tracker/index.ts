@@ -10,7 +10,7 @@
  *               · updateApplicationStatus(id, status)
  *   Goals       · listGoals() · createGoal(title, dueDate?) · setGoalDone(id, done)
  *   Events      · listEvents() · createEvent(input) · deleteEvent(id)
- *   Nudges      · listNotifications() · markNotificationRead(id) · generateNudges()
+ *   Nudges      · listNotifications() · markNotificationRead(id) · insertNotifications() · generateNudges()
  *
  * Inputs:  application/goal/event payloads + ids.
  * Outputs: Supabase query results ({ data, error }).
@@ -29,6 +29,7 @@ export {
   deleteEvent,
   listNotifications,
   markNotificationRead,
+  insertNotifications,
   type ApplicationStatus,
   type NewApplication,
   type EventType,
