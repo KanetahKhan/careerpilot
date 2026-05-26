@@ -2,8 +2,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FadeIn } from "@/components/FadeIn";
-import { Upload, Edit3 } from "lucide-react";
+import { Upload, Edit3, Download, FileText, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { downloadCvDocx, printCv } from "@/lib/export/client";
+import type { BuilderCv } from "@/lib/cv-transform";
 
 type ProfileSection = { section: string; chunks: { position: number; content: string }[] };
 type CvProfile = {
@@ -24,6 +26,9 @@ const SECTION_COLOR: Record<string, string> = {
 export default function ProfilePage() {
   const [profile, setProfile] = useState<CvProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [builderCv, setBuilderCv] = useState<BuilderCv | null>(null);
+  const [exportBusy, setExportBusy] = useState<"docx" | null>(null);
+  const [exportErr, setExportErr] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/cv/profile")
@@ -33,7 +38,41 @@ export default function ProfilePage() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    fetch("/api/cv/build", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (j && typeof j === "object" && "fullName" in j) setBuilderCv(j as BuilderCv);
+      })
+      .catch(() => {});
+  }, []);
+
   const hasCv = profile?.totalChunks && profile.totalChunks > 0;
+  const canExport = Boolean(builderCv);
+
+  function nameSlug() {
+    const n = builderCv?.fullName?.trim();
+    if (!n) return "my";
+    return n.replace(/\s+/g, "-").toLowerCase();
+  }
+
+  async function onDocx() {
+    if (!builderCv) return;
+    setExportBusy("docx");
+    setExportErr(null);
+    try {
+      await downloadCvDocx(builderCv, { filename: `${nameSlug()}-cv.docx` });
+    } catch (e: any) {
+      setExportErr(e.message);
+    } finally {
+      setExportBusy(null);
+    }
+  }
+
+  function onPdf() {
+    if (!builderCv) return;
+    printCv(builderCv);
+  }
 
   return (
     <FadeIn>
@@ -49,11 +88,41 @@ export default function ProfilePage() {
           </p>
         </div>
         {hasCv && (
-          <Link href="/profile/edit">
-            <Button variant="outline" size="sm">
-              <Edit3 className="h-4 w-4" /> Edit CV
-            </Button>
-          </Link>
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-2">
+              <Link href="/profile/edit">
+                <Button variant="outline" size="sm">
+                  <Edit3 className="h-4 w-4" /> Edit CV
+                </Button>
+              </Link>
+            </div>
+            {canExport && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Download className="h-3 w-3" />
+                  Download:
+                </span>
+                <button
+                  type="button"
+                  onClick={onDocx}
+                  disabled={exportBusy !== null}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground hover:border-primary/50 disabled:opacity-50 transition-colors"
+                >
+                  <FileText className="h-3 w-3" />
+                  {exportBusy === "docx" ? "Building…" : "Word (.docx)"}
+                </button>
+                <button
+                  type="button"
+                  onClick={onPdf}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground hover:border-primary/50 transition-colors"
+                >
+                  <Printer className="h-3 w-3" />
+                  PDF
+                </button>
+              </div>
+            )}
+            {exportErr && <p className="text-xs text-destructive">{exportErr}</p>}
+          </div>
         )}
       </div>
 

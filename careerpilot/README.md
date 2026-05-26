@@ -103,6 +103,7 @@ The LLM only extracts skill lists; the factors, weights, and blend are all TypeS
 | Charts | Recharts 2.13 | Dashboard statistics |
 | Icons | Lucide React 1.16 | UI icons |
 | Theme | next-themes 0.4 | Dark/light mode |
+| Document export | `docx` 9.x | Server-side `.docx` build for cover letters and the CV. PDF is produced by a print-styled route + browser "Save as PDF" — no PDF library |
 
 ---
 
@@ -115,6 +116,8 @@ The LLM only extracts skill lists; the factors, weights, and blend are all TypeS
 | `/api/cv/build` | GET / POST | GET returns current CV as structured builder JSON (for editor prefill); POST accepts structured CV JSON, serializes to sections, chunks, embeds, and stores |
 | `/api/jobs/search` | POST | Natural language job search + fit scoring |
 | `/api/chat` | POST | Streaming AI assistant with RAG context + citation headers |
+| `/api/chat/history` | GET | Replay a session's persisted chat_messages so the assistant survives refresh |
+| `/api/export/docx` | POST | Build a `.docx` for a cover letter or the structured CV (one shared route, `kind: "cover_letter" \| "cv"`); PDF export is a print-route + browser "Save as PDF" — no PDF library |
 | `/api/roadmap` | POST | Generate structured learning roadmap |
 | `/api/applications` | GET / POST / PATCH | CRUD for job applications |
 | `/api/goals` | GET / PATCH | Goals and to-dos |

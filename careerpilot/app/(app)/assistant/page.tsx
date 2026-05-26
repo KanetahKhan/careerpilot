@@ -1,11 +1,17 @@
 "use client";
 
-import { useChat } from "ai/react";
-import { useRef, useEffect, useState } from "react";
+import { useChat, type Message } from "ai/react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { Plus, Download, FileText, Printer } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
 import { cn } from "@/lib/utils";
 import type { RetrievedChunk } from "@/types/chat";
+import {
+  downloadCoverLetterDocx,
+  printCoverLetter,
+  looksLikeCoverLetter,
+} from "@/lib/export/client";
 
 const QUICK = [
   "Am I ready for a Software Engineer role at Google?",
@@ -22,15 +28,121 @@ const INTENT_LABELS: Record<string, string> = {
   general: "general",
 };
 
+const SESSION_STORAGE_KEY = "cp_chat_session";
+
+function newSessionId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `sess-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function readOrCreateSessionId() {
+  if (typeof window === "undefined") return null;
+  const existing = window.localStorage.getItem(SESSION_STORAGE_KEY);
+  if (existing) return existing;
+  const fresh = newSessionId();
+  window.localStorage.setItem(SESSION_STORAGE_KEY, fresh);
+  return fresh;
+}
+
+type Ready = {
+  sessionId: string;
+  initial: Message[];
+};
+
 export default function AssistantPage() {
-  const sessionId = useRef(`sess-${Date.now()}`);
+  const [ready, setReady] = useState<Ready | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const loadSession = useCallback(async (sessionId: string) => {
+    try {
+      const res = await fetch(
+        `/api/chat/history?sessionId=${encodeURIComponent(sessionId)}`,
+        { cache: "no-store" }
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Failed to load history");
+      const initial: Message[] = (json.messages as { role: string; content: string }[]).map(
+        (m, i) => ({
+          id: `hist-${sessionId}-${i}`,
+          role: m.role === "assistant" ? "assistant" : "user",
+          content: m.content,
+        })
+      );
+      setReady({ sessionId, initial });
+    } catch (e: any) {
+      setLoadError(e.message);
+      setReady({ sessionId, initial: [] });
+    }
+  }, []);
+
+  useEffect(() => {
+    const id = readOrCreateSessionId();
+    if (!id) return;
+    loadSession(id);
+  }, [loadSession]);
+
+  function startNewChat() {
+    const fresh = newSessionId();
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(SESSION_STORAGE_KEY, fresh);
+    }
+    setLoadError(null);
+    setReady({ sessionId: fresh, initial: [] });
+  }
+
+  if (!ready) {
+    return (
+      <FadeIn>
+        <div className="flex flex-col h-[calc(100vh-7rem)]">
+          <div className="mb-4 shrink-0">
+            <p className="label mb-2">Pillar 3 · Personal AI Assistant</p>
+            <h1 className="font-display text-3xl font-bold">It already knows your CV.</h1>
+          </div>
+          <div className="flex-1 grid place-items-center rounded-lg border border-border bg-card text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              Restoring your conversation…
+            </div>
+          </div>
+        </div>
+      </FadeIn>
+    );
+  }
+
+  return (
+    <Chat
+      key={ready.sessionId}
+      sessionId={ready.sessionId}
+      initialMessages={ready.initial}
+      onNewChat={startNewChat}
+      loadError={loadError}
+    />
+  );
+}
+
+function Chat({
+  sessionId,
+  initialMessages,
+  onNewChat,
+  loadError,
+}: {
+  sessionId: string;
+  initialMessages: Message[];
+  onNewChat: () => void;
+  loadError: string | null;
+}) {
   const [intent, setIntent] = useState<string | null>(null);
   const [citationsMap, setCitationsMap] = useState<Record<string, RetrievedChunk[]>>({});
+  const [intentsMap, setIntentsMap] = useState<Record<string, string>>({});
   const pendingCitations = useRef<RetrievedChunk[] | null>(null);
+  const pendingIntent = useRef<string | null>(null);
 
   const { messages, input, handleInputChange, handleSubmit, append, isLoading } = useChat({
     api: "/api/chat",
-    body: { sessionId: sessionId.current },
+    initialMessages,
+    body: { sessionId },
     fetch: async (url, options) => {
       const response = await fetch(url, options);
       const retrievedHeader = response.headers.get("x-retrieved");
@@ -44,16 +156,28 @@ export default function AssistantPage() {
         }
       }
       const intentHeader = response.headers.get("x-intent");
-      if (intentHeader) setIntent(intentHeader);
+      if (intentHeader) {
+        setIntent(intentHeader);
+        pendingIntent.current = intentHeader;
+      }
       return response;
     },
     onFinish: (message) => {
-      if (pendingCitations.current && message.role === "assistant") {
-        setCitationsMap((prev) => ({
-          ...prev,
-          [message.id]: pendingCitations.current!,
-        }));
-        pendingCitations.current = null;
+      if (message.role === "assistant") {
+        if (pendingCitations.current) {
+          setCitationsMap((prev) => ({
+            ...prev,
+            [message.id]: pendingCitations.current!,
+          }));
+          pendingCitations.current = null;
+        }
+        if (pendingIntent.current) {
+          setIntentsMap((prev) => ({
+            ...prev,
+            [message.id]: pendingIntent.current!,
+          }));
+          pendingIntent.current = null;
+        }
       }
     },
   });
@@ -64,21 +188,38 @@ export default function AssistantPage() {
   return (
     <FadeIn>
     <div className="flex flex-col h-[calc(100vh-7rem)]">
-      <div className="mb-4 shrink-0">
-        <p className="label mb-2">Pillar 3 · Personal AI Assistant</p>
-        <h1 className="font-display text-3xl font-bold">It already knows your CV.</h1>
-        {intent && (
-          <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="label">detected intent</span>
-            <span className="chip bg-sky-400/10 text-sky-400">{INTENT_LABELS[intent] ?? intent}</span>
-            {intent === "roadmap" && (
-              <Link href="/roadmap" className="text-primary underline-offset-4 hover:underline">
-                open structured roadmap →
-              </Link>
-            )}
-          </p>
-        )}
+      <div className="mb-4 shrink-0 flex items-start justify-between gap-4">
+        <div>
+          <p className="label mb-2">Pillar 3 · Personal AI Assistant</p>
+          <h1 className="font-display text-3xl font-bold">It already knows your CV.</h1>
+          {intent && (
+            <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="label">detected intent</span>
+              <span className="chip bg-sky-400/10 text-sky-400">{INTENT_LABELS[intent] ?? intent}</span>
+              {intent === "roadmap" && (
+                <Link href="/roadmap" className="text-primary underline-offset-4 hover:underline">
+                  open structured roadmap →
+                </Link>
+              )}
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={onNewChat}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
+          title="Start a fresh conversation"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          New chat
+        </button>
       </div>
+
+      {loadError && (
+        <p className="mb-2 text-xs text-destructive">
+          Couldn’t restore previous messages: {loadError}
+        </p>
+      )}
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto space-y-4 border border-border rounded-lg bg-card p-4">
@@ -95,7 +236,12 @@ export default function AssistantPage() {
             ))}
           </div>
         )}
-        {messages.map((message) => (
+        {messages.map((message) => {
+          const isCoverLetter =
+            message.role === "assistant" &&
+            (intentsMap[message.id] === "cover_letter" ||
+              looksLikeCoverLetter(typeof message.content === "string" ? message.content : ""));
+          return (
           <div
             key={message.id}
             className={cn(
@@ -108,6 +254,11 @@ export default function AssistantPage() {
             <div className="whitespace-pre-wrap text-sm leading-relaxed">
               {message.content}
             </div>
+
+            {/* DOWNLOAD — only for assistant cover-letter messages */}
+            {isCoverLetter && (
+              <CoverLetterDownload text={typeof message.content === "string" ? message.content : ""} />
+            )}
 
             {/* CITATION CHIPS — only for assistant messages */}
             {message.role === "assistant" && citationsMap[message.id]?.length > 0 && (
@@ -131,7 +282,8 @@ export default function AssistantPage() {
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
 
         {isLoading && (
           <div className="mr-auto bg-card border border-border rounded-lg p-4 max-w-[85%]">
@@ -164,5 +316,57 @@ export default function AssistantPage() {
       </form>
     </div>
     </FadeIn>
+  );
+}
+
+function CoverLetterDownload({ text }: { text: string }) {
+  const [busy, setBusy] = useState<"docx" | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  function todayStamp() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  async function onDocx() {
+    setBusy("docx");
+    setErr(null);
+    try {
+      await downloadCoverLetterDocx(text, {
+        filename: `cover-letter-${todayStamp()}.docx`,
+      });
+    } catch (e: any) {
+      setErr(e.message);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="mt-3 pt-3 border-t border-border/50">
+      <p className="text-xs text-muted-foreground mb-1.5 font-medium flex items-center gap-1.5">
+        <Download className="h-3 w-3" />
+        Download
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          onClick={onDocx}
+          disabled={busy !== null}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground hover:border-primary/50 disabled:opacity-50 transition-colors"
+        >
+          <FileText className="h-3 w-3" />
+          {busy === "docx" ? "Building…" : "Word (.docx)"}
+        </button>
+        <button
+          type="button"
+          onClick={() => printCoverLetter(text)}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground hover:border-primary/50 transition-colors"
+        >
+          <Printer className="h-3 w-3" />
+          PDF
+        </button>
+      </div>
+      {err && <p className="mt-1.5 text-xs text-destructive">{err}</p>}
+    </div>
   );
 }
