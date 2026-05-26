@@ -112,6 +112,7 @@ The LLM only extracts skill lists; the factors, weights, and blend are all TypeS
 |----------|---------|-------------|
 | `/api/cv/upload` | POST | Upload PDF/DOCX/TXT, parse, chunk, embed, store |
 | `/api/cv/profile` | GET | Retrieve parsed CV chunks by section |
+| `/api/cv/build` | GET / POST | GET returns current CV as structured builder JSON (for editor prefill); POST accepts structured CV JSON, serializes to sections, chunks, embeds, and stores |
 | `/api/jobs/search` | POST | Natural language job search + fit scoring |
 | `/api/chat` | POST | Streaming AI assistant with RAG context + citation headers |
 | `/api/roadmap` | POST | Generate structured learning roadmap |

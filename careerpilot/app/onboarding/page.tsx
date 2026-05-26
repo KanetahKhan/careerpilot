@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Upload, Edit3 } from "lucide-react";
 import { CvUploader } from "@/components/CvUploader";
 import { TopBar } from "@/components/TopBar";
 
@@ -10,6 +10,7 @@ type UploadResult = { fileName: string; chunks: number; sections: string[] };
 const STEPS = ["Upload CV", "Confirm sections", "Start"];
 
 export default function OnboardingPage() {
+  const [mode, setMode] = useState<"choose" | "upload" | "done">("choose");
   const [result, setResult] = useState<UploadResult | null>(null);
   const step = result ? 2 : 0;
 
@@ -25,34 +26,55 @@ export default function OnboardingPage() {
             <p className="font-semibold text-sm text-muted-foreground mb-2">First run · Onboarding</p>
             <h1 className="text-3xl font-bold">Ground CareerPilot in your CV.</h1>
             <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-              One upload powers everything: job fit scores, the assistant, and your roadmap.
+              One upload — or one form — powers everything: job fit scores, the assistant, and your roadmap.
             </p>
           </div>
 
-          {/* step indicator */}
-          <div className="flex items-center gap-2">
-            {STEPS.map((s, i) => (
-              <div key={s} className="flex items-center gap-2">
-                <span
-                  className={`grid h-6 w-6 place-items-center rounded-full text-xs font-bold ${
-                    i <= step ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
-                  }`}
-                >
-                  {i < step ? "✓" : i + 1}
-                </span>
-                <span className={`text-sm ${i <= step ? "text-foreground" : "text-muted-foreground"}`}>{s}</span>
-                {i < STEPS.length - 1 && <span className="mx-1 text-muted-foreground">→</span>}
-              </div>
-            ))}
-          </div>
+          {mode === "choose" && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <button
+                onClick={() => setMode("upload")}
+                className="panel group flex flex-col items-center gap-3 p-8 text-center transition-all hover:border-primary/50 hover:-translate-y-0.5"
+              >
+                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary">
+                  <Upload className="h-7 w-7" />
+                </div>
+                <div>
+                  <p className="font-display text-lg font-bold">Upload a CV</p>
+                  <p className="mt-1 text-sm text-muted-foreground">PDF or DOCX &mdash; we parse, chunk, and embed it automatically.</p>
+                </div>
+              </button>
+              <Link
+                href="/profile/edit"
+                className="panel group flex flex-col items-center gap-3 p-8 text-center transition-all hover:border-primary/50 hover:-translate-y-0.5"
+              >
+                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-emerald-400/10 text-emerald-400">
+                  <Edit3 className="h-7 w-7" />
+                </div>
+                <div>
+                  <p className="font-display text-lg font-bold">Build one here</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Fill in a form &mdash; same chunking and embedding pipeline.</p>
+                </div>
+              </Link>
+            </div>
+          )}
 
-          {!result && (
+          {mode === "upload" && !result && (
             <div className="max-w-xl">
-              <CvUploader onDone={(r) => setResult(r)} />
+              <CvUploader onDone={(r) => { setResult(r); setMode("done"); }} />
               <p className="mt-3 text-xs text-muted-foreground">
                 PDF or DOCX. We parse it into section-tagged chunks and embed them — nothing is shared.
               </p>
             </div>
+          )}
+
+          {mode === "upload" && (
+            <button
+              onClick={() => setMode("choose")}
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
+              ← Choose a different option
+            </button>
           )}
 
           {result && (
@@ -70,7 +92,7 @@ export default function OnboardingPage() {
                 <p className="mt-3 text-xs text-muted-foreground">
                   Wrong or missing a section? Re-upload a cleaner CV — headings like &ldquo;Experience&rdquo;,
                   &ldquo;Education&rdquo;, &ldquo;Projects&rdquo;, &ldquo;Skills&rdquo; chunk best.{" "}
-                  <button onClick={() => setResult(null)} className="text-primary hover:underline">
+                  <button onClick={() => { setResult(null); setMode("choose"); }} className="text-primary hover:underline">
                     Upload again
                   </button>
                 </p>

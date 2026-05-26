@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FadeIn } from "@/components/FadeIn";
+import { Upload, Edit3 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 type ProfileSection = { section: string; chunks: { position: number; content: string }[] };
 type CvProfile = {
@@ -31,29 +33,51 @@ export default function ProfilePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const hasCv = profile?.document && profile.totalChunks > 0;
+  const hasCv = profile?.totalChunks && profile.totalChunks > 0;
 
   return (
     <FadeIn>
     <div className="space-y-6 py-4">
-      <div>
-        <p className="label mb-2">Pillar 2 · CV Profile</p>
-        <h1 className="font-display text-3xl font-bold">Exactly what the AI sees.</h1>
-        <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-          Your CV, parsed into section-tagged chunks and embedded in pgvector. Every
-          answer and fit score is retrieved from <span className="text-primary">these</span> chunks —
-          this is the grounding made visible.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="label mb-2">Pillar 2 · CV Profile</p>
+          <h1 className="font-display text-3xl font-bold">Exactly what the AI sees.</h1>
+          <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+            Your CV, parsed into section-tagged chunks and embedded in pgvector. Every
+            answer and fit score is retrieved from <span className="text-primary">these</span> chunks —
+            this is the grounding made visible.
+          </p>
+        </div>
+        {hasCv && (
+          <Link href="/profile/edit">
+            <Button variant="outline" size="sm">
+              <Edit3 className="h-4 w-4" /> Edit CV
+            </Button>
+          </Link>
+        )}
       </div>
 
       {loading && <p className="text-sm text-amber-400 animate-pulse-glow">Loading your CV profile…</p>}
 
       {!loading && !hasCv && (
-        <div className="panel p-6 text-center">
+        <div className="panel p-8 text-center space-y-4">
           <p className="text-muted-foreground">No CV indexed yet.</p>
-          <Link href="/onboarding" className="btn-primary mt-4 inline-flex">
-            Upload your CV →
-          </Link>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            Upload a file or build your CV in-app — either way it goes through the same
+            chunking and embedding pipeline.
+          </p>
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <Link href="/onboarding">
+              <Button variant="primary">
+                <Upload className="h-4 w-4" /> Upload your CV
+              </Button>
+            </Link>
+            <Link href="/profile/edit">
+              <Button variant="outline">
+                <Edit3 className="h-4 w-4" /> Build one here
+              </Button>
+            </Link>
+          </div>
         </div>
       )}
 
@@ -62,7 +86,7 @@ export default function ProfilePage() {
           <div className="panel flex flex-wrap items-center justify-between gap-3 p-4">
             <div>
               <p className="label">indexed document</p>
-              <p className="font-mono text-sm text-foreground">{profile.document!.fileName}</p>
+              <p className="font-mono text-sm text-foreground">{profile.document?.fileName ?? "Built CV"}</p>
             </div>
             <div className="flex gap-4 text-right">
               <div>

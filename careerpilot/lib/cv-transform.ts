@@ -195,6 +195,179 @@ function parseExtracurricular(text: string): CVProfile["extracurricular"] {
   return result;
 }
 
+/**
+ * ── CV Builder types (round-trip: structured JSON ↔ section text) ───────────
+ */
+
+export type BuilderExperience = {
+  title: string; company: string; start?: string; end?: string; bullets: string[];
+};
+export type BuilderEducation = {
+  degree: string; institution: string; start?: string; end?: string; details?: string;
+};
+export type BuilderProject = {
+  name: string; description: string; tech?: string[];
+};
+export type BuilderCv = {
+  fullName: string; headline?: string; email?: string; phone?: string;
+  location?: string; summary?: string;
+  experience: BuilderExperience[];
+  education: BuilderEducation[];
+  projects: BuilderProject[];
+  skills: string[];
+  certifications?: string[];
+  extracurricular?: string[];
+};
+
+const SECTION_SEP = "\n---\n";
+const ENTRY_SEP = "\n---\n";
+
+/** Serialize structured builder CV into section-tagged text blocks for ingestSections. */
+export function serializeBuilderCv(cv: BuilderCv): { section: string; content: string }[] {
+  const sections: { section: string; content: string }[] = [];
+
+  // Summary
+  if (cv.summary) {
+    sections.push({ section: "summary", content: cv.summary });
+  }
+
+  // Experience
+  if (cv.experience.length > 0) {
+    const blocks = cv.experience.map((e) => {
+      const lines: string[] = [`Title: ${e.title}`, `Company: ${e.company}`];
+      if (e.start) lines.push(`Start: ${e.start}`);
+      if (e.end) lines.push(`End: ${e.end}`);
+      for (const b of e.bullets) {
+        if (b.trim()) lines.push(`- ${b.trim()}`);
+      }
+      return lines.join("\n");
+    });
+    sections.push({ section: "experience", content: blocks.join(ENTRY_SEP) });
+  }
+
+  // Education
+  if (cv.education.length > 0) {
+    const blocks = cv.education.map((e) => {
+      const lines: string[] = [`Degree: ${e.degree}`, `Institution: ${e.institution}`];
+      if (e.start) lines.push(`Start: ${e.start}`);
+      if (e.end) lines.push(`End: ${e.end}`);
+      if (e.details) lines.push(`Details: ${e.details}`);
+      return lines.join("\n");
+    });
+    sections.push({ section: "education", content: blocks.join(ENTRY_SEP) });
+  }
+
+  // Projects
+  if (cv.projects.length > 0) {
+    const blocks = cv.projects.map((p) => {
+      const lines: string[] = [`Name: ${p.name}`];
+      if (p.tech && p.tech.length > 0) lines.push(`Tech: ${p.tech.join(", ")}`);
+      lines.push(p.description);
+      return lines.join("\n");
+    });
+    sections.push({ section: "projects", content: blocks.join(ENTRY_SEP) });
+  }
+
+  // Skills
+  if (cv.skills.length > 0) {
+    sections.push({ section: "skills", content: cv.skills.join(", ") });
+  }
+
+  // Certifications
+  if (cv.certifications && cv.certifications.length > 0) {
+    sections.push({ section: "certifications", content: cv.certifications.join("\n") });
+  }
+
+  // Extracurricular
+  if (cv.extracurricular && cv.extracurricular.length > 0) {
+    sections.push({ section: "extracurricular", content: cv.extracurricular.join("\n") });
+  }
+
+  return sections;
+}
+
+/** Parse stored chunks back into the structured builder shape (for GET /api/cv/build). */
+export function parseBuilderFromSections(
+  sections: BackendSection[],
+): BuilderCv {
+  const summaryText = getSectionText(sections, "summary");
+  const skillsText = getSectionText(sections, "skills");
+  const experienceText = getSectionText(sections, "experience");
+  const educationText = getSectionText(sections, "education");
+  const projectsText = getSectionText(sections, "projects");
+  const certText = getSectionText(sections, "certifications");
+  const extraText = getSectionText(sections, "extracurricular");
+
+  // Full name from first non-empty line across sections
+  const allText = sections.map((s) => s.chunks.map((c) => c.content).join("\n")).join("\n");
+  const firstLines = allText.split("\n").map((l) => l.trim()).filter(Boolean);
+  const guessName = (): string => {
+    for (const l of firstLines) {
+      if (l.length > 3 && l.length < 60 && !l.includes("@") && !l.includes("http") && !l.includes("+") && !/^\d/.test(l)) {
+        return l.replace(/^(Title|Company|Degree|Institution|Name|Tech):\s*/i, "").trim();
+      }
+    }
+    return "";
+  };
+
+  const parseExperience = (text: string): BuilderExperience[] => {
+    if (!text) return [];
+    return text.split(ENTRY_SEP).filter(Boolean).map((block) => {
+      const lines = block.split("\n");
+      const title = extractField(lines, "Title");
+      const company = extractField(lines, "Company");
+      const start = extractField(lines, "Start");
+      const end = extractField(lines, "End");
+      const bullets = lines.filter((l) => l.trimStart().startsWith("- ")).map((l) => l.replace(/^-\s*/, "").trim());
+      return { title, company, start, end, bullets };
+    });
+  };
+
+  const parseEducation = (text: string): BuilderEducation[] => {
+    if (!text) return [];
+    return text.split(ENTRY_SEP).filter(Boolean).map((block) => {
+      const lines = block.split("\n");
+      const degree = extractField(lines, "Degree");
+      const institution = extractField(lines, "Institution");
+      const start = extractField(lines, "Start");
+      const end = extractField(lines, "End");
+      const details = extractField(lines, "Details");
+      return { degree, institution, start, end, details };
+    });
+  };
+
+  const parseProjects = (text: string): BuilderProject[] => {
+    if (!text) return [];
+    return text.split(ENTRY_SEP).filter(Boolean).map((block) => {
+      const lines = block.split("\n");
+      const name = extractField(lines, "Name");
+      const techLine = extractField(lines, "Tech");
+      const tech = techLine ? techLine.split(/,\s*/).filter(Boolean) : undefined;
+      const desc = lines.filter((l) => !/^(Name|Tech):\s*/i.test(l.trim())).join("\n").trim();
+      return { name, description: desc || name, tech };
+    });
+  };
+
+  return {
+    fullName: guessName(),
+    summary: summaryText || undefined,
+    skills: skillsText ? skillsText.split(/,\s*/).filter(Boolean) : [],
+    experience: parseExperience(experienceText),
+    education: parseEducation(educationText),
+    projects: parseProjects(projectsText),
+    certifications: certText ? certText.split("\n").filter(Boolean) : undefined,
+    extracurricular: extraText ? extraText.split("\n").filter(Boolean) : undefined,
+  };
+}
+
+function extractField(lines: string[], field: string): string {
+  for (const line of lines) {
+    const m = line.match(new RegExp(`^${field}:\\s*(.*)`, "i"));
+    if (m) return m[1].trim();
+  }
+  return "";
+}
+
 export function transformBackendData(raw: BackendResponse): CVProfile {
   const sections = raw?.sections ?? [];
 

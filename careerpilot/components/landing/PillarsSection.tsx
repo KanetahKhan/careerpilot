@@ -5,9 +5,9 @@ import { Search, FileText, Sparkles, BarChart3 } from "lucide-react";
 import Link from "next/link";
 
 const pillarRoutes: Record<string, string> = {
-  "Job Hunter": "/jobs",
+  "Job Hunter": "/hunter",
   "CV Brain": "/profile",
-  "AI Coach": "/coach",
+  "AI Coach": "/assistant",
   "Tracker": "/tracker",
 };
 
