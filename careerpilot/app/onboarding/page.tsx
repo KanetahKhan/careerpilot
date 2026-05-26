@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, Upload, Edit3 } from "lucide-react";
 import { CvUploader } from "@/components/CvUploader";
 import { TopBar } from "@/components/TopBar";
+import GetStartedBackground from "@/components/onboarding/GetStartedBackground";
 
 type UploadResult = { fileName: string; chunks: number; sections: string[] };
 
@@ -15,9 +16,12 @@ export default function OnboardingPage() {
   const step = result ? 2 : 0;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <TopBar />
-      <div className="max-w-3xl mx-auto px-4 pt-6">
+    <div className="relative min-h-screen bg-background text-foreground overflow-hidden">
+      <GetStartedBackground />
+      <div className="relative z-10">
+        <TopBar />
+      </div>
+      <div className="relative z-10 max-w-3xl mx-auto px-4 pt-6">
         <Link href="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft size={14} /> Back to home
         </Link>
