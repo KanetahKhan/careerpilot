@@ -30,4 +30,18 @@ export {
   INTENTS,
   type Intent,
 } from "./intent";
-export { generateRoadmap, RoadmapSchema, type Roadmap } from "./roadmap";
+export {
+  generateRoadmap,
+  RoadmapSchema,
+  toPersistedRoadmap,
+  actionKey,
+  milestoneKey,
+  totalActionCount,
+  doneActionCount,
+  roadmapPercent,
+  allItemKeys,
+  type Roadmap,
+  type PersistedRoadmap,
+  type PersistedRoadmapWeek,
+  type RoadmapItem,
+} from "./roadmap";

@@ -43,6 +43,7 @@ export default function TrackerPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [view, setView] = useState<"board" | "calendar">("board");
+  const [roadmapStat, setRoadmapStat] = useState<{ percent: number; done: number; total: number } | null>(null);
 
   async function load() {
     const [a, g] = await Promise.all([
@@ -54,6 +55,23 @@ export default function TrackerPage() {
     setIsLoading(false);
   }
   useEffect(() => { load(); }, []);
+
+  // Active roadmap progress for the dashboard stat. Single source of truth:
+  // the roadmaps row — we don't duplicate completion onto goals.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/roadmap/progress", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (cancelled || !j) return;
+        if (j.roadmap && j.progress) setRoadmapStat(j.progress);
+        else setRoadmapStat({ percent: 0, done: 0, total: 0 });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const onDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
@@ -134,7 +152,7 @@ export default function TrackerPage() {
       </div>
 
       {/* dashboard strip */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="panel p-5">
           <p className="label">Applications</p>
           <p className="mt-1 font-display text-4xl font-bold text-primary">{apps.length}</p>
@@ -144,6 +162,30 @@ export default function TrackerPage() {
           <p className="mt-1 font-display text-4xl font-bold text-emerald-400">
             {doneGoals}<span className="text-muted-foreground text-2xl">/{goals.length}</span>
           </p>
+        </div>
+        <div className="panel p-5">
+          <p className="label">Roadmap %</p>
+          {roadmapStat === null ? (
+            <p className="mt-1 font-display text-4xl font-bold text-muted-foreground animate-pulse-glow">…</p>
+          ) : roadmapStat.total === 0 ? (
+            <>
+              <p className="mt-1 font-display text-4xl font-bold text-muted-foreground">—</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                <a href="/roadmap" className="hover:text-foreground underline-offset-4 hover:underline">
+                  Build a roadmap →
+                </a>
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="mt-1 font-display text-4xl font-bold text-sky-400">
+                {roadmapStat.percent}%
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {roadmapStat.done}/{roadmapStat.total} actions done
+              </p>
+            </>
+          )}
         </div>
         <div className="panel p-3">
           <p className="label px-2">Pipeline</p>

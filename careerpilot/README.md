@@ -126,8 +126,9 @@ The LLM only extracts skill lists; the factors, weights, and blend are all TypeS
 | `/api/chat` | POST | Streaming AI assistant with RAG context + citation headers |
 | `/api/chat/history` | GET | Replay a session's persisted chat_messages so the assistant survives refresh |
 | `/api/export/docx` | POST | Build a `.docx` for a cover letter or the structured CV (one shared route, `kind: "cover_letter" \| "cv"`); PDF export is a print-route + browser "Save as PDF" — no PDF library |
-| `/api/roadmap` | POST | Generate structured learning roadmap |
-| `/api/roadmap/apply` | POST | Materialise a roadmap into real tracker entries — one goal per week action, one deadline event per week's milestone (dated `startDate + weekIndex*7`, default today) |
+| `/api/roadmap` | POST | Generate a structured learning roadmap and persist it as the user's single active roadmap (deactivates the previous). Returns a keyed plan: each action/milestone gets a stable `w{week}-a{idx}` / `w{week}-m` key so checkbox state survives reloads |
+| `/api/roadmap/progress` | GET / PATCH | GET returns the active roadmap (plan + completed map + done/total/percent). PATCH `{ itemKey, done }` (or `{ itemKeys, done }`) toggles completion on the active roadmap. Single source of truth for the dashboard's Roadmap % stat |
+| `/api/roadmap/apply` | POST | Materialise a roadmap into real tracker entries — one goal per week action, one deadline event per week's milestone (dated `startDate + weekIndex*7`, default today). Accepts the keyed plan returned by `/api/roadmap` |
 | `/api/saved-searches` | GET / POST / DELETE | CRUD for saved job searches — GET lists the user's saved searches, POST saves a new one (label + query + location), DELETE removes one by ?id= |
 | `/api/saved-searches/check` | POST | Re-run saved searches, diff results against seen_job_keys, create a new-match nudge for any search with unseen jobs. Accepts optional ?id= to check a single search; without ?id=, checks all. Rate-limited to once per hour per search |
 | `/api/applications` | GET / POST / PATCH | CRUD for job applications |

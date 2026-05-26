@@ -2,12 +2,29 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { createGoal, createEvent } from "@/lib/services/tracker";
-import { RoadmapSchema } from "@/lib/services/assistant/roadmap";
 
 export const runtime = "nodejs";
 
+const KeyedItem = z.object({ key: z.string(), text: z.string() });
+
+const PersistedRoadmapSchema = z.object({
+  goal: z.string(),
+  summary: z.string(),
+  weeks: z
+    .array(
+      z.object({
+        week: z.number(),
+        focus: z.string(),
+        actions: z.array(KeyedItem),
+        milestone: KeyedItem,
+      })
+    )
+    .min(1),
+  citedSections: z.array(z.string()),
+});
+
 const BodySchema = z.object({
-  roadmap: RoadmapSchema,
+  roadmap: PersistedRoadmapSchema,
   startDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "startDate must be YYYY-MM-DD")
@@ -52,7 +69,7 @@ export async function POST(req: NextRequest) {
 
       let firstGoalId: string | null = null;
       for (const action of w.actions) {
-        const title = action.trim();
+        const title = action.text.trim();
         if (!title) continue;
         const { data, error } = await createGoal(user.id, title, weekDate);
         if (!error && data) {
@@ -61,7 +78,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const milestoneTitle = `Week ${w.week}: ${w.focus} — ${w.milestone}`.slice(0, 200);
+      const milestoneTitle = `Week ${w.week}: ${w.focus} — ${w.milestone.text}`.slice(0, 200);
       const { error: evErr } = await createEvent(user.id, {
         title: milestoneTitle,
         event_date: weekDate,
