@@ -63,7 +63,10 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+  // Skip /api/* entirely — every API handler already enforces auth via
+  // requireUser(), so running middleware.getUser() on top is a wasted
+  // round-trip to Supabase per request.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/health).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/).*)",
   ],
 };
