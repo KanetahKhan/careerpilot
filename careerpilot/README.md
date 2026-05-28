@@ -138,7 +138,10 @@ The LLM only extracts skill lists; the factors, weights, and blend are all TypeS
 | `/api/profile` | GET / PATCH | Editable profile (display_name, avatar_url); creates row lazily on first GET |
 | `/api/profile/avatar` | POST / DELETE | Upload (multipart `file`, png/jpeg/webp, ≤2 MB) or remove the avatar in the `avatars` storage bucket |
 | `/api/analytics/funnel` | GET | Applied → Interviewing → Offer conversion rates + one deterministic insight (best-slice by fit-score bucket, then role-keyword bucket, then overall). All numbers are TypeScript math over the user's applications; the takeaway sentence is templated from the computed values |
+| `/api/portfolio` | GET / POST / PATCH | POST snapshots the user's already-parsed CV into a self-contained `portfolios.data` jsonb (name, headline, summary, experience, projects, skills, education), runs ONE grounded LLM call to polish the headline/summary/project blurbs (rephrase only — never invents), assigns a unique slug, and publishes; returns `{ slug, url }`. GET returns the caller's portfolio + published state. PATCH `{ published }` toggles visibility. Raw contact info is opt-in via `{ includeContact: true }`. Owner-only RLS; the public page reads via the service-role admin client |
 | `/api/health` | GET | Liveness probe |
+
+The published snapshot is served at a **public, login-free URL**: `/p/{slug}` (e.g. `/p/jane-doe`). It's a server component that reads the `published=true` row by slug via the service-role admin client (the `data` jsonb is the only thing rendered, so nothing private leaks), renders restyled `components/cv/*` (hero + experience/projects/skills/education), emits OpenGraph metadata for link previews, and 404s on a missing/unpublished slug.
 
 ---
 
@@ -199,6 +202,9 @@ npm install
 #      (composite index for the chat history reload)
 #    - Then paste & run supabase/migrations/0007_notifications_action.sql
 #      (adds nullable `action jsonb` to notifications for actionable nudges)
+#    - Then run the remaining migrations in order: 0008_role_benchmarks.sql,
+#      0009_saved_searches.sql, 0010_roadmaps.sql, 0011_portfolios.sql
+#      (0011 adds the owner-only `portfolios` table behind the public /p/[slug] page)
 
 # 4. Configure environment
 cp .env.example .env.local

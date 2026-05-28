@@ -6,6 +6,7 @@ import { Upload, Edit3, Download, FileText, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { downloadCvDocx, printCv } from "@/lib/export/client";
 import type { BuilderCv } from "@/lib/cv-transform";
+import { PortfolioPanel } from "@/components/portfolio/PortfolioPanel";
 
 type ProfileSection = { section: string; chunks: { position: number; content: string }[] };
 type CvProfile = {
@@ -152,6 +153,8 @@ export default function ProfilePage() {
 
       {!loading && hasCv && profile && (
         <>
+          <PortfolioPanel hasCv />
+
           <div className="panel flex flex-wrap items-center justify-between gap-3 p-4">
             <div>
               <p className="label">indexed document</p>
