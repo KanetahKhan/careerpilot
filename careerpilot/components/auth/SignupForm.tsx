@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { Eye, EyeOff, ArrowRight, Loader2, Sun, Moon } from "lucide-react";
 import { useTheme } from "next-themes";

@@ -8,10 +8,13 @@ import { useEffect, useState } from "react";
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const { preset, setPreset, presets } = useThemePreset();
-  const [mounted, setMounted] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   if (!mounted) return <div className="w-9 h-9" />;
 
   return (

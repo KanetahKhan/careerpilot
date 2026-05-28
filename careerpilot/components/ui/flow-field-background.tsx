@@ -20,6 +20,7 @@ type Props = {
   mouseRepelStrength?: number;
   speed?: number;
   className?: string;
+  interactive?: boolean;
 };
 
 const MOBILE_BREAKPOINT = 768;
@@ -34,6 +35,7 @@ export default function FlowFieldBackground({
   mouseRepelStrength = 4,
   speed = 0.8,
   className,
+  interactive = true,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -99,15 +101,19 @@ export default function FlowFieldBackground({
     resize();
     window.addEventListener("resize", resize);
 
-    const onMouse = (e: MouseEvent) => {
-      mouseRef.current = { x: e.clientX, y: e.clientY, active: true };
-    };
-    const onMouseLeave = () => {
-      mouseRef.current = { x: -10000, y: -10000, active: false };
-    };
     const container = containerRef.current;
-    container?.addEventListener("mousemove", onMouse);
-    container?.addEventListener("mouseleave", onMouseLeave);
+    let onMouse: ((e: MouseEvent) => void) | undefined;
+    let onMouseLeave: (() => void) | undefined;
+    if (interactive) {
+      onMouse = (e: MouseEvent) => {
+        mouseRef.current = { x: e.clientX, y: e.clientY, active: true };
+      };
+      onMouseLeave = () => {
+        mouseRef.current = { x: -10000, y: -10000, active: false };
+      };
+      if (onMouse) container?.addEventListener("mousemove", onMouse);
+      if (onMouseLeave) container?.addEventListener("mouseleave", onMouseLeave);
+    }
 
     const onVisibility = () => {
       visibleRef.current = !document.hidden;
@@ -133,11 +139,9 @@ export default function FlowFieldBackground({
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
-        let dx = 0;
-        let dy = 0;
-        if (mouse.active) {
-          dx = p.x - mouse.x;
-          dy = p.y - mouse.y;
+        if (interactive && mouse.active) {
+          const dx = p.x - mouse.x;
+          const dy = p.y - mouse.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < mouseInfluenceRadius && dist > 0) {
             const force = (mouseInfluenceRadius - dist) / mouseInfluenceRadius;
@@ -198,11 +202,13 @@ export default function FlowFieldBackground({
       animating = false;
       cancelAnimationFrame(rafRef.current);
       window.removeEventListener("resize", resize);
-      container?.removeEventListener("mousemove", onMouse);
-      container?.removeEventListener("mouseleave", onMouseLeave);
+      if (interactive && onMouse && onMouseLeave) {
+        container?.removeEventListener("mousemove", onMouse);
+        container?.removeEventListener("mouseleave", onMouseLeave);
+      }
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [reducedMotion, initParticles, getColors, connectionDistance, mouseInfluenceRadius, mouseRepelStrength, speed]);
+  }, [reducedMotion, initParticles, getColors, connectionDistance, mouseInfluenceRadius, mouseRepelStrength, speed, interactive]);
 
   if (reducedMotion) return null;
 
