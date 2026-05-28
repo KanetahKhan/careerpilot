@@ -16,7 +16,9 @@ const BodySchema = z.object({
     .array(z.object({ question: z.string(), type: z.string(), rationale: z.string() }))
     .min(1)
     .max(10),
-  messages: z.array(z.any()).min(1),
+  // May be empty on the opening turn — the interviewer asks Q1 before the
+  // candidate has said anything. We seed a kickoff message below in that case.
+  messages: z.array(z.any()),
 });
 
 function buildSystemPrompt(jd: string, cvContext: string, questions: string): string {
@@ -60,9 +62,16 @@ export async function POST(req: NextRequest) {
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
     const userText = typeof lastUserMsg?.content === "string" ? lastUserMsg.content : "";
 
+    // The model needs at least one turn to respond to. On the opening turn the
+    // candidate hasn't spoken yet, so seed a kickoff so the interviewer asks Q1.
+    const convo: CoreMessage[] =
+      messages.length > 0
+        ? (messages as CoreMessage[])
+        : [{ role: "user", content: "Please begin the interview and ask me the first question." }];
+
     return streamTextWithFallback({
       system,
-      messages: messages as CoreMessage[],
+      messages: convo,
       onFinish: (text) => persistTurn(user.id, sessionId, userText, text),
     });
   } catch (e: any) {

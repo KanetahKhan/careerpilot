@@ -4,6 +4,8 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Route } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerContainer";
+import { VoiceInputButton } from "@/components/interview/VoiceInputButton";
+import { ReadAloudToggle } from "@/components/interview/ReadAloudToggle";
 
 type Question = {
   question: string;
@@ -191,6 +193,8 @@ export default function InterviewPage() {
   };
 
   const showAllQuestionsAnswered = !streaming && questions.length > 0 && currentIdx >= questions.length;
+  const lastInterviewerMessage =
+    [...transcript].reverse().find((m) => m.role === "assistant")?.content ?? "";
 
   return (
     <FadeIn>
@@ -244,6 +248,9 @@ export default function InterviewPage() {
                   {questions[currentIdx]?.type ?? ""}
                 </span>
               )}
+              <div className="ml-auto">
+                <ReadAloudToggle text={lastInterviewerMessage} />
+              </div>
             </div>
 
             <div className="max-h-[55vh] overflow-y-auto space-y-3 border border-border rounded-lg bg-card p-4">
@@ -279,9 +286,10 @@ export default function InterviewPage() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && sendAnswer()}
-                  placeholder="Type your answer…"
+                  placeholder="Type or speak your answer…"
                   className="flex-1 rounded-xl border border-border bg-background/60 px-4 py-3 text-foreground outline-none placeholder:text-muted-foreground focus:border-primary/60"
                 />
+                <VoiceInputButton value={input} onChange={setInput} />
                 <button
                   onClick={sendAnswer}
                   disabled={!input.trim()}
