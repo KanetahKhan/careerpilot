@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
     );
   }
   const { role, company, location, description, link, fit_score, deadline } = parsed.data;
+  const warnings: string[] = [];
 
   // 1. Tracker application (guaranteed — independent of the LLM).
   const { data: application, error: appErr } = await createApplication(user.id, {
@@ -79,18 +80,21 @@ export async function POST(req: NextRequest) {
   const eventInput = deadlineDate
     ? { title: `Deadline · ${role} @ ${company}`, event_date: deadlineDate, type: "deadline" as const }
     : { title: `Follow up · ${role} @ ${company}`, event_date: daysFromToday(7), type: "reminder" as const };
-  const { data: event } = await createEvent(user.id, {
+  const { data: event, error: evtErr } = await createEvent(user.id, {
     ...eventInput,
     related_application_id: application.id,
   });
+  if (evtErr) {
+    console.error("apply: calendar event failed —", evtErr.message);
+    warnings.push("Couldn't add the calendar event (is the events table migrated?).");
+  }
 
   // 3. CV-grounded cover letter (best-effort). Skipped cleanly if no CV.
   let coverLetter: string | null = null;
-  let warning: string | null = null;
   try {
     const chunks = await retrieveChunks(user.id, `${role} at ${company}\n${description}`.trim(), 6);
     if (chunks.length === 0) {
-      warning = "Cover letter skipped — upload your CV to generate a grounded letter.";
+      warnings.push("Cover letter skipped — upload your CV to generate a grounded letter.");
     } else {
       const { text } = await generateTextWithFallback({
         system: `You are CareerPilot's cover-letter writer. Write a concise (≈250-word), specific cover letter
@@ -112,13 +116,20 @@ ${formatContext(chunks)}
         messages: [{ role: "user", content: `Write the cover letter for ${role} at ${company}.` }],
       });
       coverLetter = (text ?? "").trim() || null;
-      if (!coverLetter) warning = "Cover letter came back empty — you can retry from the assistant.";
+      if (!coverLetter) warnings.push("Cover letter came back empty — you can retry from the assistant.");
     }
   } catch (e) {
-    warning = isRateLimitError(e)
-      ? AI_BUSY_MESSAGE
-      : "Application saved, but the cover letter failed to generate.";
+    warnings.push(
+      isRateLimitError(e)
+        ? AI_BUSY_MESSAGE
+        : "Application saved, but the cover letter failed to generate."
+    );
   }
 
-  return NextResponse.json({ application, event: event ?? null, coverLetter, warning });
+  return NextResponse.json({
+    application,
+    event: event ?? null,
+    coverLetter,
+    warning: warnings.length ? warnings.join(" · ") : null,
+  });
 }
