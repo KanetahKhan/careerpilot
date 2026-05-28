@@ -1,14 +1,36 @@
 "use client";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { Brain, Search, ListChecks, Gauge, Globe, Info, Zap, Download, Printer, CalendarClock, CheckCircle2, type LucideIcon } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerContainer";
 import { FactorBars, fitScoreTextColor, type Fit } from "@/components/FitBreakdown";
+import { downloadCoverLetterDocx, printCoverLetter } from "@/lib/export/client";
 
 type Job = {
   id: string; role: string; company: string; location: string;
   salary: string | null; link: string | null; description?: string;
   deadline?: string | null; fit: Fit;
+};
+
+type ApplyResult = {
+  jobId: string;
+  coverLetter: string | null;
+  warning: string | null;
+  event: { title: string; event_date: string; type: string } | null;
+};
+
+type TraceKind = "plan" | "search" | "found" | "score" | "web" | "note";
+type TraceEvent = { kind: TraceKind; text: string };
+
+// Icon + color per reasoning step, so the live narrative is scannable at a glance.
+const TRACE_STYLE: Record<TraceKind, { icon: LucideIcon; color: string }> = {
+  plan: { icon: Brain, color: "text-sky-400" },
+  search: { icon: Search, color: "text-blue-400" },
+  found: { icon: ListChecks, color: "text-emerald-400" },
+  score: { icon: Gauge, color: "text-amber-400" },
+  web: { icon: Globe, color: "text-violet-400" },
+  note: { icon: Info, color: "text-muted-foreground" },
 };
 
 type SavedSearch = {
@@ -34,8 +56,13 @@ function HunterInner() {
   const [query, setQuery] = useState(initialQ || "remote react frontend internship");
   const [loading, setLoading] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [trace, setTrace] = useState<string[]>([]);
+  const [trace, setTrace] = useState<TraceEvent[]>([]);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [runError, setRunError] = useState<string | null>(null);
   const [saved, setSaved] = useState<Set<string>>(new Set());
+  const [applying, setApplying] = useState<string | null>(null);
+  const [applied, setApplied] = useState<Set<string>>(new Set());
+  const [applyResult, setApplyResult] = useState<ApplyResult | null>(null);
   const [detail, setDetail] = useState<Job | null>(null);
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
   const [saving, setSaving] = useState(false);
@@ -47,15 +74,54 @@ function HunterInner() {
     setLoading(true);
     setJobs([]);
     setTrace([]);
+    setSummary(null);
+    setRunError(null);
     try {
       const res = await fetch("/api/jobs/search", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Accept: "application/x-ndjson" },
         body: JSON.stringify({ query: q }),
       });
-      const json = await res.json();
-      setJobs(json.jobs ?? []);
-      setTrace(json.trace ?? []);
+
+      // Non-streaming fallback (shouldn't normally happen, but stay robust).
+      if (!res.body) {
+        const json = await res.json();
+        setJobs(json.jobs ?? []);
+        setTrace((json.trace ?? []).map((text: string) => ({ kind: "note" as const, text })));
+        if (json.error) setRunError(json.error);
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buf.indexOf("\n")) >= 0) {
+          const line = buf.slice(0, nl).trim();
+          buf = buf.slice(nl + 1);
+          if (!line) continue;
+          let evt: any;
+          try {
+            evt = JSON.parse(line);
+          } catch {
+            continue;
+          }
+          if (evt.t === "trace") {
+            setTrace((prev) => [...prev, { kind: evt.kind, text: evt.text }]);
+          } else if (evt.t === "result") {
+            setJobs(evt.jobs ?? []);
+            if (evt.summary) setSummary(evt.summary);
+          } else if (evt.t === "error") {
+            setRunError(evt.error ?? "Search failed — please try again.");
+          }
+        }
+      }
+    } catch {
+      setRunError("Search failed — please try again.");
     } finally {
       setLoading(false);
     }
@@ -131,6 +197,42 @@ function HunterInner() {
     setSaved((s) => new Set(s).add(j.id));
   }
 
+  // One-click Apply: cover letter + tracker entry + calendar event in one call.
+  async function apply(j: Job) {
+    if (applying || applied.has(j.id)) return;
+    setApplying(j.id);
+    setApplyResult(null);
+    setDetail(j); // surface the result in the detail modal
+    try {
+      const res = await fetch("/api/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: j.role, company: j.company, location: j.location,
+          description: j.description ?? "", link: j.link ?? undefined,
+          fit_score: j.fit.score, deadline: j.deadline ?? null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setApplyResult({ jobId: j.id, coverLetter: null, warning: data.error ?? "Apply failed", event: null });
+        return;
+      }
+      setApplied((s) => new Set(s).add(j.id));
+      setSaved((s) => new Set(s).add(j.id));
+      setApplyResult({
+        jobId: j.id,
+        coverLetter: data.coverLetter ?? null,
+        warning: data.warning ?? null,
+        event: data.event ?? null,
+      });
+    } catch {
+      setApplyResult({ jobId: j.id, coverLetter: null, warning: "Apply failed — please try again.", event: null });
+    } finally {
+      setApplying(null);
+    }
+  }
+
   return (
     <FadeIn>
     <div className="space-y-6 py-4">
@@ -200,16 +302,44 @@ function HunterInner() {
         </div>
       )}
 
-      {/* agent trace — makes "agentic" visible */}
+      {runError && (
+        <div className="panel border-rose-400/30 p-4 text-sm text-rose-300">⚠ {runError}</div>
+      )}
+
+      {/* live agent reasoning — streams in step-by-step so the tool-loop is visible */}
       {(loading || trace.length > 0) && (
         <div className="panel p-4">
-          <p className="label mb-2">Agent trace</p>
-          <div className="flex flex-wrap gap-2 font-mono text-xs">
-            {trace.map((t, i) => (
-              <span key={i} className="chip bg-secondary text-sky-400 animate-fade-up">{t}</span>
-            ))}
-            {loading && <span className="chip bg-secondary text-amber-400 animate-pulse-glow">thinking…</span>}
+          <div className="mb-3 flex items-center gap-2">
+            <span className="label">Agent reasoning</span>
+            {loading && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                <span className="h-1.5 w-1.5 animate-pulse-glow rounded-full bg-emerald-400" />
+                live
+              </span>
+            )}
           </div>
+          <ol className="space-y-1.5">
+            {trace.map((t, i) => {
+              const { icon: Icon, color } = TRACE_STYLE[t.kind] ?? TRACE_STYLE.note;
+              return (
+                <li key={i} className="flex animate-fade-up items-start gap-2 text-xs leading-relaxed">
+                  <Icon size={14} className={`mt-0.5 shrink-0 ${color}`} />
+                  <span className="text-foreground/90">{t.text}</span>
+                </li>
+              );
+            })}
+            {loading && (
+              <li className="flex items-center gap-2 text-xs text-amber-400">
+                <span className="h-1.5 w-1.5 animate-pulse-glow rounded-full bg-amber-400" />
+                <span className="animate-pulse-glow">working…</span>
+              </li>
+            )}
+          </ol>
+          {summary && (
+            <p className="mt-3 border-t border-border/60 pt-3 text-sm italic leading-relaxed text-muted-foreground">
+              “{summary}”
+            </p>
+          )}
         </div>
       )}
 
@@ -249,7 +379,20 @@ function HunterInner() {
               </div>
             )}
 
-            <div className="mt-4 flex items-center gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => apply(j)}
+                disabled={applying === j.id || applied.has(j.id)}
+                className="btn-primary inline-flex items-center gap-1.5 text-xs disabled:opacity-60"
+              >
+                {applied.has(j.id) ? (
+                  <><CheckCircle2 size={14} /> Applied</>
+                ) : applying === j.id ? (
+                  <><Zap size={14} className="animate-pulse-glow" /> Applying…</>
+                ) : (
+                  <><Zap size={14} /> 1-click apply</>
+                )}
+              </button>
               <button
                 onClick={() => track(j)}
                 disabled={saved.has(j.id)}
@@ -315,11 +458,87 @@ function HunterInner() {
               </div>
             )}
 
+            {/* One-click Apply — in-progress narrative */}
+            {applying === detail.id && (
+              <div className="mt-5 rounded-xl border border-primary/30 bg-primary/5 p-4">
+                <p className="flex items-center gap-2 text-sm font-medium text-primary">
+                  <Zap size={15} className="animate-pulse-glow" /> Applying…
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Drafting your CV-grounded cover letter, adding the role to your tracker, and dropping a date on your calendar.
+                </p>
+              </div>
+            )}
+
+            {/* One-click Apply — result */}
+            {applyResult?.jobId === detail.id && applying !== detail.id && (
+              <div className="mt-5 rounded-xl border border-emerald-400/30 bg-emerald-400/5 p-4">
+                <p className="flex items-center gap-2 text-sm font-semibold text-emerald-400">
+                  <CheckCircle2 size={16} /> Applied — chained in one click
+                </p>
+                <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 size={13} className="text-emerald-400" /> Added to your tracker as <span className="text-foreground">Applied</span>
+                  </li>
+                  {applyResult.event && (
+                    <li className="flex items-center gap-2">
+                      <CalendarClock size={13} className="text-sky-400" />
+                      {applyResult.event.type === "deadline" ? "Deadline" : "Follow-up"} on{" "}
+                      <span className="text-foreground">{applyResult.event.event_date}</span>
+                    </li>
+                  )}
+                </ul>
+
+                {applyResult.coverLetter && (
+                  <div className="mt-3">
+                    <p className="label mb-1">Tailored cover letter</p>
+                    <pre className="max-h-56 overflow-y-auto whitespace-pre-wrap rounded-lg border border-border bg-background/60 p-3 font-sans text-xs leading-relaxed text-foreground/90">
+{applyResult.coverLetter}
+                    </pre>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button
+                        onClick={() => downloadCoverLetterDocx(applyResult.coverLetter!, { title: `Cover Letter — ${detail.role}`, filename: `cover-letter-${detail.company}.docx` })}
+                        className="btn-ghost inline-flex items-center gap-1.5 text-xs"
+                      >
+                        <Download size={13} /> Download .docx
+                      </button>
+                      <button
+                        onClick={() => printCoverLetter(applyResult.coverLetter!, { title: `Cover Letter — ${detail.role}` })}
+                        className="btn-ghost inline-flex items-center gap-1.5 text-xs"
+                      >
+                        <Printer size={13} /> Save as PDF
+                      </button>
+                      <a href="/tracker" className="btn-ghost inline-flex items-center gap-1.5 text-xs">
+                        View in tracker →
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {applyResult.warning && (
+                  <p className="mt-2 text-xs text-amber-400">⚠ {applyResult.warning}</p>
+                )}
+              </div>
+            )}
+
             <div className="mt-6 flex items-center gap-2">
+              <button
+                onClick={() => apply(detail)}
+                disabled={applying === detail.id || applied.has(detail.id)}
+                className="btn-primary inline-flex items-center gap-1.5 text-xs disabled:opacity-60"
+              >
+                {applied.has(detail.id) ? (
+                  <><CheckCircle2 size={14} /> Applied</>
+                ) : applying === detail.id ? (
+                  <><Zap size={14} className="animate-pulse-glow" /> Applying…</>
+                ) : (
+                  <><Zap size={14} /> 1-click apply</>
+                )}
+              </button>
               <button
                 onClick={() => track(detail)}
                 disabled={saved.has(detail.id)}
-                className="btn-primary text-xs disabled:opacity-50"
+                className="btn-ghost text-xs disabled:opacity-50"
               >
                 {saved.has(detail.id) ? "✓ Tracked" : "+ Track this"}
               </button>
