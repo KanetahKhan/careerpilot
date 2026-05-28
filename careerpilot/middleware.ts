@@ -44,7 +44,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/fit");
 
   const isAuthRoute =
-    pathname.startsWith("/login") || pathname.startsWith("/signup");
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signup") ||
+    pathname === "/auth";
 
   const isHome = pathname === "/";
 

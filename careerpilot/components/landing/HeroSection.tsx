@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import { Hero3DBackground } from "./Hero3DBackground";
 import { TypeWriter } from "./TypeWriter";
+import { useAuth } from "@/components/AuthProvider";
 
 const TYPED_PHRASES = [
   "perfect-fit roles.",
@@ -14,6 +15,15 @@ const TYPED_PHRASES = [
 ];
 
 export function HeroSection() {
+  const { user, loading } = useAuth();
+
+  const cta =
+    loading
+      ? { href: "", label: "", skeleton: true }
+      : user
+        ? { href: "/hunter", label: "Go to Dashboard", skeleton: false }
+        : { href: "/auth?mode=signup", label: "Get Started Free", skeleton: false };
+
   return (
     <section className="hero-section">
       <div className="hero-bg-wrap">
@@ -37,10 +47,14 @@ export function HeroSection() {
         </p>
 
         <div className="hero-cta-row">
-          <Link href="/auth?mode=signup" className="hero-primary-btn">
-            Get Started Free
-            <ArrowRight size={18} />
-          </Link>
+          {cta.skeleton ? (
+            <div className="hero-cta-skeleton" />
+          ) : (
+            <Link href={cta.href} className="hero-primary-btn">
+              {cta.label}
+              {user ? <LayoutDashboard size={18} /> : <ArrowRight size={18} />}
+            </Link>
+          )}
         </div>
       </div>
     </section>

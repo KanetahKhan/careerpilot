@@ -63,6 +63,14 @@
   50% { opacity: 0.5; }
 }
 
+.hero-cta-skeleton {
+  width: 180px;
+  height: 48px;
+  border-radius: 14px;
+  background: hsl(var(--secondary));
+  animation: pulse-skeleton 1.5s ease-in-out infinite;
+}
+
 .nav-signin {
   font-size: 14px;
   font-weight: 500;
