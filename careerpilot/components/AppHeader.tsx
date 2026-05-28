@@ -39,7 +39,7 @@ export function AppHeader() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
     await supabase.auth.signOut();
-    router.push("/login");
+    router.replace("/");
     router.refresh();
   }
 

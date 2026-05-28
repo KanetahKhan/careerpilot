@@ -41,7 +41,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/profile") ||
     pathname.startsWith("/settings") ||
     pathname.startsWith("/onboarding") ||
-    pathname.startsWith("/fit");
+    pathname.startsWith("/fit") ||
+    pathname.startsWith("/skill-gap") ||
+    pathname.startsWith("/interview");
 
   const isAuthRoute =
     pathname.startsWith("/login") ||
@@ -52,13 +54,13 @@ export async function middleware(request: NextRequest) {
 
   if (!user && isAppRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = "/";
     return NextResponse.redirect(url);
   }
 
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/hunter";
     return NextResponse.redirect(url);
   }
 

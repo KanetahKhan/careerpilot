@@ -17,6 +17,7 @@ export function TopBar() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
     await supabase.auth.signOut();
+    router.replace("/");
     router.refresh();
   };
 
