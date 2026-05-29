@@ -25,15 +25,15 @@ import { useAuth } from "./AuthProvider";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/hunter", label: "Job Hunter", icon: Search, badge: null as null },
-  { href: "/fit", label: "Score a JD", icon: Target, badge: null as null },
-  { href: "/skill-gap", label: "Skill Gap", icon: Gauge, badge: null as null },
-  { href: "/interview", label: "Mock Interview", icon: Mic, badge: null as null },
-  { href: "/assistant", label: "AI Coach", icon: Sparkles, badge: null as null },
-  { href: "/tracker", label: "Tracker", icon: Kanban, badge: "apps" as const },
-  { href: "/roadmap", label: "Roadmap", icon: Route, badge: "goals" as const },
-  { href: "/profile", label: "My CV", icon: FileText, badge: "chunks" as const },
-  { href: "/settings", label: "Settings", icon: Settings, badge: null as null },
+  { href: "/hunter", label: "Job Hunter", icon: Search, badge: null as null, accent: "text-sky-500" },
+  { href: "/fit", label: "Score a JD", icon: Target, badge: null as null, accent: "text-violet-500" },
+  { href: "/skill-gap", label: "Skill Gap", icon: Gauge, badge: null as null, accent: "text-amber-500" },
+  { href: "/interview", label: "Mock Interview", icon: Mic, badge: null as null, accent: "text-rose-500" },
+  { href: "/assistant", label: "AI Coach", icon: Sparkles, badge: null as null, accent: "text-fuchsia-500" },
+  { href: "/tracker", label: "Tracker", icon: Kanban, badge: "apps" as const, accent: "text-primary" },
+  { href: "/roadmap", label: "Roadmap", icon: Route, badge: "goals" as const, accent: "text-emerald-500" },
+  { href: "/profile", label: "My CV", icon: FileText, badge: "chunks" as const, accent: "text-indigo-500" },
+  { href: "/settings", label: "Settings", icon: Settings, badge: null as null, accent: "text-slate-500" },
 ];
 
 export function Sidebar() {
@@ -100,14 +100,19 @@ export function Sidebar() {
               href={item.href}
               onClick={() => setMobileOpen(false)}
               className={cn(
-                "group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-150",
                 collapsed ? "justify-center" : "",
                 active
-                  ? "border-r-2 border-primary bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  ? "bg-secondary text-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
               )}
             >
-              <item.icon className="h-5 w-5 shrink-0" />
+              <item.icon
+                className={cn(
+                  "h-5 w-5 shrink-0 transition-transform group-hover:scale-110",
+                  item.accent
+                )}
+              />
               {!collapsed && (
                 <>
                   <span className="flex-1">{item.label}</span>

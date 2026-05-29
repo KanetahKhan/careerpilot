@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Route, Gauge } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
 import { PageHeader } from "@/components/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
 import { fitScoreTextColor } from "@/components/FitBreakdown";
 
 type SkillGapResult = {
@@ -93,20 +94,28 @@ export default function SkillGapPage() {
         </div>
 
         {!result && !loading && (
-          <div className="flex flex-wrap gap-2">
-            {SUGGESTED_ROLES.map((r) => (
-              <button
-                key={r}
-                onClick={() => {
-                  setRole(r);
-                  analyze(r);
-                }}
-                className="chip bg-secondary text-muted-foreground transition-colors hover:text-foreground"
-              >
-                {r}
-              </button>
-            ))}
-          </div>
+          <EmptyState
+            icon={Gauge}
+            title="Compare your CV to any role."
+            description="Pick a role below or type your own — we'll score your skill coverage and show exactly what to learn next."
+            accent="text-amber-500"
+            iconBg="bg-amber-500/10"
+          >
+            <div className="flex flex-wrap justify-center gap-2">
+              {SUGGESTED_ROLES.map((r) => (
+                <button
+                  key={r}
+                  onClick={() => {
+                    setRole(r);
+                    analyze(r);
+                  }}
+                  className="chip bg-secondary text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          </EmptyState>
         )}
 
         {loading && (

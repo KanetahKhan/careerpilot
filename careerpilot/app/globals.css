@@ -201,6 +201,14 @@ body::before {
     @apply rounded-3xl border border-border/60 bg-card backdrop-blur-sm;
     box-shadow: var(--panel-shadow);
   }
+  /* Opt-in hover lift for browsable/interactive cards (not modals). */
+  .card-hover {
+    @apply transition-all duration-200;
+  }
+  .card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 24px 46px -20px hsl(var(--primary) / 0.4);
+  }
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-150
            active:scale-[0.97] active:brightness-95;
