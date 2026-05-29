@@ -1,53 +1,47 @@
 import type { LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 type Props = {
   title: React.ReactNode;
   eyebrow?: string;
   subtitle?: React.ReactNode;
   icon?: LucideIcon;
-  /** Tailwind gradient color stops, e.g. "from-sky-500 via-sky-500 to-cyan-500". */
+  /** Accepted for backwards-compat with callers; not used in the Skybound style. */
   gradient?: string;
   /** Right-side actions (buttons, toggles). */
   children?: React.ReactNode;
 };
 
 /**
- * Shared gradient page banner so every screen opens with a friendly, colorful
- * hero instead of a flat title. Each page passes its own accent gradient + icon.
+ * Shared page banner — Skybound style: a soft sky-blue gradient with dark teal
+ * text and a faint oversized icon, so every screen opens light and airy.
  */
-export function PageHeader({
-  title,
-  eyebrow,
-  subtitle,
-  icon: Icon,
-  gradient = "from-primary via-violet-500 to-fuchsia-500",
-  children,
-}: Props) {
+export function PageHeader({ title, eyebrow, subtitle, icon: Icon, children }: Props) {
   return (
-    <div
-      className={cn(
-        "relative overflow-hidden rounded-3xl bg-gradient-to-br p-6 text-white shadow-lg sm:p-7",
-        gradient
+    <div className="relative overflow-hidden rounded-3xl border border-primary/10 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-6 shadow-[0_20px_45px_-20px_rgba(2,132,199,0.25)] sm:p-8">
+      {Icon && (
+        <Icon
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-6 -top-6 text-primary/10"
+          size={170}
+          strokeWidth={1.5}
+        />
       )}
-    >
-      <div className="pointer-events-none absolute -right-10 -top-12 h-44 w-44 rounded-full bg-white/15 blur-2xl" />
-      <div className="pointer-events-none absolute -bottom-16 right-28 h-36 w-36 rounded-full bg-white/10 blur-3xl" />
       <div className="relative flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           {Icon && (
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/15 backdrop-blur-sm">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary">
               <Icon size={24} />
             </span>
           )}
           <div>
             {eyebrow && (
-              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/70">
+              <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-primary/70">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary/60" />
                 {eyebrow}
               </p>
             )}
-            <h1 className="mt-0.5 font-display text-3xl font-bold sm:text-4xl">{title}</h1>
-            {subtitle && <p className="mt-1.5 max-w-2xl text-sm text-white/80">{subtitle}</p>}
+            <h1 className="mt-1 font-display text-3xl font-bold text-primary sm:text-4xl">{title}</h1>
+            {subtitle && <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">{subtitle}</p>}
           </div>
         </div>
         {children && <div className="shrink-0">{children}</div>}

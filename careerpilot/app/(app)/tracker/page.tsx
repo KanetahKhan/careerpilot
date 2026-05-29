@@ -161,7 +161,7 @@ export default function TrackerPage() {
         subtitle="Here is your job-search snapshot — keep the momentum going."
         icon={LayoutDashboard}
       >
-        <AddApplicationButton variant="onColor" onAdd={(app) => setApps((prev) => [...prev, app])} />
+        <AddApplicationButton onAdd={(app) => setApps((prev) => [...prev, app])} />
       </PageHeader>
 
       {/* dashboard strip */}

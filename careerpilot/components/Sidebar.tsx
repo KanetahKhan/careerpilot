@@ -20,6 +20,7 @@ import {
   Target,
   Gauge,
   Mic,
+  Rocket,
 } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 import { cn } from "@/lib/utils";
@@ -81,9 +82,11 @@ export function Sidebar() {
           collapsed ? "justify-center px-0" : "px-4"
         )}
       >
-        <Sparkles className="h-5 w-5 text-primary flex-shrink-0" />
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/12 text-primary">
+          <Rocket className="h-5 w-5" />
+        </span>
         <span className={cn(
-          "font-bold text-foreground overflow-hidden whitespace-nowrap transition-all",
+          "font-display text-lg font-extrabold tracking-tight text-primary overflow-hidden whitespace-nowrap transition-all",
           collapsed ? "w-0 opacity-0" : "w-auto opacity-100"
         )}>
           CareerPilot
@@ -100,17 +103,17 @@ export function Sidebar() {
               href={item.href}
               onClick={() => setMobileOpen(false)}
               className={cn(
-                "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-150",
+                "group flex items-center gap-3 rounded-full px-4 py-2.5 text-sm font-medium transition-all duration-150",
                 collapsed ? "justify-center" : "",
                 active
-                  ? "bg-secondary text-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+                  ? "bg-primary/12 text-primary font-semibold shadow-[0_8px_20px_-10px_rgba(2,132,199,0.45)]"
+                  : "text-muted-foreground hover:bg-primary/5 hover:text-foreground"
               )}
             >
               <item.icon
                 className={cn(
                   "h-5 w-5 shrink-0 transition-transform group-hover:scale-110",
-                  item.accent
+                  active ? "text-primary" : "text-muted-foreground"
                 )}
               />
               {!collapsed && (

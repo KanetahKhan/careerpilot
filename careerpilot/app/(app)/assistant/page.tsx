@@ -203,7 +203,7 @@ function Chat({
           <button
             type="button"
             onClick={onNewChat}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/30 px-3 py-1.5 text-xs font-medium text-white/90 transition-colors hover:bg-white/10"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-background/60 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
             title="Start a fresh conversation"
           >
             <Plus className="h-3.5 w-3.5" />

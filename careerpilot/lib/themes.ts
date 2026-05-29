@@ -7,6 +7,7 @@ export interface ThemePreset {
 }
 
 export const themePresets: ThemePreset[] = [
+  { name: "skybound", label: "Skybound", hue: 194, saturation: 100, lightness: 26 },
   { name: "coral", label: "Coral", hue: 10, saturation: 55, lightness: 74 },
   { name: "peach", label: "Peach", hue: 25, saturation: 55, lightness: 76 },
   { name: "lemon", label: "Lemon", hue: 50, saturation: 60, lightness: 78 },
