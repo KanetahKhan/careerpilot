@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Route } from "lucide-react";
+import { Route, Mic } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
+import { PageHeader } from "@/components/PageHeader";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerContainer";
 import { VoiceInputButton } from "@/components/interview/VoiceInputButton";
 import { ReadAloudToggle } from "@/components/interview/ReadAloudToggle";
@@ -199,20 +200,23 @@ export default function InterviewPage() {
   return (
     <FadeIn>
       <div className="space-y-6 py-4">
-        <div>
-          <p className="label mb-2">Pillar 3 · Mock Interview Agent</p>
-          <h1 className="font-display text-3xl font-bold">
-            {step === "setup" && "Practice with an AI interviewer."}
-            {step === "interview" && `Interviewing for ${role}`}
-            {step === "feedback" && "Your interview feedback"}
-          </h1>
-          {step === "setup" && (
-            <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-              Paste a real job description and get 5 tailored questions. Answer
-              one at a time, then receive structured per-competency feedback.
-            </p>
-          )}
-        </div>
+        <PageHeader
+          eyebrow="Pillar 3 · Mock Interview Agent"
+          title={
+            step === "setup"
+              ? "Practice with an AI interviewer."
+              : step === "interview"
+              ? `Interviewing for ${role}`
+              : "Your interview feedback"
+          }
+          subtitle={
+            step === "setup"
+              ? "Paste a real job description and get 5 tailored questions. Answer one at a time, then receive structured per-competency feedback."
+              : undefined
+          }
+          icon={Mic}
+          gradient="from-rose-500 via-pink-500 to-rose-500"
+        />
 
         {error && (
           <p className="text-sm text-primary">⚠ {error}</p>

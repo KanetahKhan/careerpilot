@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Route } from "lucide-react";
+import { Route, Gauge } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
+import { PageHeader } from "@/components/PageHeader";
 import { fitScoreTextColor } from "@/components/FitBreakdown";
 
 type SkillGapResult = {
@@ -66,17 +67,13 @@ export default function SkillGapPage() {
   return (
     <FadeIn>
       <div className="space-y-6 py-4">
-        <div>
-          <p className="label mb-2">Pillar 3 · Skill Gap</p>
-          <h1 className="font-display text-3xl font-bold">
-            How does your CV stack up against a role?
-          </h1>
-          <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-            Pick a role and we&apos;ll compare your CV&apos;s skills against a
-            benchmark profile — showing exactly what you have and what you&apos;re
-            missing, prioritized by importance.
-          </p>
-        </div>
+        <PageHeader
+          eyebrow="Pillar 3 · Skill Gap"
+          title="How does your CV stack up against a role?"
+          subtitle="Pick a role and we compare your CV's skills against a benchmark profile — showing what you have and what you're missing, prioritized by importance."
+          icon={Gauge}
+          gradient="from-amber-500 via-orange-500 to-amber-500"
+        />
 
         <div className="panel flex flex-col gap-3 p-4 sm:flex-row">
           <input

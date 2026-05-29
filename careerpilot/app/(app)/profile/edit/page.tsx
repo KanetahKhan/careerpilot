@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { FadeIn } from "@/components/FadeIn";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, ArrowLeft, Loader2 } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, Loader2, FilePlus2 } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 
 type Experience = { title: string; company: string; start: string; end: string; bullets: string[] };
 type Education = { degree: string; institution: string; start: string; end: string; details: string };
@@ -147,14 +148,13 @@ export default function EditCvPage() {
   return (
     <FadeIn>
       <div className="space-y-6 py-4">
-        <div>
-          <p className="label mb-2">CV Builder</p>
-          <h1 className="font-display text-3xl font-bold">Build your CV.</h1>
-          <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-            Fill in the sections below. Your CV will be chunked and embedded — the same
-            pipeline as a file upload — so RAG, fit scores, and the assistant all work.
-          </p>
-        </div>
+        <PageHeader
+          eyebrow="CV Builder"
+          title="Build your CV."
+          subtitle="Fill in the sections below. Your CV will be chunked and embedded — the same pipeline as a file upload — so RAG, fit scores, and the assistant all work."
+          icon={FilePlus2}
+          gradient="from-indigo-500 via-indigo-500 to-blue-500"
+        />
 
         <form onSubmit={handleSubmit} className="space-y-8 max-w-2xl">
           {/* Personal info */}

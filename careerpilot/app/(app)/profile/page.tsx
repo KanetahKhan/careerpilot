@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FadeIn } from "@/components/FadeIn";
 import { Upload, Edit3, Download, FileText, Printer } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { downloadCvDocx, printCv } from "@/lib/export/client";
 import type { BuilderCv } from "@/lib/cv-transform";
@@ -78,54 +79,49 @@ export default function ProfilePage() {
   return (
     <FadeIn>
     <div className="space-y-6 py-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="label mb-2">Pillar 2 · CV Profile</p>
-          <h1 className="font-display text-3xl font-bold">Exactly what the AI sees.</h1>
-          <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-            Your CV, parsed into section-tagged chunks and embedded in pgvector. Every
-            answer and fit score is retrieved from <span className="text-primary">these</span> chunks —
-            this is the grounding made visible.
-          </p>
+      <PageHeader
+        eyebrow="Pillar 2 · CV Profile"
+        title="Exactly what the AI sees."
+        subtitle="Your CV, parsed into section-tagged chunks and embedded in pgvector. Every answer and fit score is retrieved from these chunks — grounding made visible."
+        icon={FileText}
+        gradient="from-indigo-500 via-indigo-500 to-blue-500"
+      />
+
+      {hasCv && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/profile/edit">
+            <Button variant="outline" size="sm">
+              <Edit3 className="h-4 w-4" /> Edit CV
+            </Button>
+          </Link>
+          {canExport && (
+            <>
+              <span className="ml-1 flex items-center gap-1 text-xs text-muted-foreground">
+                <Download className="h-3 w-3" />
+                Download:
+              </span>
+              <button
+                type="button"
+                onClick={onDocx}
+                disabled={exportBusy !== null}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground transition-colors hover:border-primary/50 disabled:opacity-50"
+              >
+                <FileText className="h-3 w-3" />
+                {exportBusy === "docx" ? "Building…" : "Word (.docx)"}
+              </button>
+              <button
+                type="button"
+                onClick={onPdf}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground transition-colors hover:border-primary/50"
+              >
+                <Printer className="h-3 w-3" />
+                PDF
+              </button>
+            </>
+          )}
+          {exportErr && <p className="text-xs text-destructive">{exportErr}</p>}
         </div>
-        {hasCv && (
-          <div className="flex flex-col items-end gap-2">
-            <div className="flex items-center gap-2">
-              <Link href="/profile/edit">
-                <Button variant="outline" size="sm">
-                  <Edit3 className="h-4 w-4" /> Edit CV
-                </Button>
-              </Link>
-            </div>
-            {canExport && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Download className="h-3 w-3" />
-                  Download:
-                </span>
-                <button
-                  type="button"
-                  onClick={onDocx}
-                  disabled={exportBusy !== null}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground hover:border-primary/50 disabled:opacity-50 transition-colors"
-                >
-                  <FileText className="h-3 w-3" />
-                  {exportBusy === "docx" ? "Building…" : "Word (.docx)"}
-                </button>
-                <button
-                  type="button"
-                  onClick={onPdf}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground hover:border-primary/50 transition-colors"
-                >
-                  <Printer className="h-3 w-3" />
-                  PDF
-                </button>
-              </div>
-            )}
-            {exportErr && <p className="text-xs text-destructive">{exportErr}</p>}
-          </div>
-        )}
-      </div>
+      )}
 
       {loading && <p className="text-sm text-amber-400 animate-pulse-glow">Loading your CV profile…</p>}
 

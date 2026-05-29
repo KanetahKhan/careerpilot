@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from "recharts";
-import { Plus, Briefcase, BarChart3 } from "lucide-react";
+import { Plus, Briefcase, BarChart3, LayoutDashboard } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
 import { useAuth } from "@/components/AuthProvider";
+import { PageHeader } from "@/components/PageHeader";
 import { AddApplicationButton } from "@/components/AddApplicationButton";
 import { Calendar } from "@/components/Calendar";
 import { Nudges } from "@/components/Nudges";
@@ -154,25 +155,14 @@ export default function TrackerPage() {
   return (
     <FadeIn>
     <div className="space-y-6 py-4">
-      {/* gradient welcome banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-violet-500 to-fuchsia-500 p-6 text-white shadow-lg sm:p-8">
-        <div className="pointer-events-none absolute -right-10 -top-12 h-44 w-44 rounded-full bg-white/15 blur-2xl" />
-        <div className="pointer-events-none absolute -bottom-16 right-32 h-36 w-36 rounded-full bg-white/10 blur-3xl" />
-        <div className="relative flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/70">
-              Pillar 4 · Productivity &amp; Progress
-            </p>
-            <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">
-              Welcome back, {greetName}
-            </h1>
-            <p className="mt-1.5 text-sm text-white/80">
-              Here is your job-search snapshot — keep the momentum going.
-            </p>
-          </div>
-          <AddApplicationButton variant="onColor" onAdd={(app) => setApps((prev) => [...prev, app])} />
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Pillar 4 · Productivity & Progress"
+        title={`Welcome back, ${greetName}`}
+        subtitle="Here is your job-search snapshot — keep the momentum going."
+        icon={LayoutDashboard}
+      >
+        <AddApplicationButton variant="onColor" onAdd={(app) => setApps((prev) => [...prev, app])} />
+      </PageHeader>
 
       {/* dashboard strip */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

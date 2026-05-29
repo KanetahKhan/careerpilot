@@ -3,8 +3,9 @@
 import { useChat, type Message } from "ai/react";
 import { useRef, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Plus, Download, FileText, Printer } from "lucide-react";
+import { Plus, Download, FileText, Printer, Sparkles } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
+import { PageHeader } from "@/components/PageHeader";
 import { cn } from "@/lib/utils";
 import type { RetrievedChunk } from "@/types/chat";
 import {
@@ -97,8 +98,12 @@ export default function AssistantPage() {
       <FadeIn>
         <div className="flex flex-col h-[calc(100vh-7rem)]">
           <div className="mb-4 shrink-0">
-            <p className="label mb-2">Pillar 3 · Personal AI Assistant</p>
-            <h1 className="font-display text-3xl font-bold">It already knows your CV.</h1>
+            <PageHeader
+              eyebrow="Pillar 3 · Personal AI Assistant"
+              title="It already knows your CV."
+              icon={Sparkles}
+              gradient="from-fuchsia-500 via-purple-500 to-fuchsia-500"
+            />
           </div>
           <div className="flex-1 grid place-items-center rounded-lg border border-border bg-card text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
@@ -188,31 +193,34 @@ function Chat({
   return (
     <FadeIn>
     <div className="flex flex-col h-[calc(100vh-7rem)]">
-      <div className="mb-4 shrink-0 flex items-start justify-between gap-4">
-        <div>
-          <p className="label mb-2">Pillar 3 · Personal AI Assistant</p>
-          <h1 className="font-display text-3xl font-bold">It already knows your CV.</h1>
-          {intent && (
-            <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="label">detected intent</span>
-              <span className="chip bg-sky-400/10 text-sky-400">{INTENT_LABELS[intent] ?? intent}</span>
-              {intent === "roadmap" && (
-                <Link href="/roadmap" className="text-primary underline-offset-4 hover:underline">
-                  open structured roadmap →
-                </Link>
-              )}
-            </p>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={onNewChat}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
-          title="Start a fresh conversation"
+      <div className="mb-4 shrink-0">
+        <PageHeader
+          eyebrow="Pillar 3 · Personal AI Assistant"
+          title="It already knows your CV."
+          icon={Sparkles}
+          gradient="from-fuchsia-500 via-purple-500 to-fuchsia-500"
         >
-          <Plus className="h-3.5 w-3.5" />
-          New chat
-        </button>
+          <button
+            type="button"
+            onClick={onNewChat}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/30 px-3 py-1.5 text-xs font-medium text-white/90 transition-colors hover:bg-white/10"
+            title="Start a fresh conversation"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            New chat
+          </button>
+        </PageHeader>
+        {intent && (
+          <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="label">detected intent</span>
+            <span className="chip bg-sky-400/10 text-sky-400">{INTENT_LABELS[intent] ?? intent}</span>
+            {intent === "roadmap" && (
+              <Link href="/roadmap" className="text-primary underline-offset-4 hover:underline">
+                open structured roadmap →
+              </Link>
+            )}
+          </p>
+        )}
       </div>
 
       {loadError && (

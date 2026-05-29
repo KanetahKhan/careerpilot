@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { Brain, Search, ListChecks, Gauge, Globe, Info, Zap, Download, Printer, CalendarClock, CheckCircle2, type LucideIcon } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerContainer";
+import { PageHeader } from "@/components/PageHeader";
 import { FactorBars, fitScoreTextColor, type Fit } from "@/components/FitBreakdown";
 import { downloadCoverLetterDocx, printCoverLetter } from "@/lib/export/client";
 
@@ -236,10 +237,13 @@ function HunterInner() {
   return (
     <FadeIn>
     <div className="space-y-6 py-4">
-      <div>
-        <p className="label mb-2">Pillar 1 · Job Hunter Agent</p>
-        <h1 className="font-display text-3xl font-bold">Hunt jobs in plain English.</h1>
-      </div>
+      <PageHeader
+        eyebrow="Pillar 1 · Job Hunter Agent"
+        title="Hunt jobs in plain English."
+        subtitle="Describe the role you want — the agent searches, scores, and ranks each match against your CV."
+        icon={Search}
+        gradient="from-sky-500 via-sky-500 to-cyan-500"
+      />
 
       <div className="panel flex flex-col gap-3 p-4 sm:flex-row">
         <input
