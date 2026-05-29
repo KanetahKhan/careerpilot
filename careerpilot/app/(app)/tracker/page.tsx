@@ -9,6 +9,7 @@ import { AddApplicationButton } from "@/components/AddApplicationButton";
 import { Calendar } from "@/components/Calendar";
 import { Nudges } from "@/components/Nudges";
 import { FunnelAnalytics } from "@/components/FunnelAnalytics";
+import { ProgressRing } from "@/components/ProgressRing";
 import { cn } from "@/lib/utils";
 
 interface Application {
@@ -157,35 +158,39 @@ export default function TrackerPage() {
           <p className="label">Applications</p>
           <p className="mt-1 font-display text-4xl font-bold text-primary">{apps.length}</p>
         </div>
-        <div className="panel p-5">
-          <p className="label">Goals done</p>
-          <p className="mt-1 font-display text-4xl font-bold text-emerald-400">
-            {doneGoals}<span className="text-muted-foreground text-2xl">/{goals.length}</span>
-          </p>
+        <div className="panel flex items-center gap-4 p-5">
+          <ProgressRing
+            value={goals.length ? (doneGoals / goals.length) * 100 : 0}
+            color="hsl(160 84% 45%)"
+            center={goals.length ? `${doneGoals}/${goals.length}` : "—"}
+          />
+          <div>
+            <p className="label">Goals done</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {goals.length ? `${doneGoals} of ${goals.length} complete` : "No goals yet"}
+            </p>
+          </div>
         </div>
-        <div className="panel p-5">
-          <p className="label">Roadmap %</p>
-          {roadmapStat === null ? (
-            <p className="mt-1 font-display text-4xl font-bold text-muted-foreground animate-pulse-glow">…</p>
-          ) : roadmapStat.total === 0 ? (
-            <>
-              <p className="mt-1 font-display text-4xl font-bold text-muted-foreground">—</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                <a href="/roadmap" className="hover:text-foreground underline-offset-4 hover:underline">
-                  Build a roadmap →
-                </a>
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="mt-1 font-display text-4xl font-bold text-sky-400">
-                {roadmapStat.percent}%
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
+        <div className="panel flex items-center gap-4 p-5">
+          <ProgressRing
+            value={roadmapStat?.percent ?? 0}
+            color="hsl(199 89% 58%)"
+            center={roadmapStat === null ? "…" : roadmapStat.total === 0 ? "—" : `${roadmapStat.percent}%`}
+          />
+          <div>
+            <p className="label">Roadmap</p>
+            {roadmapStat === null ? (
+              <p className="mt-1 text-sm text-muted-foreground">Loading…</p>
+            ) : roadmapStat.total === 0 ? (
+              <a href="/roadmap" className="mt-1 inline-block text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+                Build a roadmap →
+              </a>
+            ) : (
+              <p className="mt-1 text-sm text-muted-foreground">
                 {roadmapStat.done}/{roadmapStat.total} actions done
               </p>
-            </>
-          )}
+            )}
+          </div>
         </div>
         <div className="panel p-3">
           <p className="label px-2">Pipeline</p>
