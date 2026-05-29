@@ -1,39 +1,43 @@
 import Link from "next/link";
+import { Sparkles, ArrowRight } from "lucide-react";
 
 export function Footer() {
   return (
-    <footer className="landing-footer">
-      <div className="footer-inner">
-        <div className="footer-brand">
-          <span className="footer-logo">&#10024; CareerPilot</span>
-          <p>AI-powered career navigation for modern job seekers.</p>
+    <footer className="sky-footer">
+      <div className="sky-footer-grid">
+        <div className="sky-footer-brand">
+          <span className="sky-footer-brand-name">
+            <Sparkles size={18} /> CareerPilot
+          </span>
+          <p>AI-powered career navigation for modern job seekers. Navigation for the whimsical soul.</p>
         </div>
 
-        <div className="footer-links">
-          <div className="link-col">
-            <h4>Product</h4>
-            <Link href="/profile">CV Brain</Link>
-            <Link href="/hunter">Job Hunter</Link>
-            <Link href="/assistant">AI Coach</Link>
-            <Link href="/tracker">Tracker</Link>
-          </div>
-          <div className="link-col">
-            <h4>Company</h4>
-            <Link href="/about">About</Link>
-            <Link href="/blog">Blog</Link>
-            <Link href="/careers">Careers</Link>
-          </div>
-          <div className="link-col">
-            <h4>Legal</h4>
-            <Link href="/privacy">Privacy</Link>
-            <Link href="/terms">Terms</Link>
+        <div className="sky-footer-col">
+          <h4>Product</h4>
+          <Link href="/profile">CV Brain</Link>
+          <Link href="/hunter">Job Hunter</Link>
+          <Link href="/assistant">AI Coach</Link>
+        </div>
+
+        <div className="sky-footer-col">
+          <h4>Company</h4>
+          <Link href="/">About</Link>
+          <Link href="/">Privacy</Link>
+          <Link href="/">Terms</Link>
+        </div>
+
+        <div className="sky-footer-col">
+          <h4>Newsletter</h4>
+          <div className="sky-news">
+            <input type="email" placeholder="Email address" aria-label="Email address" />
+            <button type="button" aria-label="Subscribe">
+              <ArrowRight size={18} />
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="footer-bottom">
-        <p>&copy; 2026 CareerPilot. Built for CodeSprint.</p>
-      </div>
+      <div className="sky-footer-bottom">© 2026 CareerPilot AI. All rights reserved.</div>
     </footer>
   );
 }

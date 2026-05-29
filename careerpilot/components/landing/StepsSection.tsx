@@ -1,78 +1,60 @@
-"use client";
+import { FileUp, LineChart, Map, BadgeCheck, CloudUpload } from "lucide-react";
 
-import { useEffect, useRef } from "react";
-import { Upload, Brain, Target, Trophy } from "lucide-react";
-
-const steps = [
+const STEPS = [
   {
     num: "01",
-    icon: Upload,
+    icon: FileUp,
     title: "Upload your CV",
-    desc: "Our parser extracts skills, experience, and education in seconds. No manual forms.",
+    desc: "Our parser extracts skills, experience, and education in seconds. No manual forms needed.",
   },
   {
     num: "02",
-    icon: Brain,
-    title: "AI analyzes your profile",
+    icon: LineChart,
+    title: "AI analyzes profile",
     desc: "We map your strengths against thousands of live job postings to find perfect matches.",
   },
   {
     num: "03",
-    icon: Target,
-    title: "Get a personalized roadmap",
+    icon: Map,
+    title: "Get a roadmap",
     desc: "Skill gaps, interview prep, and application strategy tailored to your target roles.",
   },
   {
     num: "04",
-    icon: Trophy,
-    title: "Track & land the offer",
-    desc: "Kanban pipeline, deadline reminders, and coach check-ins until you sign.",
+    icon: BadgeCheck,
+    title: "Track & land",
+    desc: "Kanban pipeline, deadline reminders, and coach check-ins until you sign the offer.",
   },
 ];
 
 export function StepsSection() {
-  const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("step-visible");
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.15 }
-    );
-
-    cardsRef.current.forEach((card) => card && observer.observe(card));
-    return () => observer.disconnect();
-  }, []);
-
   return (
-    <section className="steps-section">
-      <div className="section-header">
-        <h2 className="section-title">How it works</h2>
-        <p className="section-subtitle">From CV to offer letter in four simple steps</p>
+    <section className="sky-section sky-how" id="how-it-works">
+      <div className="sky-how-head">
+        <div>
+          <h2 className="sky-section-title" style={{ textAlign: "left" }}>
+            How it works
+          </h2>
+          <p style={{ color: "var(--sky-on-surface-variant)", fontSize: 18, margin: 0 }}>
+            From CV to offer letter in four simple steps
+          </p>
+        </div>
+        <CloudUpload size={56} style={{ color: "var(--sky-primary)", flexShrink: 0 }} className="hidden lg:block" />
       </div>
 
-      <div className="steps-grid">
-        {steps.map((step, i) => {
-          const Icon = step.icon;
+      <div className="sky-steps">
+        {STEPS.map((s) => {
+          const Icon = s.icon;
           return (
-            <div
-              key={step.num}
-              ref={(el) => { cardsRef.current[i] = el; }}
-              className="step-card"
-              style={{ "--delay": `${i * 120}ms` } as React.CSSProperties}
-            >
-              <div className="step-num">{step.num}</div>
-              <div className="step-icon">
-                <Icon size={20} />
+            <div key={s.num} className="sky-step">
+              <span className="sky-step-num">{s.num}</span>
+              <div className="sky-step-card">
+                <h3>{s.title}</h3>
+                <p>{s.desc}</p>
+                <div className="sky-step-foot">
+                  <Icon size={32} />
+                </div>
               </div>
-              <h3>{step.title}</h3>
-              <p>{step.desc}</p>
             </div>
           );
         })}
