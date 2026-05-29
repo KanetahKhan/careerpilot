@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
 
 const FlowFieldCanvas = dynamic(
   () => import("@/components/ui/flow-field-background"),
@@ -9,9 +10,12 @@ const FlowFieldCanvas = dynamic(
 );
 
 export default function AppAmbientBackground() {
+  const { resolvedTheme } = useTheme();
   const [reduced, setReduced] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     setReduced(mq.matches);
     const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
@@ -19,7 +23,10 @@ export default function AppAmbientBackground() {
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  if (reduced) return null;
+  if (!mounted || reduced) return null;
+  // The flow field reads as a gray haze over the light Skybound theme, so it's
+  // dark-mode only; light mode keeps the clean sky wash from body::before.
+  if (resolvedTheme !== "dark") return null;
 
   return (
     <div
