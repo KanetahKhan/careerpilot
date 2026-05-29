@@ -5,6 +5,7 @@ import { generateTextWithFallback, AI_BUSY_MESSAGE, isRateLimitError } from "@/l
 import { searchJobs, webSearchJobs, tavilyEnabled, type Job } from "@/lib/services/jobs";
 import { computeFitScore, loadCvContext } from "@/lib/services/fit-score";
 import { requireUser } from "@/lib/auth";
+import { jsonError } from "@/lib/api";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -188,8 +189,19 @@ ${webTool ? "4" : "3"}. Stop once every job/lead has been scored, then briefly s
 }
 
 export async function POST(req: Request) {
-  const user = await requireUser();
-  const { query }: { query: string } = await req.json();
+  let user;
+  try {
+    user = await requireUser();
+  } catch {
+    return jsonError("Unauthorized", 401);
+  }
+
+  const body = await req.json().catch(() => null);
+  const query: unknown = body?.query;
+  if (typeof query !== "string" || query.trim().length === 0) {
+    return jsonError("query is required", 400);
+  }
+
   const wantsStream = (req.headers.get("accept") ?? "").includes("x-ndjson");
 
   // Legacy JSON path — used by the eval suite and any non-streaming caller.

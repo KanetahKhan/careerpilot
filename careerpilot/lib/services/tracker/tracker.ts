@@ -22,12 +22,30 @@ export async function listApplications(userId: string) {
 
 export async function createApplication(userId: string, input: NewApplication) {
   const supabase = createAdminClient();
+
+  // Idempotency: a given role+company is one application for this user. If it
+  // already exists (e.g. Track then 1-click Apply, or a double-click), return
+  // the existing row instead of inserting a duplicate. Compared case-insensitively
+  // on the trimmed role/company in JS — a user has few applications, and this
+  // avoids LIKE-wildcard pitfalls from `%`/`_` inside a role title.
+  const role = input.role.trim();
+  const company = input.company.trim();
+  const key = (s: string) => s.trim().toLowerCase();
+  const { data: rows } = await supabase
+    .from("applications")
+    .select("*")
+    .eq("user_id", userId);
+  const existing = (rows ?? []).find(
+    (r) => key(r.role) === key(role) && key(r.company) === key(company)
+  );
+  if (existing) return { data: existing, error: null };
+
   return supabase
     .from("applications")
     .insert({
       user_id: userId,
-      role: input.role,
-      company: input.company,
+      role,
+      company,
       location: input.location ?? null,
       fit_score: input.fit_score ?? null,
       link: input.link ?? null,

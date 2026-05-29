@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { type CoreMessage } from "ai";
 import { streamTextWithFallback } from "@/lib/ai";
 import {
@@ -8,9 +9,15 @@ import {
 } from "@/lib/services/assistant";
 import { requireUser } from "@/lib/auth";
 import { getBenchmark } from "@/lib/services/profile/benchmarks";
+import { route, parseJson } from "@/lib/api";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+const BodySchema = z.object({
+  messages: z.array(z.object({ role: z.string(), content: z.any() })).min(1),
+  sessionId: z.string().optional(),
+});
 
 /** Naive role extraction: look for a phrase after "for (a|an)" or "as (a|an)". */
 function extractRole(query: string): string | null {
@@ -18,10 +25,9 @@ function extractRole(query: string): string | null {
   return m ? m[1].trim() : null;
 }
 
-export async function POST(req: Request) {
+export const POST = route(async (req: Request) => {
   const user = await requireUser();
-  const { messages, sessionId }: { messages: CoreMessage[]; sessionId?: string } =
-    await req.json();
+  const { messages, sessionId } = await parseJson(req, BodySchema);
 
   const lastUser = [...messages].reverse().find((m) => m.role === "user");
   const query = typeof lastUser?.content === "string" ? lastUser.content : "";
@@ -51,11 +57,11 @@ export async function POST(req: Request) {
 
   return streamTextWithFallback({
     system: assistantSystemPrompt(enrichedContext, intent),
-    messages,
+    messages: messages as CoreMessage[],
     onFinish: (text) => persistTurn(user.id, sessionId ?? "default", query, text),
     headers: {
       "x-retrieved": Buffer.from(JSON.stringify(retrieved)).toString("base64"),
       "x-intent": intent,
     },
   });
-}
+});
