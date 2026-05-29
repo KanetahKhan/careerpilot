@@ -106,8 +106,8 @@ export function Sidebar() {
                 "group flex items-center gap-3 rounded-full px-4 py-2.5 text-sm font-medium transition-all duration-150",
                 collapsed ? "justify-center" : "",
                 active
-                  ? "bg-primary/12 text-primary font-semibold shadow-[0_8px_20px_-10px_rgba(2,132,199,0.45)]"
-                  : "text-muted-foreground hover:bg-primary/5 hover:text-foreground"
+                  ? "bg-sky-200/90 text-primary font-semibold shadow-[0_8px_20px_-12px_rgba(2,132,199,0.4)]"
+                  : "text-muted-foreground hover:bg-sky-100/60 hover:text-foreground"
               )}
             >
               <item.icon

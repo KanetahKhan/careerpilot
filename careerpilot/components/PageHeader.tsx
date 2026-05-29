@@ -17,7 +17,7 @@ type Props = {
  */
 export function PageHeader({ title, eyebrow, subtitle, icon: Icon, children }: Props) {
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-primary/10 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-6 shadow-[0_20px_45px_-20px_rgba(2,132,199,0.25)] sm:p-8">
+    <div className="relative overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-100/70 via-sky-50/30 to-transparent p-6 shadow-[0_16px_38px_-26px_rgba(2,132,199,0.18)] sm:p-8">
       {Icon && (
         <Icon
           aria-hidden="true"
@@ -35,12 +35,12 @@ export function PageHeader({ title, eyebrow, subtitle, icon: Icon, children }: P
           )}
           <div>
             {eyebrow && (
-              <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-primary/70">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary/60" />
+              <p className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-primary/80">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary/70" />
                 {eyebrow}
               </p>
             )}
-            <h1 className="mt-1 font-display text-3xl font-bold text-primary sm:text-4xl">{title}</h1>
+            <h1 className="mt-2 font-display text-3xl font-bold text-primary sm:text-4xl">{title}</h1>
             {subtitle && <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">{subtitle}</p>}
           </div>
         </div>
