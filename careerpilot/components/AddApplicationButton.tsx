@@ -3,7 +3,14 @@
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
 
-export function AddApplicationButton({ onAdd }: { onAdd: (app: any) => void }) {
+export function AddApplicationButton({
+  onAdd,
+  variant = "primary",
+}: {
+  onAdd: (app: any) => void;
+  /** "onColor" renders a white trigger for use on a colored/gradient surface. */
+  variant?: "primary" | "onColor";
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -38,7 +45,11 @@ export function AddApplicationButton({ onAdd }: { onAdd: (app: any) => void }) {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+        className={
+          variant === "onColor"
+            ? "inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-primary shadow-sm transition-colors hover:bg-white/90"
+            : "inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        }
       >
         <Plus size={16} /> Add Application
       </button>

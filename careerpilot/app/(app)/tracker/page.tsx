@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from "recharts";
-import { Plus } from "lucide-react";
+import { Plus, Briefcase, BarChart3 } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
+import { useAuth } from "@/components/AuthProvider";
 import { AddApplicationButton } from "@/components/AddApplicationButton";
 import { Calendar } from "@/components/Calendar";
 import { Nudges } from "@/components/Nudges";
@@ -40,6 +41,15 @@ const COLUMNS: { id: string; label: string }[] = [
 const BAR_COLORS = ["#5AA9E6", "#FFB23E", "#3DD9A0", "#a78bfa"];
 
 export default function TrackerPage() {
+  const { user } = useAuth();
+  const rawName = (
+    (user?.user_metadata?.full_name as string | undefined) ||
+    user?.email?.split("@")[0] ||
+    "there"
+  ).trim();
+  const firstName = rawName.split(/\s+/)[0];
+  const greetName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+
   const [apps, setApps] = useState<Application[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -144,19 +154,36 @@ export default function TrackerPage() {
   return (
     <FadeIn>
     <div className="space-y-6 py-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="label mb-2">Pillar 4 · Productivity & Progress</p>
-          <h1 className="font-display text-3xl font-bold">Your application command center.</h1>
+      {/* gradient welcome banner */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-violet-500 to-fuchsia-500 p-6 text-white shadow-lg sm:p-8">
+        <div className="pointer-events-none absolute -right-10 -top-12 h-44 w-44 rounded-full bg-white/15 blur-2xl" />
+        <div className="pointer-events-none absolute -bottom-16 right-32 h-36 w-36 rounded-full bg-white/10 blur-3xl" />
+        <div className="relative flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/70">
+              Pillar 4 · Productivity &amp; Progress
+            </p>
+            <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">
+              Welcome back, {greetName}
+            </h1>
+            <p className="mt-1.5 text-sm text-white/80">
+              Here is your job-search snapshot — keep the momentum going.
+            </p>
+          </div>
+          <AddApplicationButton variant="onColor" onAdd={(app) => setApps((prev) => [...prev, app])} />
         </div>
-        <AddApplicationButton onAdd={(app) => setApps((prev) => [...prev, app])} />
       </div>
 
       {/* dashboard strip */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="panel p-5">
-          <p className="label">Applications</p>
-          <p className="mt-1 font-display text-4xl font-bold text-primary">{apps.length}</p>
+          <div className="flex items-center gap-3">
+            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-sky-400/15 text-sky-500 dark:text-sky-400">
+              <Briefcase size={18} />
+            </span>
+            <p className="label">Applications</p>
+          </div>
+          <p className="mt-2 font-display text-4xl font-bold text-primary">{apps.length}</p>
         </div>
         <div className="panel flex items-center gap-4 p-5">
           <ProgressRing
@@ -193,7 +220,12 @@ export default function TrackerPage() {
           </div>
         </div>
         <div className="panel p-3">
-          <p className="label px-2">Pipeline</p>
+          <div className="flex items-center gap-2 px-2 pt-1">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-amber-400/15 text-amber-500 dark:text-amber-400">
+              <BarChart3 size={16} />
+            </span>
+            <p className="label">Pipeline</p>
+          </div>
           <ResponsiveContainer width="100%" height={70}>
             <BarChart data={stats}>
               <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} axisLine={false} tickLine={false} />
