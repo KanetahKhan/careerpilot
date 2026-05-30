@@ -54,6 +54,8 @@ export async function POST(req: NextRequest) {
       benchmarkSkills: benchmark.skills,
       have,
       missing,
+      source: benchmark.source,
+      soc: benchmark.soc,
     });
   } catch (e: any) {
     if (isRateLimitError(e)) {
