@@ -32,20 +32,24 @@ export default function ProfilePage() {
   const [exportErr, setExportErr] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/cv/profile")
-      .then((r) => r.json())
-      .then((j) => setProfile(j))
-      .catch(() => setProfile(null))
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    fetch("/api/cv/build", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => {
-        if (j && typeof j === "object" && "fullName" in j) setBuilderCv(j as BuilderCv);
-      })
-      .catch(() => {});
+    let cancelled = false;
+    (async () => {
+      const [profileRes, buildRes] = await Promise.all([
+        fetch("/api/cv/profile"),
+        fetch("/api/cv/build", { cache: "no-store" }),
+      ]);
+      if (cancelled) return;
+      const profileJson = await profileRes.json();
+      setProfile(profileJson);
+      if (buildRes.ok) {
+        const buildJson = await buildRes.json();
+        if (buildJson && typeof buildJson === "object" && "fullName" in buildJson) {
+          setBuilderCv(buildJson as BuilderCv);
+        }
+      }
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   const hasCv = profile?.totalChunks && profile.totalChunks > 0;

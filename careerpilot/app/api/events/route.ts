@@ -14,9 +14,12 @@ const CreateSchema = z.object({
   related_application_id: z.string().nullish(),
 });
 
-export const GET = route(async () => {
+export const GET = route(async (req: Request) => {
   const user = await requireUser();
-  const { data, error } = await listEvents(user.id);
+  const url = new URL(req.url);
+  const from = url.searchParams.get("from") ?? undefined;
+  const to = url.searchParams.get("to") ?? undefined;
+  const { data, error } = await listEvents(user.id, from, to);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ events: data });
 });

@@ -58,7 +58,7 @@ export default function AssistantPage() {
   const loadSession = useCallback(async (sessionId: string) => {
     try {
       const res = await fetch(
-        `/api/chat/history?sessionId=${encodeURIComponent(sessionId)}`,
+        `/api/chat/history?sessionId=${encodeURIComponent(sessionId)}&limit=50`,
         { cache: "no-store" }
       );
       const json = await res.json();
@@ -138,30 +138,37 @@ function Chat({
   const [intentsMap, setIntentsMap] = useState<Record<string, string>>({});
   const pendingCitations = useRef<RetrievedChunk[] | null>(null);
   const pendingIntent = useRef<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const fetchRef = useCallback(async (input: URL | RequestInfo, init?: RequestInit) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    const response = await fetch(input, { ...init, signal: controller.signal });
+    const retrievedHeader = response.headers.get("x-retrieved");
+    if (retrievedHeader) {
+      try {
+        const decoded = atob(retrievedHeader);
+        const chunks: RetrievedChunk[] = JSON.parse(decoded);
+        pendingCitations.current = chunks;
+      } catch {
+        pendingCitations.current = null;
+      }
+    }
+    const intentHeader = response.headers.get("x-intent");
+    if (intentHeader) {
+      setIntent(intentHeader);
+      pendingIntent.current = intentHeader;
+    }
+    return response;
+  }, []);
 
   const { messages, input, handleInputChange, handleSubmit, append, isLoading } = useChat({
     api: "/api/chat",
     initialMessages,
     body: { sessionId },
-    fetch: async (url, options) => {
-      const response = await fetch(url, options);
-      const retrievedHeader = response.headers.get("x-retrieved");
-      if (retrievedHeader) {
-        try {
-          const decoded = atob(retrievedHeader);
-          const chunks: RetrievedChunk[] = JSON.parse(decoded);
-          pendingCitations.current = chunks;
-        } catch {
-          pendingCitations.current = null;
-        }
-      }
-      const intentHeader = response.headers.get("x-intent");
-      if (intentHeader) {
-        setIntent(intentHeader);
-        pendingIntent.current = intentHeader;
-      }
-      return response;
-    },
+    fetch: fetchRef,
     onFinish: (message) => {
       if (message.role === "assistant") {
         if (pendingCitations.current) {

@@ -11,33 +11,35 @@ export type NewApplication = {
   status?: ApplicationStatus | string;
 };
 
+const APP_COLS = "id, role, company, location, fit_score, status, link, created_at";
+const GOAL_COLS = "id, title, due_date, done";
+const EVENT_COLS = "id, title, event_date, type";
+const NOTIF_COLS = "id, message, type, read, created_at, action";
+
 export async function listApplications(userId: string) {
   const supabase = createAdminClient();
   return supabase
     .from("applications")
-    .select("*")
+    .select(APP_COLS)
     .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(100);
 }
 
 export async function createApplication(userId: string, input: NewApplication) {
   const supabase = createAdminClient();
 
-  // Idempotency: a given role+company is one application for this user. If it
-  // already exists (e.g. Track then 1-click Apply, or a double-click), return
-  // the existing row instead of inserting a duplicate. Compared case-insensitively
-  // on the trimmed role/company in JS — a user has few applications, and this
-  // avoids LIKE-wildcard pitfalls from `%`/`_` inside a role title.
   const role = input.role.trim();
   const company = input.company.trim();
-  const key = (s: string) => s.trim().toLowerCase();
-  const { data: rows } = await supabase
+
+  // Check for existing application via DB constraint — fast targeted query.
+  const { data: existing } = await supabase
     .from("applications")
-    .select("*")
-    .eq("user_id", userId);
-  const existing = (rows ?? []).find(
-    (r) => key(r.role) === key(role) && key(r.company) === key(company)
-  );
+    .select("id, role, company, location, fit_score, link, status, created_at")
+    .eq("user_id", userId)
+    .eq("role", role)
+    .eq("company", company)
+    .maybeSingle();
   if (existing) return { data: existing, error: null };
 
   return supabase
@@ -51,7 +53,7 @@ export async function createApplication(userId: string, input: NewApplication) {
       link: input.link ?? null,
       status: input.status ?? "applied",
     })
-    .select("*")
+    .select("id, role, company, location, fit_score, link, status, created_at")
     .single();
 }
 
@@ -62,7 +64,7 @@ export async function updateApplicationStatus(id: string, userId: string, status
     .update({ status, updated_at: new Date().toISOString() })
     .eq("id", id)
     .eq("user_id", userId)
-    .select("*")
+    .select(APP_COLS)
     .single();
 }
 
@@ -70,7 +72,7 @@ export async function listGoals(userId: string) {
   const supabase = createAdminClient();
   return supabase
     .from("goals")
-    .select("*")
+    .select(GOAL_COLS)
     .eq("user_id", userId)
     .order("due_date", { ascending: true });
 }
@@ -80,7 +82,7 @@ export async function createGoal(userId: string, title: string, dueDate?: string
   return supabase
     .from("goals")
     .insert({ user_id: userId, title, due_date: dueDate ?? null })
-    .select("*")
+    .select(GOAL_COLS)
     .single();
 }
 
@@ -91,7 +93,7 @@ export async function setGoalDone(id: string, userId: string, done: boolean) {
     .update({ done })
     .eq("id", id)
     .eq("user_id", userId)
-    .select("*")
+    .select(GOAL_COLS)
     .single();
 }
 
@@ -106,13 +108,15 @@ export type NewEvent = {
   related_application_id?: string | null;
 };
 
-export async function listEvents(userId: string) {
+export async function listEvents(userId: string, startDate?: string, endDate?: string) {
   const supabase = createAdminClient();
-  return supabase
+  let query = supabase
     .from("events")
-    .select("*")
-    .eq("user_id", userId)
-    .order("event_date", { ascending: true });
+    .select(EVENT_COLS)
+    .eq("user_id", userId);
+  if (startDate) query = query.gte("event_date", startDate);
+  if (endDate) query = query.lte("event_date", endDate);
+  return query.order("event_date", { ascending: true });
 }
 
 export async function createEvent(userId: string, input: NewEvent) {
@@ -127,7 +131,7 @@ export async function createEvent(userId: string, input: NewEvent) {
       related_goal_id: input.related_goal_id ?? null,
       related_application_id: input.related_application_id ?? null,
     })
-    .select("*")
+    .select(EVENT_COLS)
     .single();
 }
 
@@ -138,7 +142,7 @@ export async function deleteEvent(id: string, userId: string) {
     .delete()
     .eq("id", id)
     .eq("user_id", userId)
-    .select("*")
+    .select(EVENT_COLS)
     .single();
 }
 
@@ -149,9 +153,10 @@ export async function listNotifications(userId: string) {
   const supabase = createAdminClient();
   return supabase
     .from("notifications")
-    .select("*")
+    .select(NOTIF_COLS)
     .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(50);
 }
 
 /** Bulk-insert generated nudges; returns the inserted rows (with ids). */
@@ -166,7 +171,7 @@ export async function insertNotifications(
     type: n.type,
     action: n.action ?? null,
   }));
-  return supabase.from("notifications").insert(rows).select("*");
+  return supabase.from("notifications").insert(rows).select(NOTIF_COLS);
 }
 
 export async function markNotificationRead(id: string, userId: string, read = true) {
@@ -176,6 +181,6 @@ export async function markNotificationRead(id: string, userId: string, read = tr
     .update({ read })
     .eq("id", id)
     .eq("user_id", userId)
-    .select("*")
+    .select(NOTIF_COLS)
     .single();
 }

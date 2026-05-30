@@ -20,6 +20,7 @@
 export {
   buildGroundedContext,
   assistantSystemPrompt,
+  SYSTEM_PROMPT,
   persistTurn,
   type RetrievedMeta,
 } from "./assistant";

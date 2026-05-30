@@ -11,7 +11,7 @@ import { NextResponse } from "next/server";
  *
  * Returns: { status: "ok", time, uptime, version }
  */
-export const runtime = "nodejs";
+export const runtime = "edge";
 export const dynamic = "force-dynamic"; // never cache a healthcheck
 
 export async function GET() {

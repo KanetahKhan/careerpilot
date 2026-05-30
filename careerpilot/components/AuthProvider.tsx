@@ -40,8 +40,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
+    // Use getSession() instead of getUser() to avoid a network round-trip.
+    // The middleware already verified the session server-side and set cookies.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
       setLoading(false);
     });
 

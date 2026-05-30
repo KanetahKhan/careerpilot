@@ -31,7 +31,7 @@ export function FunnelAnalytics() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/analytics/funnel", { cache: "no-store" })
+    fetch("/api/analytics/funnel")
       .then(async (r) => {
         const j = await r.json();
         if (!r.ok) throw new Error(j.error ?? "Failed to load analytics");

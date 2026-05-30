@@ -138,15 +138,24 @@ export function streamTextWithFallback(opts: {
   messages: CoreMessage[];
   onFinish?: (text: string) => void | Promise<void>;
   headers?: Record<string, string>;
+  abortSignal?: AbortSignal;
 }): Response {
-  const { system, messages, onFinish, headers } = opts;
+  const { system, messages, onFinish, headers, abortSignal } = opts;
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      let closed = false;
+      // Cleanup on client disconnect — stops token generation server-side
+      if (abortSignal?.aborted) { closed = true; controller.close(); return; }
+      const onAbort = () => { closed = true; try { controller.close(); } catch { /* already closed */ } };
+      abortSignal?.addEventListener("abort", onAbort, { once: true });
+
       let full = "";
-      const writeText = (delta: string) =>
-        controller.enqueue(encoder.encode(formatDataStreamPart("text", delta)));
+      const writeText = (delta: string) => {
+        if (closed) return;
+        try { controller.enqueue(encoder.encode(formatDataStreamPart("text", delta))); } catch { /* closed */ }
+      };
 
       // Stream from one model; returns whether it emitted any token + any error.
       const streamFrom = async (
@@ -155,7 +164,7 @@ export function streamTextWithFallback(opts: {
         let started = false;
         let error: unknown = null;
         try {
-          const result = streamText({ model, system, messages });
+          const result = streamText({ model, system, messages, abortSignal });
           for await (const part of result.fullStream) {
             if (part.type === "text-delta") {
               started = true;
@@ -189,17 +198,19 @@ export function streamTextWithFallback(opts: {
       }
       // If primary.started but later errored, we keep the partial answer.
 
-      controller.enqueue(
-        encoder.encode(
-          formatDataStreamPart("finish_message", {
-            finishReason: "stop",
-            usage: { promptTokens: 0, completionTokens: 0 },
-          })
-        )
-      );
-      controller.close();
+      if (!closed) {
+        controller.enqueue(
+          encoder.encode(
+            formatDataStreamPart("finish_message", {
+              finishReason: "stop",
+              usage: { promptTokens: 0, completionTokens: 0 },
+            })
+          )
+        );
+        controller.close();
+      }
 
-      if (onFinish) {
+      if (onFinish && !abortSignal?.aborted) {
         try {
           await onFinish(full);
         } catch {

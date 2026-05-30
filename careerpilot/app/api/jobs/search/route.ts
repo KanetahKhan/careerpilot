@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { unstable_cache } from "next/cache";
 import { tool } from "ai";
 import { z } from "zod";
 import { generateTextWithFallback, AI_BUSY_MESSAGE, isRateLimitError } from "@/lib/ai";
@@ -6,6 +7,13 @@ import { searchJobs, webSearchJobs, tavilyEnabled, type Job } from "@/lib/servic
 import { computeFitScore, loadCvContext } from "@/lib/services/fit-score";
 import { requireUser } from "@/lib/auth";
 import { jsonError } from "@/lib/api";
+
+/** Stale-while-revalidate cache for job searches — 1-hour TTL. */
+const cachedSearch = unstable_cache(
+  async (query: string, location: string) => searchJobs(query, location),
+  ["search-jobs"],
+  { revalidate: 3600, tags: ["jobs"] }
+);
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -60,7 +68,7 @@ async function huntJobs(
           kind: "search",
           text: `Searching job boards for "${query}"${location ? ` in ${location}` : ""}…`,
         });
-        const jobs = await searchJobs(query, location ?? "");
+        const jobs = await cachedSearch(query, location ?? "");
         emit({ kind: "found", text: `Found ${plural(jobs.length, "posting")}.` });
         return jobs.map((j) => ({
           id: j.id,
@@ -151,7 +159,7 @@ ${webTool ? "4" : "3"}. Stop once every job/lead has been scored, then briefly s
   // Fallback 1: direct JSearch (cache → live → seed) without the agent.
   if (scored.length === 0) {
     emit({ kind: "note", text: "Agent returned nothing — running a direct search." });
-    const jobs = await searchJobs(query);
+    const jobs = await cachedSearch(query, "");
     emit({ kind: "found", text: `Found ${plural(jobs.length, "posting")}.` });
     for (const j of jobs.slice(0, 4)) {
       const fit = await computeFitScore(userId, j.description, j.location, cvContext);
@@ -217,11 +225,18 @@ export async function POST(req: Request) {
   }
 
   // Streaming NDJSON path — the live agent-reasoning panel in /hunter.
+  const reqSignal = req.signal;
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const send = (obj: unknown) =>
-        controller.enqueue(encoder.encode(JSON.stringify(obj) + "\n"));
+      if (reqSignal.aborted) { controller.close(); return; }
+      const onAbort = () => { try { controller.close(); } catch { /* already closed */ } };
+      reqSignal.addEventListener("abort", onAbort, { once: true });
+      let closed = false;
+      const send = (obj: unknown) => {
+        if (closed || reqSignal.aborted) return;
+        try { controller.enqueue(encoder.encode(JSON.stringify(obj) + "\n")); } catch { /* closed */ }
+      };
       try {
         const { jobs, summary } = await huntJobs(user.id, query, (e) =>
           send({ t: "trace", kind: e.kind, text: e.text })
@@ -231,7 +246,9 @@ export async function POST(req: Request) {
         const error = isRateLimitError(e) ? AI_BUSY_MESSAGE : "Search failed — please try again.";
         send({ t: "error", error });
       } finally {
-        controller.close();
+        closed = true;
+        try { controller.close(); } catch { /* already closed */ }
+        reqSignal.removeEventListener("abort", onAbort);
       }
     },
   });

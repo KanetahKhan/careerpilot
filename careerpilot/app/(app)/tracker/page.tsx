@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { DraggableProvided, DraggableStateSnapshot } from "@hello-pangea/dnd";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from "recharts";
 import { Plus } from "lucide-react";
@@ -38,42 +39,81 @@ const COLUMNS: { id: string; label: string }[] = [
 
 const BAR_COLORS = ["#5AA9E6", "#FFB23E", "#3DD9A0", "#a78bfa"];
 
+const KanbanCard = memo(function KanbanCard({
+  provided,
+  snapshot,
+  app,
+}: {
+  provided: DraggableProvided;
+  snapshot: DraggableStateSnapshot;
+  app: Application;
+}) {
+  return (
+    <div
+      ref={provided.innerRef}
+      {...provided.draggableProps}
+      {...provided.dragHandleProps}
+      className={cn(
+        "rounded-md border border-border bg-card p-3 shadow-sm transition-all",
+        snapshot.isDragging && "shadow-lg ring-2 ring-primary/20 rotate-1"
+      )}
+    >
+      <div className="flex items-start justify-between mb-1">
+        <h3 className="font-medium text-sm text-foreground line-clamp-1">
+          {app.role}
+        </h3>
+        {app.fit_score !== undefined && app.fit_score !== null && (
+          <span
+            className={cn(
+              "text-xs px-1.5 py-0.5 rounded font-medium",
+              app.fit_score >= 75
+                ? "bg-emerald-400/10 text-emerald-400"
+                : app.fit_score >= 55
+                ? "bg-amber-400/10 text-amber-400"
+                : "bg-rose-400/10 text-rose-400"
+            )}
+          >
+            {app.fit_score}%
+          </span>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground">{app.company}</p>
+      {app.location && (
+        <p className="text-xs text-muted-foreground mt-0.5">{app.location}</p>
+      )}
+    </div>
+  );
+});
+
 export default function TrackerPage() {
   const [apps, setApps] = useState<Application[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [view, setView] = useState<"board" | "calendar">("board");
   const [roadmapStat, setRoadmapStat] = useState<{ percent: number; done: number; total: number } | null>(null);
 
   async function load() {
-    const [a, g] = await Promise.all([
+    const [a, g, r] = await Promise.allSettled([
       fetch("/api/applications").then((r) => r.json()),
       fetch("/api/goals").then((r) => r.json()),
+      fetch("/api/roadmap/progress", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)),
     ]);
-    setApps(a.applications ?? []);
-    setGoals(g.goals ?? []);
+
+    if (a.status === "fulfilled") setApps(a.value.applications ?? []);
+    if (g.status === "fulfilled") setGoals(g.value.goals ?? []);
+    if (r.status === "fulfilled" && r.value?.roadmap && r.value?.progress) {
+      setRoadmapStat(r.value.progress);
+    } else if (r.status === "rejected" || (r.status === "fulfilled" && !r.value?.roadmap)) {
+      setRoadmapStat({ percent: 0, done: 0, total: 0 });
+    }
+
+    if (a.status === "rejected") setLoadError("Failed to load applications");
     setIsLoading(false);
   }
   useEffect(() => { load(); }, []);
 
-  // Active roadmap progress for the dashboard stat. Single source of truth:
-  // the roadmaps row — we don't duplicate completion onto goals.
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/roadmap/progress", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => {
-        if (cancelled || !j) return;
-        if (j.roadmap && j.progress) setRoadmapStat(j.progress);
-        else setRoadmapStat({ percent: 0, done: 0, total: 0 });
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const onDragEnd = async (result: DropResult) => {
+  const onDragEnd = useCallback(async (result: DropResult) => {
     if (!result.destination) return;
 
     const sourceCol = result.source.droppableId;
@@ -82,18 +122,29 @@ export default function TrackerPage() {
 
     if (sourceCol === destCol) return;
 
+    // Optimistic update
     setApps((prev) =>
       prev.map((app) =>
         app.id === appId ? { ...app, status: destCol } : app
       )
     );
 
-    await fetch("/api/applications", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: appId, status: destCol }),
-    });
-  };
+    try {
+      const res = await fetch("/api/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: appId, status: destCol }),
+      });
+      if (!res.ok) throw new Error("PATCH failed");
+    } catch {
+      // Roll back on failure
+      setApps((prev) =>
+        prev.map((app) =>
+          app.id === appId ? { ...app, status: sourceCol } : app
+        )
+      );
+    }
+  }, []);
 
   const [goalTitle, setGoalTitle] = useState("");
   const [goalDue, setGoalDue] = useState("");
@@ -131,18 +182,23 @@ export default function TrackerPage() {
     }
   }
 
-  const getAppsByStatus = (status: string) =>
-    apps.filter((app) => app.status === status);
+  const getAppsByStatus = useCallback(
+    (status: string) => apps.filter((app) => app.status === status),
+    [apps]
+  );
 
-  const stats = COLUMNS.map((c) => ({
-    name: c.label,
-    value: getAppsByStatus(c.id).length,
-  }));
-  const doneGoals = goals.filter((g) => g.done).length;
+  const stats = useMemo(
+    () => COLUMNS.map((c) => ({ name: c.label, value: getAppsByStatus(c.id).length })),
+    [getAppsByStatus]
+  );
+  const doneGoals = useMemo(() => goals.filter((g) => g.done).length, [goals]);
 
   return (
     <FadeIn>
     <div className="space-y-6 py-4">
+      {loadError && (
+        <p className="text-sm text-amber-400">⚠ {loadError} — data may be incomplete</p>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <p className="label mb-2">Pillar 4 · Productivity & Progress</p>
@@ -256,39 +312,11 @@ export default function TrackerPage() {
                     {getAppsByStatus(col.id).map((app, index) => (
                       <Draggable key={app.id} draggableId={app.id} index={index}>
                         {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className={cn(
-                              "rounded-md border border-border bg-card p-3 shadow-sm transition-all",
-                              snapshot.isDragging && "shadow-lg ring-2 ring-primary/20 rotate-1"
-                            )}
-                          >
-                            <div className="flex items-start justify-between mb-1">
-                              <h3 className="font-medium text-sm text-foreground line-clamp-1">
-                                {app.role}
-                              </h3>
-                              {app.fit_score !== undefined && app.fit_score !== null && (
-                                <span
-                                  className={cn(
-                                    "text-xs px-1.5 py-0.5 rounded font-medium",
-                                    app.fit_score >= 75
-                                      ? "bg-emerald-400/10 text-emerald-400"
-                                      : app.fit_score >= 55
-                                      ? "bg-amber-400/10 text-amber-400"
-                                      : "bg-rose-400/10 text-rose-400"
-                                  )}
-                                >
-                                  {app.fit_score}%
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs text-muted-foreground">{app.company}</p>
-                            {app.location && (
-                              <p className="text-xs text-muted-foreground mt-0.5">{app.location}</p>
-                            )}
-                          </div>
+                          <KanbanCard
+                            provided={provided}
+                            snapshot={snapshot}
+                            app={app}
+                          />
                         )}
                       </Draggable>
                     ))}

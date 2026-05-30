@@ -7,7 +7,7 @@ import { retrieveChunks, formatContext } from "@/lib/services/profile";
 import { persistTurn } from "@/lib/services/assistant";
 
 export const runtime = "nodejs";
-export const maxDuration = 120;
+export const maxDuration = 60;
 
 const BodySchema = z.object({
   sessionId: z.string().min(1),
@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
       system,
       messages: convo,
       onFinish: (text) => persistTurn(user.id, sessionId, userText, text),
+      abortSignal: req.signal,
     });
   } catch (e: any) {
     if (isRateLimitError(e)) {

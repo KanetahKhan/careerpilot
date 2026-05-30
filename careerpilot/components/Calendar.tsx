@@ -64,7 +64,14 @@ export function Calendar({
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetch("/api/events")
+    // Only fetch events from 30 days ago to 90 days in future
+    const from = new Date(); from.setDate(from.getDate() - 30);
+    const to = new Date(); to.setDate(to.getDate() + 90);
+    const params = new URLSearchParams({
+      from: from.toISOString().slice(0, 10),
+      to: to.toISOString().slice(0, 10),
+    });
+    fetch(`/api/events?${params}`)
       .then((r) => r.json())
       .then((d) => setEvents(d.events ?? []))
       .catch(() => setEvents([]));

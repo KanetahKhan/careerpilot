@@ -88,8 +88,7 @@ export default function RoadmapPage() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function generate(g?: string) {
     const target = (g ?? goal).trim();

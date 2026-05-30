@@ -242,6 +242,14 @@ export function explainFit(
  */
 export async function loadCvContext(userId: string): Promise<CvContext> {
   const supabase = createAdminClient();
+
+  // Try to read the pre-computed centroid from cv_documents first (fast path).
+  const { data: doc } = await supabase
+    .from("cv_documents")
+    .select("centroid_embedding")
+    .eq("user_id", userId)
+    .maybeSingle();
+
   const { data: chunks } = await supabase
     .from("cv_chunks")
     .select("content, embedding")
@@ -253,8 +261,12 @@ export async function loadCvContext(userId: string): Promise<CvContext> {
     .filter(Boolean)
     .map((e: any) => (typeof e === "string" ? JSON.parse(e) : e));
 
+  // Use cached centroid if available; fall back to on-the-fly computation.
+  const precomputed = (doc as { centroid_embedding: number[] | null } | null)?.centroid_embedding;
+  const centroidVec = precomputed ?? centroid(vectors);
+
   const skills = new Set(await extractSkills(text, "candidate CV"));
-  return { text, centroid: centroid(vectors), skills, years: estimateExperienceYears(text) };
+  return { text, centroid: centroidVec, skills, years: estimateExperienceYears(text) };
 }
 
 /**

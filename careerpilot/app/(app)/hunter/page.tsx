@@ -6,6 +6,7 @@ import { FadeIn } from "@/components/FadeIn";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerContainer";
 import { FactorBars, fitScoreTextColor, type Fit } from "@/components/FitBreakdown";
 import { downloadCoverLetterDocx, printCoverLetter } from "@/lib/export/client";
+import { useDebounce } from "@/lib/hooks/useDebounce";
 
 type Job = {
   id: string; role: string; company: string; location: string;
@@ -53,7 +54,7 @@ export default function HunterPage() {
 function HunterInner() {
   const searchParams = useSearchParams();
   const initialQ = searchParams.get("q")?.trim();
-  const [query, setQuery] = useState(initialQ || "remote react frontend internship");
+  const [query, setQuery] = useState(initialQ || "");
   const [loading, setLoading] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [trace, setTrace] = useState<TraceEvent[]>([]);
@@ -69,26 +70,44 @@ function HunterInner() {
   const [runningId, setRunningId] = useState<number | null>(null);
   const [checkError, setCheckError] = useState<string | null>(null);
   const autoRanRef = useRef(false);
+  const runIdRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
 
   const run = useCallback(async (q: string) => {
+    // Abort previous in-flight search to prevent stale-result races
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const runId = ++runIdRef.current;
+
     setLoading(true);
-    setJobs([]);
     setTrace([]);
     setSummary(null);
     setRunError(null);
+
+    // Restore cached results instantly while revalidating
+    const cacheKey = `hunt:${q}`;
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached && !controller.signal.aborted) setJobs(JSON.parse(cached));
+    } catch { /* ignore */ }
+
     try {
       const res = await fetch("/api/jobs/search", {
+        signal: controller.signal,
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/x-ndjson" },
         body: JSON.stringify({ query: q }),
       });
 
-      // Non-streaming fallback (shouldn't normally happen, but stay robust).
       if (!res.body) {
         const json = await res.json();
-        setJobs(json.jobs ?? []);
-        setTrace((json.trace ?? []).map((text: string) => ({ kind: "note" as const, text })));
-        if (json.error) setRunError(json.error);
+        if (!controller.signal.aborted) {
+          setJobs(json.jobs ?? []);
+          setTrace((json.trace ?? []).map((text: string) => ({ kind: "note" as const, text })));
+          if (json.error) setRunError(json.error);
+        }
+        if (json.jobs && !controller.signal.aborted) try { sessionStorage.setItem(cacheKey, JSON.stringify(json.jobs)); } catch { /* ignore */ }
         return;
       }
 
@@ -98,6 +117,7 @@ function HunterInner() {
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
+        if (controller.signal.aborted) { reader.cancel(); break; }
         buf += decoder.decode(value, { stream: true });
         let nl: number;
         while ((nl = buf.indexOf("\n")) >= 0) {
@@ -105,27 +125,48 @@ function HunterInner() {
           buf = buf.slice(nl + 1);
           if (!line) continue;
           let evt: any;
-          try {
-            evt = JSON.parse(line);
-          } catch {
-            continue;
-          }
+          try { evt = JSON.parse(line); } catch { continue; }
+          if (controller.signal.aborted) break;
           if (evt.t === "trace") {
             setTrace((prev) => [...prev, { kind: evt.kind, text: evt.text }]);
           } else if (evt.t === "result") {
             setJobs(evt.jobs ?? []);
+            if (evt.jobs) try { sessionStorage.setItem(cacheKey, JSON.stringify(evt.jobs)); } catch { /* ignore */ }
             if (evt.summary) setSummary(evt.summary);
           } else if (evt.t === "error") {
             setRunError(evt.error ?? "Search failed — please try again.");
           }
         }
       }
-    } catch {
-      setRunError("Search failed — please try again.");
+    } catch (e: any) {
+      if (e?.name !== "AbortError") setRunError("Search failed — please try again.");
     } finally {
+      abortRef.current = null;
       setLoading(false);
     }
   }, []);
+
+  const debouncedQuery = useDebounce(query, 300);
+  const hasChanged = useRef(false);
+
+  // Mount-time cache restoration: show previous results instantly (runs once)
+  useEffect(() => {
+    if (!initialQ) return;
+    try {
+      const cached = sessionStorage.getItem(`hunt:${initialQ}`);
+      if (cached) setJobs(JSON.parse(cached));
+    } catch { /* ignore */ }
+  }, [initialQ]);
+
+  // Auto-search when debounced query settles (user paused typing, ≥ 2 chars).
+  useEffect(() => {
+    if (!hasChanged.current) {
+      hasChanged.current = true;
+      return;
+    }
+    if (debouncedQuery.length < 2) return;
+    run(debouncedQuery);
+  }, [debouncedQuery, run]);
 
   // Auto-run once on first mount when ?q= is supplied (e.g. arriving from a nudge).
   useEffect(() => {
@@ -245,13 +286,13 @@ function HunterInner() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && run(query)}
+          onKeyDown={(e) => e.key === "Enter" && query.trim() && run(query)}
           placeholder='e.g. "ML internships in Dhaka open this month"'
           className="flex-1 rounded-xl border border-border bg-background/60 px-4 py-3 text-foreground outline-none placeholder:text-muted-foreground focus:border-primary/60"
         />
         <button
-          onClick={() => run(query)}
-          disabled={loading}
+          onClick={() => query.trim() && run(query)}
+          disabled={loading || !query.trim()}
           aria-busy={loading || undefined}
           className="btn-primary disabled:opacity-50"
         >

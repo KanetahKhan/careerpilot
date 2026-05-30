@@ -6,7 +6,8 @@ import { PortfolioView } from "@/components/portfolio/PortfolioView";
 import type { PortfolioData } from "@/types/portfolio";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
+export const dynamicParams = true;
 
 /**
  * Public portfolio page (NO auth, NOT in the (app) group).
