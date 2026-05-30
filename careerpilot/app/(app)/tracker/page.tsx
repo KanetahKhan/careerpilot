@@ -208,23 +208,15 @@ export default function TrackerPage() {
   return (
     <FadeIn>
     <div className="space-y-6 py-4">
-<<<<<<< HEAD
       {loadError && (
         <p className="text-sm text-amber-400">⚠ {loadError} — data may be incomplete</p>
       )}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="label mb-2">Pillar 4 · Productivity & Progress</p>
-          <h1 className="font-display text-3xl font-bold">Your application command center.</h1>
-        </div>
-=======
       <PageHeader
         eyebrow="Pillar 4 · Productivity & Progress"
-        title={`Welcome back, ${greetName}`}
+        title="Your application command center."
         subtitle="Here is your job-search snapshot — keep the momentum going."
         icon={LayoutDashboard}
       >
->>>>>>> origin/design/aesthetic-refresh
         <AddApplicationButton onAdd={(app) => setApps((prev) => [...prev, app])} />
       </PageHeader>
 

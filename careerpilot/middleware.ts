@@ -34,6 +34,7 @@ export async function middleware(request: NextRequest) {
 
   // Protected routes: everything under /(app) except the landing page
   const isAppRoute =
+    pathname.startsWith("/dashboard") ||
     pathname.startsWith("/hunter") ||
     pathname.startsWith("/assistant") ||
     pathname.startsWith("/tracker") ||
@@ -60,7 +61,13 @@ export async function middleware(request: NextRequest) {
 
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = "/hunter";
+    url.pathname = "/dashboard";
+    return NextResponse.redirect(url);
+  }
+
+  if (user && isHome) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 
