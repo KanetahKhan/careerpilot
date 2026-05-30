@@ -4,6 +4,8 @@ import { useSearchParams } from "next/navigation";
 import { Brain, Search, ListChecks, Gauge, Globe, Info, Zap, Download, Printer, CalendarClock, CheckCircle2, type LucideIcon } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerContainer";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
 import { FactorBars, fitScoreTextColor, type Fit } from "@/components/FitBreakdown";
 import { downloadCoverLetterDocx, printCoverLetter } from "@/lib/export/client";
 import { useDebounce } from "@/lib/hooks/useDebounce";
@@ -277,10 +279,13 @@ function HunterInner() {
   return (
     <FadeIn>
     <div className="space-y-6 py-4">
-      <div>
-        <p className="label mb-2">Pillar 1 · Job Hunter Agent</p>
-        <h1 className="font-display text-3xl font-bold">Hunt jobs in plain English.</h1>
-      </div>
+      <PageHeader
+        eyebrow="Pillar 1 · Job Hunter Agent"
+        title="Hunt jobs in plain English."
+        subtitle="Describe the role you want — the agent searches, scores, and ranks each match against your CV."
+        icon={Search}
+        gradient="from-sky-500 via-sky-500 to-cyan-500"
+      />
 
       <div className="panel flex flex-col gap-3 p-4 sm:flex-row">
         <input
@@ -384,10 +389,20 @@ function HunterInner() {
         </div>
       )}
 
+      {!loading && jobs.length === 0 && trace.length === 0 && !runError && (
+        <EmptyState
+          icon={Search}
+          title="Let's find your next role."
+          description="Describe what you're looking for above — try “remote React internship” or “ML roles in Dhaka” — and the agent will search and score matches against your CV."
+          accent="text-sky-500"
+          iconBg="bg-sky-500/10"
+        />
+      )}
+
       <StaggerContainer className="grid gap-4 md:grid-cols-2">
         {jobs.map((j) => (
           <StaggerItem key={j.id}>
-          <div className="panel animate-fade-up p-5">
+          <div className="panel card-hover animate-fade-up p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <button

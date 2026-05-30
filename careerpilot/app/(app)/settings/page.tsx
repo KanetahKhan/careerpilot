@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import { useThemePreset } from "@/components/ThemePresetProvider";
-import { Moon, Sun, Palette, LogOut, User, Bell, Shield, Upload, Trash2 } from "lucide-react";
+import { Moon, Sun, Palette, LogOut, User, Bell, Shield, Upload, Trash2, Settings as SettingsIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/PageHeader";
 import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
@@ -172,10 +173,13 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-8 max-w-2xl">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-        <p className="text-muted-foreground">Manage your preferences and workspace</p>
-      </div>
+      <PageHeader
+        eyebrow="Workspace"
+        title="Settings"
+        subtitle="Manage your preferences and workspace."
+        icon={SettingsIcon}
+        gradient="from-slate-600 via-slate-600 to-slate-700"
+      />
 
       <section className="space-y-4">
         <div className="flex items-center gap-2 mb-4">

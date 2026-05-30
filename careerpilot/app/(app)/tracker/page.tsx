@@ -4,12 +4,15 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DraggableProvided, DraggableStateSnapshot } from "@hello-pangea/dnd";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from "recharts";
-import { Plus } from "lucide-react";
+import { Plus, Briefcase, BarChart3, LayoutDashboard } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
+import { useAuth } from "@/components/AuthProvider";
+import { PageHeader } from "@/components/PageHeader";
 import { AddApplicationButton } from "@/components/AddApplicationButton";
 import { Calendar } from "@/components/Calendar";
 import { Nudges } from "@/components/Nudges";
 import { FunnelAnalytics } from "@/components/FunnelAnalytics";
+import { ProgressRing } from "@/components/ProgressRing";
 import { cn } from "@/lib/utils";
 
 interface Application {
@@ -86,6 +89,15 @@ const KanbanCard = memo(function KanbanCard({
 });
 
 export default function TrackerPage() {
+  const { user } = useAuth();
+  const rawName = (
+    (user?.user_metadata?.full_name as string | undefined) ||
+    user?.email?.split("@")[0] ||
+    "there"
+  ).trim();
+  const firstName = rawName.split(/\s+/)[0];
+  const greetName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+
   const [apps, setApps] = useState<Application[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -196,6 +208,7 @@ export default function TrackerPage() {
   return (
     <FadeIn>
     <div className="space-y-6 py-4">
+<<<<<<< HEAD
       {loadError && (
         <p className="text-sm text-amber-400">⚠ {loadError} — data may be incomplete</p>
       )}
@@ -204,47 +217,69 @@ export default function TrackerPage() {
           <p className="label mb-2">Pillar 4 · Productivity & Progress</p>
           <h1 className="font-display text-3xl font-bold">Your application command center.</h1>
         </div>
+=======
+      <PageHeader
+        eyebrow="Pillar 4 · Productivity & Progress"
+        title={`Welcome back, ${greetName}`}
+        subtitle="Here is your job-search snapshot — keep the momentum going."
+        icon={LayoutDashboard}
+      >
+>>>>>>> origin/design/aesthetic-refresh
         <AddApplicationButton onAdd={(app) => setApps((prev) => [...prev, app])} />
-      </div>
+      </PageHeader>
 
       {/* dashboard strip */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="panel p-5">
-          <p className="label">Applications</p>
-          <p className="mt-1 font-display text-4xl font-bold text-primary">{apps.length}</p>
+          <div className="flex items-center gap-3">
+            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-sky-400/15 text-sky-500 dark:text-sky-400">
+              <Briefcase size={18} />
+            </span>
+            <p className="label">Applications</p>
+          </div>
+          <p className="mt-2 font-display text-4xl font-bold text-primary">{apps.length}</p>
         </div>
-        <div className="panel p-5">
-          <p className="label">Goals done</p>
-          <p className="mt-1 font-display text-4xl font-bold text-emerald-400">
-            {doneGoals}<span className="text-muted-foreground text-2xl">/{goals.length}</span>
-          </p>
+        <div className="panel flex items-center gap-4 p-5">
+          <ProgressRing
+            value={goals.length ? (doneGoals / goals.length) * 100 : 0}
+            color="hsl(160 84% 45%)"
+            center={goals.length ? `${doneGoals}/${goals.length}` : "—"}
+          />
+          <div>
+            <p className="label">Goals done</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {goals.length ? `${doneGoals} of ${goals.length} complete` : "No goals yet"}
+            </p>
+          </div>
         </div>
-        <div className="panel p-5">
-          <p className="label">Roadmap %</p>
-          {roadmapStat === null ? (
-            <p className="mt-1 font-display text-4xl font-bold text-muted-foreground animate-pulse-glow">…</p>
-          ) : roadmapStat.total === 0 ? (
-            <>
-              <p className="mt-1 font-display text-4xl font-bold text-muted-foreground">—</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                <a href="/roadmap" className="hover:text-foreground underline-offset-4 hover:underline">
-                  Build a roadmap →
-                </a>
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="mt-1 font-display text-4xl font-bold text-sky-400">
-                {roadmapStat.percent}%
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
+        <div className="panel flex items-center gap-4 p-5">
+          <ProgressRing
+            value={roadmapStat?.percent ?? 0}
+            color="hsl(199 89% 58%)"
+            center={roadmapStat === null ? "…" : roadmapStat.total === 0 ? "—" : `${roadmapStat.percent}%`}
+          />
+          <div>
+            <p className="label">Roadmap</p>
+            {roadmapStat === null ? (
+              <p className="mt-1 text-sm text-muted-foreground">Loading…</p>
+            ) : roadmapStat.total === 0 ? (
+              <a href="/roadmap" className="mt-1 inline-block text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+                Build a roadmap →
+              </a>
+            ) : (
+              <p className="mt-1 text-sm text-muted-foreground">
                 {roadmapStat.done}/{roadmapStat.total} actions done
               </p>
-            </>
-          )}
+            )}
+          </div>
         </div>
         <div className="panel p-3">
-          <p className="label px-2">Pipeline</p>
+          <div className="flex items-center gap-2 px-2 pt-1">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-amber-400/15 text-amber-500 dark:text-amber-400">
+              <BarChart3 size={16} />
+            </span>
+            <p className="label">Pipeline</p>
+          </div>
           <ResponsiveContainer width="100%" height={70}>
             <BarChart data={stats}>
               <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} axisLine={false} tickLine={false} />

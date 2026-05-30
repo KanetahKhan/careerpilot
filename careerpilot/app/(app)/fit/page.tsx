@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Sparkles, Copy, Check, AlertTriangle } from "lucide-react";
+import { Sparkles, Copy, Check, AlertTriangle, Target } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
+import { PageHeader } from "@/components/PageHeader";
 import {
   FactorBars,
   SkillChips,
@@ -95,15 +96,13 @@ export default function FitPage() {
   return (
     <FadeIn>
       <div className="space-y-6 py-4">
-        <div>
-          <p className="label mb-2">Score any job</p>
-          <h1 className="font-display text-3xl font-bold">Drop a JD. Get a real fit score.</h1>
-          <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-            The five factors are <span className="text-primary">computed in TypeScript</span> from your
-            CV — semantic similarity, skill overlap, seniority, education, location. The LLM only
-            extracts skill lists and writes the tailoring prose, strictly grounded in your CV.
-          </p>
-        </div>
+        <PageHeader
+          eyebrow="Score any job"
+          title="Drop a JD. Get a real fit score."
+          subtitle="Five factors computed in TypeScript from your CV — semantic, skills, seniority, education, location. The LLM only extracts skill lists, strictly grounded in your CV."
+          icon={Target}
+          gradient="from-violet-500 via-violet-500 to-purple-500"
+        />
 
         <div className="panel space-y-3 p-4">
           <textarea

@@ -20,20 +20,21 @@ import {
   Target,
   Gauge,
   Mic,
+  Rocket,
 } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/hunter", label: "Job Hunter", icon: Search, badge: null as null },
-  { href: "/fit", label: "Score a JD", icon: Target, badge: null as null },
-  { href: "/skill-gap", label: "Skill Gap", icon: Gauge, badge: null as null },
-  { href: "/interview", label: "Mock Interview", icon: Mic, badge: null as null },
-  { href: "/assistant", label: "AI Coach", icon: Sparkles, badge: null as null },
-  { href: "/tracker", label: "Tracker", icon: Kanban, badge: "apps" as const },
-  { href: "/roadmap", label: "Roadmap", icon: Route, badge: "goals" as const },
-  { href: "/profile", label: "My CV", icon: FileText, badge: "chunks" as const },
-  { href: "/settings", label: "Settings", icon: Settings, badge: null as null },
+  { href: "/hunter", label: "Job Hunter", icon: Search, badge: null as null, accent: "text-sky-500" },
+  { href: "/fit", label: "Score a JD", icon: Target, badge: null as null, accent: "text-violet-500" },
+  { href: "/skill-gap", label: "Skill Gap", icon: Gauge, badge: null as null, accent: "text-amber-500" },
+  { href: "/interview", label: "Mock Interview", icon: Mic, badge: null as null, accent: "text-rose-500" },
+  { href: "/assistant", label: "AI Coach", icon: Sparkles, badge: null as null, accent: "text-fuchsia-500" },
+  { href: "/tracker", label: "Tracker", icon: Kanban, badge: "apps" as const, accent: "text-primary" },
+  { href: "/roadmap", label: "Roadmap", icon: Route, badge: "goals" as const, accent: "text-emerald-500" },
+  { href: "/profile", label: "My CV", icon: FileText, badge: "chunks" as const, accent: "text-indigo-500" },
+  { href: "/settings", label: "Settings", icon: Settings, badge: null as null, accent: "text-slate-500" },
 ];
 
 export function Sidebar() {
@@ -81,9 +82,11 @@ export function Sidebar() {
           collapsed ? "justify-center px-0" : "px-4"
         )}
       >
-        <Sparkles className="h-5 w-5 text-primary flex-shrink-0" />
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/12 text-primary">
+          <Rocket className="h-5 w-5" />
+        </span>
         <span className={cn(
-          "font-bold text-foreground overflow-hidden whitespace-nowrap transition-all",
+          "font-display text-lg font-extrabold tracking-tight text-primary overflow-hidden whitespace-nowrap transition-all",
           collapsed ? "w-0 opacity-0" : "w-auto opacity-100"
         )}>
           CareerPilot
@@ -100,14 +103,19 @@ export function Sidebar() {
               href={item.href}
               onClick={() => setMobileOpen(false)}
               className={cn(
-                "group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                "group flex items-center gap-3 rounded-full px-4 py-2.5 text-sm font-medium transition-all duration-150",
                 collapsed ? "justify-center" : "",
                 active
-                  ? "border-r-2 border-primary bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  ? "bg-sky-200/90 text-primary font-semibold shadow-[0_8px_20px_-12px_rgba(2,132,199,0.4)]"
+                  : "text-muted-foreground hover:bg-sky-100/60 hover:text-foreground"
               )}
             >
-              <item.icon className="h-5 w-5 shrink-0" />
+              <item.icon
+                className={cn(
+                  "h-5 w-5 shrink-0 transition-transform group-hover:scale-110",
+                  active ? "text-primary" : "text-muted-foreground"
+                )}
+              />
               {!collapsed && (
                 <>
                   <span className="flex-1">{item.label}</span>

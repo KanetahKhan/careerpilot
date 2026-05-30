@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Sparkles, LogOut, LayoutDashboard } from "lucide-react";
+import { Sparkles, LogOut } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "./AuthProvider";
 import { createBrowserClient } from "@supabase/ssr";
@@ -37,14 +37,7 @@ export function TopBar() {
             <div className="h-8 w-24 rounded-lg bg-secondary animate-pulse" />
           ) : user ? (
             <>
-              <Link
-                href="/hunter"
-                className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg hover:bg-secondary transition-all"
-              >
-                <LayoutDashboard size={15} />
-                Dashboard
-              </Link>
-              <div className="flex items-center gap-2 pl-2 border-l border-border">
+              <div className="flex items-center gap-2">
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/60">
                   {user.user_metadata?.avatar_url ? (
                     <img

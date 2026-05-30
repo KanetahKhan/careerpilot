@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { CalendarPlus, Check, CheckCircle2 } from "lucide-react";
+import { CalendarPlus, Check, CheckCircle2, Route } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
+import { PageHeader } from "@/components/PageHeader";
 import { cn } from "@/lib/utils";
 
 type RoadmapItem = { key: string; text: string };
@@ -190,14 +191,13 @@ export default function RoadmapPage() {
   return (
     <FadeIn>
     <div className="space-y-6 py-4">
-      <div>
-        <p className="label mb-2">Pillar 3 · Roadmap</p>
-        <h1 className="font-display text-3xl font-bold">A week-by-week plan, grounded in your CV.</h1>
-        <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-          The plan targets your <span className="text-primary">real gaps</span> and builds on your
-          real strengths — retrieved from your uploaded CV, not a generic template.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Pillar 3 · Roadmap"
+        title="A week-by-week plan, grounded in your CV."
+        subtitle="The plan targets your real gaps and builds on your real strengths — retrieved from your uploaded CV, not a generic template."
+        icon={Route}
+        gradient="from-emerald-500 via-teal-500 to-emerald-500"
+      />
 
       <div className="panel flex flex-col gap-3 p-4 sm:flex-row">
         <input

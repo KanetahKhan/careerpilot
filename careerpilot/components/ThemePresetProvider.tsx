@@ -12,10 +12,10 @@ interface ThemePresetContextType {
 const ThemePresetContext = createContext<ThemePresetContextType | undefined>(undefined);
 
 export function ThemePresetProvider({ children }: { children: React.ReactNode }) {
-  const [presetName, setPresetName] = useState("violet");
+  const [presetName, setPresetName] = useState("skybound");
 
   useEffect(() => {
-    const saved = localStorage.getItem("careerpilot-theme-preset");
+    const saved = localStorage.getItem("careerpilot-theme-preset-v2");
     if (saved && themePresets.find(p => p.name === saved)) {
       setPresetName(saved);
     }
@@ -23,7 +23,7 @@ export function ThemePresetProvider({ children }: { children: React.ReactNode })
 
   const setPreset = (name: string) => {
     setPresetName(name);
-    localStorage.setItem("careerpilot-theme-preset", name);
+    localStorage.setItem("careerpilot-theme-preset-v2", name);
   };
 
   const preset = themePresets.find(p => p.name === presetName) || themePresets[0];

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Route } from "lucide-react";
+import { Route, Mic, FileText, BarChart3, Volume2, PenLine, ArrowRight, Star } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
+import { PageHeader } from "@/components/PageHeader";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerContainer";
 import { VoiceInputButton } from "@/components/interview/VoiceInputButton";
 import { ReadAloudToggle } from "@/components/interview/ReadAloudToggle";
@@ -199,41 +200,121 @@ export default function InterviewPage() {
   return (
     <FadeIn>
       <div className="space-y-6 py-4">
-        <div>
-          <p className="label mb-2">Pillar 3 · Mock Interview Agent</p>
-          <h1 className="font-display text-3xl font-bold">
-            {step === "setup" && "Practice with an AI interviewer."}
-            {step === "interview" && `Interviewing for ${role}`}
-            {step === "feedback" && "Your interview feedback"}
-          </h1>
-          {step === "setup" && (
-            <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-              Paste a real job description and get 5 tailored questions. Answer
-              one at a time, then receive structured per-competency feedback.
+        {step === "setup" ? (
+          <header className="relative pt-2">
+            <Star
+              aria-hidden="true"
+              size={28}
+              className="absolute right-1 top-0 animate-pulse-glow text-primary/20"
+            />
+            <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">
+              <span className="h-2 w-2 animate-pulse-glow rounded-full bg-primary" />
+              Pillar 3 · Mock Interview Agent
+            </span>
+            <h1 className="mt-4 font-display text-4xl font-extrabold tracking-tight text-primary sm:text-5xl">
+              Practice with an AI interviewer.
+            </h1>
+            <p className="mt-3 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+              Paste a real job description and get 5 tailored questions. Answer one at a time,
+              then receive structured per-competency feedback.
             </p>
-          )}
-        </div>
+          </header>
+        ) : (
+          <PageHeader
+            eyebrow="Pillar 3 · Mock Interview Agent"
+            title={step === "interview" ? `Interviewing for ${role}` : "Your interview feedback"}
+            icon={Mic}
+          />
+        )}
 
         {error && (
           <p className="text-sm text-primary">⚠ {error}</p>
         )}
 
         {step === "setup" && (
-          <div className="space-y-4">
-            <textarea
-              value={jd}
-              onChange={(e) => setJd(e.target.value)}
-              placeholder="Paste a job description here…"
-              rows={10}
-              className="w-full rounded-xl border border-border bg-background/60 px-4 py-3 text-foreground outline-none placeholder:text-muted-foreground focus:border-primary/60 resize-y"
-            />
-            <button
-              onClick={startInterview}
-              disabled={starting || jd.trim().length < 10}
-              className="btn-primary disabled:opacity-50"
-            >
-              {starting ? "Generating questions…" : "Start interview →"}
-            </button>
+          <div className="space-y-6">
+            {/* Job Description glass card */}
+            <div className="glass-card rounded-3xl p-6 shadow-[0_20px_40px_-18px_rgba(125,211,252,0.25)]">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                <span className="flex items-center gap-2 font-display font-bold text-primary">
+                  <FileText size={18} /> Job Description
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Tip: Include the requirements and responsibilities
+                </span>
+              </div>
+              <div className="relative">
+                <textarea
+                  value={jd}
+                  onChange={(e) => setJd(e.target.value)}
+                  placeholder="Paste the job description here… (e.g. Senior Frontend Engineer at CloudTech)"
+                  rows={12}
+                  className="w-full resize-none rounded-2xl border-2 border-sky-200/60 bg-white/60 p-6 text-foreground outline-none transition-all placeholder:text-muted-foreground/60 focus:border-sky-300 focus:ring-4 focus:ring-sky-200/40"
+                />
+                <Mic
+                  aria-hidden="true"
+                  size={56}
+                  className="pointer-events-none absolute bottom-4 right-4 rotate-12 text-primary/10"
+                />
+              </div>
+            </div>
+
+            {/* Action bar */}
+            <div className="flex flex-wrap items-center justify-between gap-4 px-1">
+              <div className="flex items-center gap-3">
+                <div className="flex -space-x-2">
+                  {["from-sky-300 to-sky-400", "from-cyan-300 to-sky-400", "from-sky-400 to-cyan-500"].map(
+                    (g, i) => (
+                      <span
+                        key={i}
+                        className={`h-8 w-8 rounded-full border-2 border-white bg-gradient-to-br ${g}`}
+                      />
+                    ),
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">Join 1,200+ users practicing today</p>
+              </div>
+              <button
+                onClick={startInterview}
+                disabled={starting || jd.trim().length < 10}
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-4 font-display font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+              >
+                {starting ? "Generating questions…" : "Start interview"}
+                <ArrowRight size={18} />
+              </button>
+            </div>
+
+            {/* Feature cards */}
+            <div className="grid gap-6 pt-4 md:grid-cols-3">
+              {[
+                {
+                  icon: BarChart3,
+                  title: "Competency Scoring",
+                  desc: "Get deep insights into how you rank across 5 key technical and soft skill categories.",
+                },
+                {
+                  icon: Volume2,
+                  title: "Real-time Feedback",
+                  desc: "Our AI analyzes your tone, pace, and content to provide immediate, actionable advice.",
+                },
+                {
+                  icon: PenLine,
+                  title: "Refined Responses",
+                  desc: 'We don’t just judge; we provide rewritten "Golden Samples" for every question you answer.',
+                },
+              ].map((f) => {
+                const Icon = f.icon;
+                return (
+                  <div key={f.title} className="glass-card card-hover rounded-2xl p-6">
+                    <span className="mb-4 grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary">
+                      <Icon size={22} />
+                    </span>
+                    <h3 className="mb-2 font-display font-bold text-foreground">{f.title}</h3>
+                    <p className="text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 

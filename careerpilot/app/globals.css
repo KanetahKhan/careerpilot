@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&family=Hanken+Grotesk:wght@400;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,26 +12,26 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --background: 205 38% 97%;
+    --foreground: 200 18% 11%;
+    --card: 200 33% 99%;
+    --card-foreground: 200 18% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 262 83% 58%;
+    --primary: 194 100% 26%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
-    --accent: 262 83% 58%;
+    --secondary: 200 30% 92%;
+    --secondary-foreground: 200 30% 20%;
+    --muted: 205 25% 94%;
+    --muted-foreground: 205 12% 38%;
+    --accent: 224 100% 26%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 262 83% 58%;
-    --radius: 0.5rem;
+    --border: 205 22% 86%;
+    --input: 205 22% 86%;
+    --ring: 194 100% 26%;
+    --radius: 0.85rem;
   }
 
   .dark {
@@ -65,12 +67,15 @@
   --glass-bg: rgba(255, 255, 255, 0.7);
   --glass-border: rgba(0, 0, 0, 0.08);
   --glass-shadow: rgba(0, 0, 0, 0.05);
+  /* Airy "ambient sky" shadow — light and floaty, not heavy/tinted. */
+  --panel-shadow: 0 16px 38px -26px rgba(2, 132, 199, 0.16), 0 2px 8px -6px rgba(2, 132, 199, 0.07);
 }
 
 .dark {
   --glass-bg: rgba(0, 0, 0, 0.4);
   --glass-border: rgba(255, 255, 255, 0.1);
   --glass-shadow: rgba(0, 0, 0, 0.3);
+  --panel-shadow: 0 18px 42px -22px rgba(0, 0, 0, 0.65);
 }
 
 .glass-card {
@@ -108,18 +113,16 @@ html {
   transform: scale(0.95);
 }
 
-/* atmospheric backdrop: subtle grid + radial purple glow */
+/* cohesive sky wash: soft blue-only glows, no off-colors */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
   background-image:
-    radial-gradient(900px 500px at 78% -8%, hsl(var(--primary) / 0.12), transparent 60%),
-    radial-gradient(700px 500px at 0% 100%, hsl(var(--primary) / 0.08), transparent 55%),
-    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 38px 38px, 38px 38px;
+    radial-gradient(900px 620px at 82% -10%, hsl(199 90% 80% / 0.22), transparent 60%),
+    radial-gradient(760px 560px at -4% 4%, hsl(205 80% 84% / 0.18), transparent 58%);
+  background-size: 100% 100%;
   z-index: 0;
 }
 
@@ -196,7 +199,16 @@ body::before {
 
 @layer components {
   .panel {
-    @apply rounded-2xl border border-border bg-card backdrop-blur-sm;
+    @apply rounded-3xl border border-border/60 bg-card backdrop-blur-sm;
+    box-shadow: var(--panel-shadow);
+  }
+  /* Opt-in hover lift for browsable/interactive cards (not modals). */
+  .card-hover {
+    @apply transition-all duration-200;
+  }
+  .card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 22px 44px -26px rgba(2, 132, 199, 0.22);
   }
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-150
@@ -234,6 +246,6 @@ body::before {
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium;
   }
   .label {
-    @apply text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-mono;
+    @apply text-[11px] uppercase tracking-[0.1em] text-muted-foreground font-sans font-semibold;
   }
 }
