@@ -26,35 +26,37 @@ type CheckResult = {
 };
 
 export async function POST(req: NextRequest) {
-  const user = await requireUser();
-  const searchId = req.nextUrl.searchParams.get("id");
-  const supabase = createAdminClient();
+  try {
+    const user = await requireUser();
+    if (user instanceof Response) return user;
+    const searchId = req.nextUrl.searchParams.get("id");
+    const supabase = createAdminClient();
 
-  // Resolve which searches to check — either a single ?id= or all user's saved
-  let searches: any[];
-  if (searchId) {
-    const { data } = await supabase
-      .from("saved_searches")
-      .select("*")
-      .eq("id", searchId)
-      .eq("user_id", user.id)
-      .maybeSingle();
-    searches = data ? [data] : [];
-    if (!searches.length) {
-      return NextResponse.json({ error: "Saved search not found" }, { status: 404 });
+    // Resolve which searches to check — either a single ?id= or all user's saved
+    let searches: any[];
+    if (searchId) {
+      const { data } = await supabase
+        .from("saved_searches")
+        .select("*")
+        .eq("id", searchId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      searches = data ? [data] : [];
+      if (!searches.length) {
+        return NextResponse.json({ error: "Saved search not found" }, { status: 404 });
+      }
+    } else {
+      const { data } = await supabase
+        .from("saved_searches")
+        .select("*")
+        .eq("user_id", user.id);
+      searches = data ?? [];
     }
-  } else {
-    const { data } = await supabase
-      .from("saved_searches")
-      .select("*")
-      .eq("user_id", user.id);
-    searches = data ?? [];
-  }
 
-  const results: CheckResult[] = [];
+    const results: CheckResult[] = [];
 
-  for (const search of searches) {
-    try {
+    for (const search of searches) {
+      try {
       // Rate-limit: at most once per hour per search
       if (search.last_run_at) {
         const elapsed = Date.now() - new Date(search.last_run_at).getTime();
@@ -128,5 +130,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ checked: results.length, results });
+    return NextResponse.json({ checked: results.length, results });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message ?? "Failed to check saved searches" }, { status: 500 });
+  }
 }

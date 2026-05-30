@@ -36,13 +36,13 @@ const toYmd = (y: number, m0: number, d: number) => `${y}-${pad(m0 + 1)}-${pad(d
 
 /** Tailwind classes for a plotted item, keyed by source/type. */
 function itemStyle(item: Item): string {
-  if (item.kind === "application") return "bg-sky-400/15 text-sky-300";
-  if (item.kind === "goal") return "bg-emerald-400/15 text-emerald-300";
+  if (item.kind === "application") return "bg-primary/15 text-primary";
+  if (item.kind === "goal") return "bg-secondary text-secondary-foreground";
   switch (item.type) {
     case "deadline":
-      return "bg-rose-400/15 text-rose-300";
+      return "bg-destructive/15 text-destructive";
     case "reminder":
-      return "bg-amber-400/15 text-amber-300";
+      return "bg-muted text-muted-foreground";
     default:
       return "bg-primary/15 text-primary";
   }
@@ -165,10 +165,10 @@ export function Calendar({
 
       {/* legend */}
       <div className="mb-3 flex flex-wrap gap-2">
-        <span className="chip bg-sky-400/15 text-sky-300">Applications</span>
-        <span className="chip bg-emerald-400/15 text-emerald-300">Goal deadlines</span>
-        <span className="chip bg-rose-400/15 text-rose-300">Deadline</span>
-        <span className="chip bg-amber-400/15 text-amber-300">Reminder</span>
+        <span className="chip bg-primary/15 text-primary">Applications</span>
+        <span className="chip bg-secondary text-secondary-foreground">Goal deadlines</span>
+        <span className="chip bg-destructive/15 text-destructive">Deadline</span>
+        <span className="chip bg-muted text-muted-foreground">Reminder</span>
         <span className="chip bg-primary/15 text-primary">Custom</span>
       </div>
 

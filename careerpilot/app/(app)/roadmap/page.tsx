@@ -196,7 +196,7 @@ export default function RoadmapPage() {
         title="A week-by-week plan, grounded in your CV."
         subtitle="The plan targets your real gaps and builds on your real strengths — retrieved from your uploaded CV, not a generic template."
         icon={Route}
-        gradient="from-emerald-500 via-teal-500 to-emerald-500"
+        gradient="from-primary via-primary to-primary/70"
       />
 
       <div className="panel flex flex-col gap-3 p-4 sm:flex-row">
@@ -238,7 +238,7 @@ export default function RoadmapPage() {
         <p className="text-sm text-muted-foreground animate-pulse-glow">Restoring your roadmap…</p>
       )}
       {loading && (
-        <p className="text-sm text-amber-400 animate-pulse-glow">
+        <p className="text-sm text-muted-foreground animate-pulse-glow">
           Retrieving CV context → drafting a grounded plan…
         </p>
       )}
@@ -256,7 +256,7 @@ export default function RoadmapPage() {
                   <div className="mt-3 flex flex-wrap items-center gap-1">
                     <span className="label mr-1">grounded in</span>
                     {roadmap.citedSections.map((s) => (
-                      <span key={s} className="chip bg-emerald-400/10 text-emerald-400">{s}</span>
+                      <span key={s} className="chip bg-primary/10 text-primary">{s}</span>
                     ))}
                   </div>
                 )}
@@ -277,10 +277,10 @@ export default function RoadmapPage() {
             <ProgressBar percent={overall.percent} done={overall.done} total={overall.total} />
 
             {applyResult && (
-              <p className="mt-3 text-sm text-emerald-400">
+              <p className="mt-3 text-sm text-primary">
                 ✓ Added {applyResult.goalsCreated} to-do{applyResult.goalsCreated === 1 ? "" : "s"} and{" "}
                 {applyResult.eventsCreated} deadline{applyResult.eventsCreated === 1 ? "" : "s"} to your tracker.{" "}
-                <Link href="/tracker" className="underline underline-offset-4 hover:text-emerald-300">
+                <Link href="/tracker" className="underline underline-offset-4 hover:text-primary">
                   Open tracker →
                 </Link>
               </p>
@@ -326,7 +326,7 @@ export default function RoadmapPage() {
                               className={cn(
                                 "mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded border transition-colors",
                                 done
-                                  ? "border-emerald-400 bg-emerald-400/20 text-emerald-400"
+                                  ? "border-primary bg-primary/20 text-primary"
                                   : "border-border"
                               )}
                             >
@@ -339,8 +339,8 @@ export default function RoadmapPage() {
                     })}
                   </ul>
 
-                  <div className="mt-3 rounded-xl border border-emerald-400/30 bg-emerald-400/5 p-2.5">
-                    <span className="label text-emerald-400">milestone</span>
+                  <div className="mt-3 rounded-xl border border-primary/30 bg-primary/5 p-2.5">
+                    <span className="label text-primary">milestone</span>
                     <p className="mt-0.5 text-sm text-foreground">{w.milestone.text}</p>
                   </div>
 
@@ -349,7 +349,7 @@ export default function RoadmapPage() {
                       type="button"
                       onClick={() => markWeekComplete(w)}
                       disabled={allDone || w.actions.length === 0}
-                      className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] text-muted-foreground hover:border-emerald-400/50 hover:text-foreground disabled:opacity-50 transition-colors"
+                      className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] text-muted-foreground hover:border-primary/50 hover:text-foreground disabled:opacity-50 transition-colors"
                     >
                       <CheckCircle2 size={11} />
                       {allDone ? "All done" : "Mark week complete"}

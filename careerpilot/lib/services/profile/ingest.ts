@@ -122,13 +122,10 @@ export async function ingestSections(
     throw new Error(`Failed to create profile: ${profileErr.message}`);
   }
 
-  // Delete old data — re-ingest replaces everything
-  await supabase.from("cv_chunks").delete().eq("user_id", userId);
-  await supabase.from("cv_documents").delete().eq("user_id", userId);
-
   // Merge all section content for the raw_text column
   const rawText = sections.map((s) => `=== ${s.section.toUpperCase()} ===\n${s.content}`).join("\n\n");
 
+  // 1. Insert new document first
   const { data: doc, error: docErr } = await supabase
     .from("cv_documents")
     .insert({ user_id: userId, file_name: fileName, raw_text: rawText })
@@ -172,6 +169,19 @@ export async function ingestSections(
 
   const { error: insErr } = await supabase.from("cv_chunks").insert(rows);
   if (insErr) throw insErr;
+
+  // 2. Only after successful insert, delete old data for this user
+  await supabase
+    .from("cv_chunks")
+    .delete()
+    .eq("user_id", userId)
+    .neq("document_id", doc.id);
+
+  await supabase
+    .from("cv_documents")
+    .delete()
+    .eq("user_id", userId)
+    .neq("id", doc.id);
 
   // Store centroid for fast fit-score lookups
   const centroid = computeCentroid(embeddings);

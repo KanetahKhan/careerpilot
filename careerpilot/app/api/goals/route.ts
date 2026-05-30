@@ -18,6 +18,7 @@ const PatchSchema = z.object({
 
 export const GET = route(async () => {
   const user = await requireUser();
+  if (user instanceof Response) return user;
   const { data, error } = await listGoals(user.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ goals: data });
@@ -25,6 +26,7 @@ export const GET = route(async () => {
 
 export const POST = route(async (req: Request) => {
   const user = await requireUser();
+  if (user instanceof Response) return user;
   const { title, due_date } = await parseJson(req, CreateSchema);
   const { data, error } = await createGoal(user.id, title, due_date ?? null);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -33,6 +35,7 @@ export const POST = route(async (req: Request) => {
 
 export const PATCH = route(async (req: Request) => {
   const user = await requireUser();
+  if (user instanceof Response) return user;
   const { id, done } = await parseJson(req, PatchSchema);
   const { data, error } = await setGoalDone(id, user.id, done);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

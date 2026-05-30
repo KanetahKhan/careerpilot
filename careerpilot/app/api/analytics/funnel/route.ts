@@ -130,6 +130,7 @@ function pickInsight(apps: AppRow[]): Insight {
 export async function GET() {
   try {
     const user = await requireUser();
+    if (user instanceof Response) return user;
     const { data, error } = await listApplications(user.id);
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

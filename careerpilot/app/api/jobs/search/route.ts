@@ -197,12 +197,8 @@ ${webTool ? "4" : "3"}. Stop once every job/lead has been scored, then briefly s
 }
 
 export async function POST(req: Request) {
-  let user;
-  try {
-    user = await requireUser();
-  } catch {
-    return jsonError("Unauthorized", 401);
-  }
+  const user = await requireUser();
+  if (user instanceof Response) return user;
 
   const body = await req.json().catch(() => null);
   const query: unknown = body?.query;

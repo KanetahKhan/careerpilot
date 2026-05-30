@@ -18,9 +18,9 @@ interface Notification {
 }
 
 const TYPE_STYLE: Record<string, string> = {
-  apply: "bg-sky-400/15 text-sky-300",
-  goal: "bg-emerald-400/15 text-emerald-300",
-  skill: "bg-amber-400/15 text-amber-300",
+  apply: "bg-primary/15 text-primary",
+  goal: "bg-secondary text-secondary-foreground",
+  skill: "bg-muted text-muted-foreground",
   general: "bg-primary/15 text-primary",
 };
 
@@ -101,7 +101,7 @@ export function Nudges() {
         </button>
       </div>
 
-      {error && <p className="mb-2 text-xs text-amber-400">{error}</p>}
+      {error && <p className="mb-2 text-xs text-destructive">{error}</p>}
 
       <div className="space-y-2">
         {loading && <p className="text-sm text-muted-foreground">Loading…</p>}

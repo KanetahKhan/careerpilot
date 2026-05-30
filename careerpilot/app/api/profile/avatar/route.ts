@@ -22,6 +22,7 @@ async function listUserObjects(supabase: Awaited<ReturnType<typeof createClient>
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser();
+    if (user instanceof Response) return user;
 
     const form = await req.formData().catch(() => null);
     const file = form?.get("file");
@@ -89,6 +90,7 @@ export async function POST(req: NextRequest) {
 export async function DELETE() {
   try {
     const user = await requireUser();
+    if (user instanceof Response) return user;
     const supabase = await createClient();
 
     const paths = await listUserObjects(supabase, user.id);

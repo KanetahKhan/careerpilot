@@ -16,6 +16,7 @@ const CreateSchema = z.object({
 
 export const GET = route(async (req: Request) => {
   const user = await requireUser();
+  if (user instanceof Response) return user;
   const url = new URL(req.url);
   const from = url.searchParams.get("from") ?? undefined;
   const to = url.searchParams.get("to") ?? undefined;
@@ -26,6 +27,7 @@ export const GET = route(async (req: Request) => {
 
 export const POST = route(async (req: Request) => {
   const user = await requireUser();
+  if (user instanceof Response) return user;
   const body = await parseJson(req, CreateSchema);
   const { data, error } = await createEvent(user.id, body);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -34,6 +36,7 @@ export const POST = route(async (req: Request) => {
 
 export const DELETE = route(async (req: Request) => {
   const user = await requireUser();
+  if (user instanceof Response) return user;
   const id = new URL(req.url).searchParams.get("id");
   if (!id) throw new ApiError("id is required", 400);
   const { data, error } = await deleteEvent(id, user.id);

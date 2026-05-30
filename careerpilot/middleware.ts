@@ -49,7 +49,7 @@ export async function middleware(request: NextRequest) {
   const isAuthRoute =
     pathname.startsWith("/login") ||
     pathname.startsWith("/signup") ||
-    pathname === "/auth";
+    pathname.startsWith("/auth");
 
   const isHome = pathname === "/";
 

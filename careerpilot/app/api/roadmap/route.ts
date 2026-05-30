@@ -10,6 +10,7 @@ export const maxDuration = 60;
 export async function POST(req: Request) {
   try {
     const user = await requireUser();
+    if (user instanceof Response) return user;
     const { goal } = await req.json();
     const plan = await generateRoadmap(user.id, typeof goal === "string" ? goal : "");
 

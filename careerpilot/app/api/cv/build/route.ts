@@ -48,6 +48,7 @@ const BuilderSchema = z.object({
 export async function POST(req: Request) {
   try {
     const user = await requireUser();
+    if (user instanceof Response) return user;
     const body = await req.json();
 
     const parsed = BuilderSchema.safeParse(body);
@@ -72,6 +73,7 @@ export async function POST(req: Request) {
 export async function GET() {
   try {
     const user = await requireUser();
+    if (user instanceof Response) return user;
     const profile = await getCvProfile(user.id);
     if (!profile || !profile.sections || profile.totalChunks === 0) {
       return NextResponse.json(null);

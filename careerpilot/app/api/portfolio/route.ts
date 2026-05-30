@@ -181,6 +181,7 @@ function buildSnapshot(
 export async function POST(req: Request) {
   try {
     const user = await requireUser();
+    if (user instanceof Response) return user;
     const body = await req.json().catch(() => ({}));
     const includeContact = body?.includeContact === true;
 
@@ -232,6 +233,7 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   try {
     const user = await requireUser();
+    if (user instanceof Response) return user;
     const supabase = createAdminClient();
     const { data } = await supabase
       .from("portfolios")
@@ -260,6 +262,7 @@ const PatchSchema = z.object({ published: z.boolean() });
 export async function PATCH(req: Request) {
   try {
     const user = await requireUser();
+    if (user instanceof Response) return user;
     const parsed = PatchSchema.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) {
       return NextResponse.json({ error: "Expected { published: boolean }" }, { status: 400 });

@@ -104,7 +104,7 @@ export function PortfolioPanel({ hasCv }: { hasCv: boolean }) {
               <span
                 className={`chip border ${
                   portfolio.published
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+                    ? "border-primary/30 bg-primary/10 text-primary"
                     : "border-border bg-secondary text-muted-foreground"
                 }`}
               >
@@ -145,7 +145,7 @@ export function PortfolioPanel({ hasCv }: { hasCv: boolean }) {
               onClick={copy}
               className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground transition-colors hover:border-primary/50"
             >
-              {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
               {copied ? "Copied" : "Copy"}
             </button>
             <a

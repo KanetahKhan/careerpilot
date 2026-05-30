@@ -28,6 +28,7 @@ const PatchSchema = z.object({
 
 export const GET = route(async () => {
   const user = await requireUser();
+  if (user instanceof Response) return user;
   const { data, error } = await listApplications(user.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ applications: data });
@@ -35,6 +36,7 @@ export const GET = route(async () => {
 
 export const POST = route(async (req: Request) => {
   const user = await requireUser();
+  if (user instanceof Response) return user;
   const body = await parseJson(req, CreateSchema);
   const { data, error } = await createApplication(user.id, body);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -43,6 +45,7 @@ export const POST = route(async (req: Request) => {
 
 export const PATCH = route(async (req: Request) => {
   const user = await requireUser();
+  if (user instanceof Response) return user;
   const { id, status } = await parseJson(req, PatchSchema);
   const { data, error } = await updateApplicationStatus(id, user.id, status);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

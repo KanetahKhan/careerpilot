@@ -232,7 +232,9 @@ export default function InterviewPage() {
               <div className="mb-5 flex items-center gap-2 font-display font-bold text-primary">
                 <FileText size={18} /> Job Description
               </div>
+              <label htmlFor="interview-jd" className="sr-only">Job Description</label>
               <textarea
+                id="interview-jd"
                 value={jd}
                 onChange={(e) => setJd(e.target.value)}
                 placeholder="Paste the job description here… (e.g. Senior Frontend Engineer at CloudTech)"
@@ -263,7 +265,7 @@ export default function InterviewPage() {
                 Question {Math.min(currentIdx + 1, questions.length)}/{questions.length}
               </span>
               {currentIdx < questions.length && (
-                <span className="chip bg-sky-400/10 text-sky-400">
+                <span className="chip bg-primary/10 text-primary">
                   {questions[currentIdx]?.type ?? ""}
                 </span>
               )}
@@ -302,6 +304,8 @@ export default function InterviewPage() {
             {!streaming && !showAllQuestionsAnswered && (
               <div className="flex gap-2">
                 <input
+                  id="interview-answer"
+                  aria-label="Your answer"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && sendAnswer()}
@@ -344,11 +348,11 @@ export default function InterviewPage() {
                 {feedback.overallAssessment}
               </p>
               {feedback.strongRecommend ? (
-                <p className="mt-3 text-sm text-emerald-400 font-medium">
+                <p className="mt-3 text-sm text-primary font-medium">
                   Strong recommend ✓
                 </p>
               ) : (
-                <p className="mt-3 text-sm text-amber-400 font-medium">
+                <p className="mt-3 text-sm text-muted-foreground font-medium">
                   Not a strong recommend
                 </p>
               )}
@@ -360,11 +364,11 @@ export default function InterviewPage() {
                   <div className="panel animate-fade-up p-5">
                     <div className="flex items-start justify-between gap-3">
                       <p className="font-display text-lg font-bold">{c.competency}</p>
-                      <span className="chip bg-sky-400/10 text-sky-400">{c.score}/5</span>
+                      <span className="chip bg-primary/10 text-primary">{c.score}/5</span>
                     </div>
                     {c.strengths.length > 0 && (
                       <div className="mt-3">
-                        <p className="label mb-1 text-emerald-400">Strengths</p>
+                        <p className="label mb-1 text-primary">Strengths</p>
                         <ul className="list-disc list-inside space-y-0.5 text-sm text-muted-foreground">
                           {c.strengths.map((s, i) => <li key={i}>{s}</li>)}
                         </ul>
@@ -372,7 +376,7 @@ export default function InterviewPage() {
                     )}
                     {c.gaps.length > 0 && (
                       <div className="mt-3">
-                        <p className="label mb-1 text-rose-400">Gaps</p>
+                        <p className="label mb-1 text-destructive">Gaps</p>
                         <ul className="list-disc list-inside space-y-0.5 text-sm text-muted-foreground">
                           {c.gaps.map((g, i) => <li key={i}>{g}</li>)}
                         </ul>

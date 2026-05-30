@@ -6,12 +6,12 @@ export function AuthBackground() {
   const { preset } = useThemePreset();
 
   const gradients: Record<string, string> = {
-    violet: "from-violet-600/20 via-purple-600/10 to-indigo-600/20",
-    ocean: "from-cyan-600/20 via-blue-600/10 to-teal-600/20",
-    forest: "from-emerald-600/20 via-green-600/10 to-lime-600/20",
-    rose: "from-rose-600/20 via-pink-600/10 to-red-600/20",
-    amber: "from-amber-600/20 via-orange-600/10 to-yellow-600/20",
-    slate: "from-slate-600/20 via-gray-600/10 to-zinc-600/20",
+    violet: "from-primary/20 via-secondary/10 to-accent/20",
+    ocean: "from-primary/20 via-secondary/10 to-accent/20",
+    forest: "from-primary/20 via-secondary/10 to-accent/20",
+    rose: "from-primary/20 via-secondary/10 to-accent/20",
+    amber: "from-primary/20 via-secondary/10 to-accent/20",
+    slate: "from-primary/20 via-secondary/10 to-accent/20",
   };
 
   const gradient = gradients[preset.name] || gradients.violet;

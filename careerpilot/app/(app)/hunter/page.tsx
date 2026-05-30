@@ -28,11 +28,11 @@ type TraceEvent = { kind: TraceKind; text: string };
 
 // Icon + color per reasoning step, so the live narrative is scannable at a glance.
 const TRACE_STYLE: Record<TraceKind, { icon: LucideIcon; color: string }> = {
-  plan: { icon: Brain, color: "text-sky-400" },
-  search: { icon: Search, color: "text-blue-400" },
-  found: { icon: ListChecks, color: "text-emerald-400" },
-  score: { icon: Gauge, color: "text-amber-400" },
-  web: { icon: Globe, color: "text-violet-400" },
+  plan: { icon: Brain, color: "text-primary" },
+  search: { icon: Search, color: "text-primary" },
+  found: { icon: ListChecks, color: "text-primary" },
+  score: { icon: Gauge, color: "text-muted-foreground" },
+  web: { icon: Globe, color: "text-primary" },
   note: { icon: Info, color: "text-muted-foreground" },
 };
 
@@ -284,11 +284,13 @@ function HunterInner() {
         title="Hunt jobs in plain English."
         subtitle="Describe the role you want — the agent searches, scores, and ranks each match against your CV."
         icon={Search}
-        gradient="from-sky-500 via-sky-500 to-cyan-500"
+        gradient="from-primary via-primary to-primary/70"
       />
 
       <div className="panel flex flex-col gap-3 p-4 sm:flex-row">
         <input
+          id="hunter-query"
+          aria-label="Job search query"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && query.trim() && run(query)}
@@ -338,7 +340,7 @@ function HunterInner() {
                 </button>
                 <button
                   onClick={() => deleteSearch(s.id)}
-                  className="btn-ghost px-2 py-1 text-[10px] text-rose-400 hover:text-rose-300"
+                  className="btn-ghost px-2 py-1 text-[10px] text-destructive hover:text-destructive"
                 >
                   Delete
                 </button>
@@ -349,7 +351,7 @@ function HunterInner() {
       )}
 
       {runError && (
-        <div className="panel border-rose-400/30 p-4 text-sm text-rose-300">⚠ {runError}</div>
+        <div className="panel border-destructive/30 p-4 text-sm text-destructive">⚠ {runError}</div>
       )}
 
       {/* live agent reasoning — streams in step-by-step so the tool-loop is visible */}
@@ -358,8 +360,8 @@ function HunterInner() {
           <div className="mb-3 flex items-center gap-2">
             <span className="label">Agent reasoning</span>
             {loading && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
-                <span className="h-1.5 w-1.5 animate-pulse-glow rounded-full bg-emerald-400" />
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                <span className="h-1.5 w-1.5 animate-pulse-glow rounded-full bg-primary" />
                 live
               </span>
             )}
@@ -375,8 +377,8 @@ function HunterInner() {
               );
             })}
             {loading && (
-              <li className="flex items-center gap-2 text-xs text-amber-400">
-                <span className="h-1.5 w-1.5 animate-pulse-glow rounded-full bg-amber-400" />
+              <li className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="h-1.5 w-1.5 animate-pulse-glow rounded-full bg-muted-foreground" />
                 <span className="animate-pulse-glow">working…</span>
               </li>
             )}
@@ -394,8 +396,8 @@ function HunterInner() {
           icon={Search}
           title="Let's find your next role."
           description="Describe what you're looking for above — try “remote React internship” or “ML roles in Dhaka” — and the agent will search and score matches against your CV."
-          accent="text-sky-500"
-          iconBg="bg-sky-500/10"
+          accent="text-primary"
+          iconBg="bg-primary/10"
         />
       )}
 
@@ -427,10 +429,10 @@ function HunterInner() {
             {j.fit.matchedSkills.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1">
                 {j.fit.matchedSkills.slice(0, 5).map((s) => (
-                  <span key={s} className="chip bg-emerald-400/10 text-emerald-400">✓ {s}</span>
+                  <span key={s} className="chip bg-primary/10 text-primary">✓ {s}</span>
                 ))}
                 {j.fit.missingSkills.slice(0, 3).map((s) => (
-                  <span key={s} className="chip bg-rose-400/10 text-rose-400">✗ {s}</span>
+                  <span key={s} className="chip bg-destructive/10 text-destructive">✗ {s}</span>
                 ))}
               </div>
             )}
@@ -498,10 +500,10 @@ function HunterInner() {
 
             <div className="mt-4 flex flex-wrap gap-1">
               {detail.fit.matchedSkills.map((s) => (
-                <span key={s} className="chip bg-emerald-400/10 text-emerald-400">✓ {s}</span>
+                <span key={s} className="chip bg-primary/10 text-primary">✓ {s}</span>
               ))}
               {detail.fit.missingSkills.map((s) => (
-                <span key={s} className="chip bg-rose-400/10 text-rose-400">✗ {s}</span>
+                <span key={s} className="chip bg-destructive/10 text-destructive">✗ {s}</span>
               ))}
             </div>
 
@@ -528,17 +530,17 @@ function HunterInner() {
 
             {/* One-click Apply — result */}
             {applyResult?.jobId === detail.id && applying !== detail.id && (
-              <div className="mt-5 rounded-xl border border-emerald-400/30 bg-emerald-400/5 p-4">
-                <p className="flex items-center gap-2 text-sm font-semibold text-emerald-400">
+              <div className="mt-5 rounded-xl border border-primary/30 bg-primary/5 p-4">
+                <p className="flex items-center gap-2 text-sm font-semibold text-primary">
                   <CheckCircle2 size={16} /> Applied — chained in one click
                 </p>
                 <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 size={13} className="text-emerald-400" /> Added to your tracker as <span className="text-foreground">Applied</span>
+                    <CheckCircle2 size={13} className="text-primary" /> Added to your tracker as <span className="text-foreground">Applied</span>
                   </li>
                   {applyResult.event && (
                     <li className="flex items-center gap-2">
-                      <CalendarClock size={13} className="text-sky-400" />
+                      <CalendarClock size={13} className="text-primary" />
                       {applyResult.event.type === "deadline" ? "Deadline" : "Follow-up"} on{" "}
                       <span className="text-foreground">{applyResult.event.event_date}</span>
                     </li>
@@ -572,7 +574,7 @@ function HunterInner() {
                 )}
 
                 {applyResult.warning && (
-                  <p className="mt-2 text-xs text-amber-400">⚠ {applyResult.warning}</p>
+                  <p className="mt-2 text-xs text-destructive">⚠ {applyResult.warning}</p>
                 )}
               </div>
             )}

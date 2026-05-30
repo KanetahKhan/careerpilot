@@ -102,7 +102,7 @@ export default function AssistantPage() {
               eyebrow="Pillar 3 · Personal AI Assistant"
               title="It already knows your CV."
               icon={Sparkles}
-              gradient="from-fuchsia-500 via-purple-500 to-fuchsia-500"
+              gradient="from-primary via-primary/70 to-primary"
             />
           </div>
           <div className="flex-1 grid place-items-center rounded-lg border border-border bg-card text-sm text-muted-foreground">
@@ -205,7 +205,7 @@ function Chat({
           eyebrow="Pillar 3 · Personal AI Assistant"
           title="It already knows your CV."
           icon={Sparkles}
-          gradient="from-fuchsia-500 via-purple-500 to-fuchsia-500"
+          gradient="from-primary via-primary/70 to-primary"
         >
           <button
             type="button"
@@ -220,7 +220,7 @@ function Chat({
         {intent && (
           <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
             <span className="label">detected intent</span>
-            <span className="chip bg-sky-400/10 text-sky-400">{INTENT_LABELS[intent] ?? intent}</span>
+            <span className="chip bg-primary/10 text-primary">{INTENT_LABELS[intent] ?? intent}</span>
             {intent === "roadmap" && (
               <Link href="/roadmap" className="text-primary underline-offset-4 hover:underline">
                 open structured roadmap →

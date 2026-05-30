@@ -13,9 +13,9 @@ export type Fit = {
 const FACTORS = ["semantic", "skills", "seniority", "education", "location"] as const;
 
 export function fitScoreColor(s: number): string {
-  if (s >= 75) return "text-emerald-400 bg-emerald-400/10 border-emerald-400/20";
-  if (s >= 55) return "text-amber-400 bg-amber-400/10 border-amber-400/20";
-  return "text-rose-400 bg-rose-400/10 border-rose-400/20";
+  if (s >= 75) return "text-primary bg-primary/10 border-primary/20";
+  if (s >= 55) return "text-muted-foreground bg-muted border-border";
+  return "text-destructive bg-destructive/10 border-destructive/20";
 }
 
 export function fitScoreTextColor(s: number): string {
@@ -55,12 +55,12 @@ export function SkillChips({
   return (
     <div className="flex flex-wrap gap-1">
       {m.map((s) => (
-        <span key={`m-${s}`} className="chip bg-emerald-400/10 text-emerald-400">
+        <span key={`m-${s}`} className="chip bg-primary/10 text-primary">
           ✓ {s}
         </span>
       ))}
       {x.map((s) => (
-        <span key={`x-${s}`} className="chip bg-rose-400/10 text-rose-400">
+        <span key={`x-${s}`} className="chip bg-destructive/10 text-destructive">
           ✗ {s}
         </span>
       ))}

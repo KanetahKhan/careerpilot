@@ -13,29 +13,29 @@ interface StatCardProps {
 
 const accentStyles: Record<string, { bg: string; icon: string; change: string }> = {
   blue: {
-    bg: "bg-blue-500/10 dark:bg-blue-400/10",
-    icon: "text-blue-500 dark:text-blue-400",
-    change: "text-blue-500 dark:text-blue-400",
+    bg: "bg-primary/10",
+    icon: "text-primary",
+    change: "text-primary",
   },
   amber: {
-    bg: "bg-amber-500/10 dark:bg-amber-400/10",
-    icon: "text-amber-500 dark:text-amber-400",
-    change: "text-amber-500 dark:text-amber-400",
+    bg: "bg-muted",
+    icon: "text-muted-foreground",
+    change: "text-muted-foreground",
   },
   rose: {
-    bg: "bg-rose-500/10 dark:bg-rose-400/10",
-    icon: "text-rose-500 dark:text-rose-400",
-    change: "text-rose-500 dark:text-rose-400",
+    bg: "bg-destructive/10",
+    icon: "text-destructive",
+    change: "text-destructive",
   },
   orange: {
-    bg: "bg-orange-500/10 dark:bg-orange-400/10",
-    icon: "text-orange-500 dark:text-orange-400",
-    change: "text-orange-500 dark:text-orange-400",
+    bg: "bg-accent/10",
+    icon: "text-accent-foreground",
+    change: "text-accent-foreground",
   },
   emerald: {
-    bg: "bg-emerald-500/10 dark:bg-emerald-400/10",
-    icon: "text-emerald-500 dark:text-emerald-400",
-    change: "text-emerald-500 dark:text-emerald-400",
+    bg: "bg-primary/10",
+    icon: "text-primary",
+    change: "text-primary",
   },
 };
 
@@ -48,7 +48,7 @@ export function StatCard({ icon: Icon, label, value, change, changeType = "neutr
           <Icon className={cn("h-5 w-5", s.icon)} />
         </div>
         {change && (
-          <span className={cn("text-xs font-medium", changeType === "positive" ? s.change : changeType === "negative" ? "text-rose-500 dark:text-rose-400" : "text-muted-foreground")}>
+          <span className={cn("text-xs font-medium", changeType === "positive" ? s.change : changeType === "negative" ? "text-destructive" : "text-muted-foreground")}>
             {change}
           </span>
         )}

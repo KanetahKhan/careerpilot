@@ -28,6 +28,7 @@ function extractRole(query: string): string | null {
 
 export const POST = route(async (req: Request) => {
   const user = await requireUser();
+  if (user instanceof Response) return user;
   const { messages, sessionId } = await parseJson(req, BodySchema);
   const abortSignal = req.signal;
 

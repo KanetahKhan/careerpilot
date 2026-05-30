@@ -101,7 +101,7 @@ export default function FitPage() {
           title="Drop a JD. Get a real fit score."
           subtitle="Five factors computed in TypeScript from your CV — semantic, skills, seniority, education, location. The LLM only extracts skill lists, strictly grounded in your CV."
           icon={Target}
-          gradient="from-violet-500 via-violet-500 to-purple-500"
+          gradient="from-primary via-primary to-primary/70"
         />
 
         <div className="panel space-y-3 p-4">
@@ -196,7 +196,7 @@ export default function FitPage() {
                   <div className="flex flex-wrap items-center gap-1">
                     <span className="label mr-1">grounded in</span>
                     {tailored.citedSections.map((s) => (
-                      <span key={s} className="chip bg-emerald-400/10 text-emerald-400">{s}</span>
+                      <span key={s} className="chip bg-primary/10 text-primary">{s}</span>
                     ))}
                   </div>
                 )}
@@ -218,13 +218,13 @@ export default function FitPage() {
             {tailored.gaps.length > 0 && (
               <div className="panel animate-fade-up p-5">
                 <p className="label mb-2 flex items-center gap-1.5">
-                  <AlertTriangle size={12} className="text-amber-400" />
+                  <AlertTriangle size={12} className="text-muted-foreground" />
                   Honest gaps (not in your CV)
                 </p>
                 <ul className="space-y-1.5">
                   {tailored.gaps.map((g, i) => (
                     <li key={i} className="flex gap-2 text-sm text-muted-foreground">
-                      <span className="text-amber-400">›</span>
+                      <span className="text-muted-foreground">›</span>
                       <span>{g}</span>
                     </li>
                   ))}
@@ -285,7 +285,7 @@ function RewriteCard({ rewrite }: { rewrite: Rewrite }) {
       </div>
       {rewrite.why && (
         <p className="mt-3 border-t border-border/60 pt-2 text-xs text-muted-foreground">
-          <span className="text-emerald-400">why:</span> {rewrite.why}
+          <span className="text-primary">why:</span> {rewrite.why}
         </p>
       )}
     </div>

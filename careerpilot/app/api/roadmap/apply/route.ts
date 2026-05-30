@@ -45,6 +45,7 @@ function addDaysISO(startISO: string, days: number): string {
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser();
+    if (user instanceof Response) return user;
     const body = await req.json().catch(() => null);
     const parsed = BodySchema.safeParse(body);
     if (!parsed.success) {

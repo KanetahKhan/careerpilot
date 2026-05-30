@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   try {
     const user = await requireUser();
+    if (user instanceof Response) return user;
     const url = new URL(req.url);
     const sessionId = url.searchParams.get("sessionId") || "default";
 

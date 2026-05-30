@@ -207,6 +207,7 @@ export type BuilderEducation = {
 };
 export type BuilderProject = {
   name: string; description: string; tech?: string[];
+  githubUrl?: string; liveUrl?: string;
 };
 export type BuilderCv = {
   fullName: string; headline?: string; email?: string; phone?: string;
@@ -262,6 +263,8 @@ export function serializeBuilderCv(cv: BuilderCv): { section: string; content: s
     const blocks = cv.projects.map((p) => {
       const lines: string[] = [`Name: ${p.name}`];
       if (p.tech && p.tech.length > 0) lines.push(`Tech: ${p.tech.join(", ")}`);
+      if (p.githubUrl) lines.push(`Github: ${p.githubUrl}`);
+      if (p.liveUrl) lines.push(`Live: ${p.liveUrl}`);
       lines.push(p.description);
       return lines.join("\n");
     });
@@ -343,8 +346,10 @@ export function parseBuilderFromSections(
       const name = extractField(lines, "Name");
       const techLine = extractField(lines, "Tech");
       const tech = techLine ? techLine.split(/,\s*/).filter(Boolean) : undefined;
-      const desc = lines.filter((l) => !/^(Name|Tech):\s*/i.test(l.trim())).join("\n").trim();
-      return { name, description: desc || name, tech };
+      const githubUrl = extractField(lines, "Github");
+      const liveUrl = extractField(lines, "Live");
+      const desc = lines.filter((l) => !/^(Name|Tech|Github|Live):\s*/i.test(l.trim())).join("\n").trim();
+      return { name, description: desc || name, tech, githubUrl: githubUrl || undefined, liveUrl: liveUrl || undefined };
     });
   };
 

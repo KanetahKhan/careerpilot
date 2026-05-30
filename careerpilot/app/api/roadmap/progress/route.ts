@@ -54,6 +54,7 @@ function summarize(row: ActiveRow) {
 export async function GET() {
   try {
     const user = await requireUser();
+    if (user instanceof Response) return user;
     const row = await loadActive(user.id);
     if (!row) {
       return NextResponse.json({
@@ -86,6 +87,7 @@ const PatchSchema = z.union([
 export async function PATCH(req: NextRequest) {
   try {
     const user = await requireUser();
+    if (user instanceof Response) return user;
     const body = await req.json().catch(() => null);
     const parsed = PatchSchema.safeParse(body);
     if (!parsed.success) {

@@ -36,9 +36,9 @@ const SUGGESTED_ROLES = [
 ];
 
 const TEASERS = [
-  { label: "React.js", icon: CheckCircle2, color: "text-emerald-500" },
-  { label: "TypeScript", icon: AlertTriangle, color: "text-amber-500" },
-  { label: "AWS", icon: XCircle, color: "text-rose-400" },
+  { label: "React.js", icon: CheckCircle2, color: "text-primary" },
+  { label: "TypeScript", icon: AlertTriangle, color: "text-muted-foreground" },
+  { label: "AWS", icon: XCircle, color: "text-destructive" },
 ];
 
 export default function SkillGapPage() {
@@ -101,6 +101,8 @@ export default function SkillGapPage() {
         <div className="glass-card flex items-center gap-2 rounded-full p-2 pl-6 transition-all focus-within:ring-4 focus-within:ring-primary/15">
           <Search size={20} className="shrink-0 text-primary" />
           <input
+            id="skill-gap-role"
+            aria-label="Role title"
             value={role}
             onChange={(e) => setRole(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && analyze()}
@@ -130,8 +132,8 @@ export default function SkillGapPage() {
                 onClick={() => { setRole(r); analyze(r); }}
                 className={
                   active
-                    ? "rounded-full border border-primary/30 bg-sky-200/90 px-5 py-2 text-sm font-semibold text-primary transition-transform hover:scale-[1.03]"
-                    : "rounded-full border border-sky-200/70 bg-white px-5 py-2 text-sm font-medium text-primary transition-all hover:scale-[1.03] hover:bg-sky-100"
+                    ? "rounded-full border border-primary/30 bg-primary/10 px-5 py-2 text-sm font-semibold text-primary transition-transform hover:scale-[1.03]"
+                    : "rounded-full border border-border bg-card px-5 py-2 text-sm font-medium text-primary transition-all hover:scale-[1.03] hover:bg-accent"
                 }
               >
                 {r}
@@ -140,7 +142,7 @@ export default function SkillGapPage() {
           })}
         </div>
 
-        {error && <p className="text-sm text-rose-500">⚠ {error}</p>}
+        {error && <p className="text-sm text-destructive">⚠ {error}</p>}
 
         {loading && (
           <p className="animate-pulse-glow text-sm text-primary">
@@ -151,14 +153,14 @@ export default function SkillGapPage() {
         {/* Empty state */}
         {!result && !loading && (
           <>
-            <div className="relative flex min-h-[420px] flex-col items-center justify-center overflow-hidden rounded-3xl border-2 border-dashed border-primary/20 bg-white/40 p-12 text-center shadow-[0_20px_40px_-18px_rgba(125,211,252,0.2)] backdrop-blur-md">
-              <div className="pointer-events-none absolute -right-12 -top-12 h-64 w-64 rounded-full bg-sky-300/15 blur-3xl" />
-              <div className="pointer-events-none absolute -bottom-12 -left-12 h-48 w-48 rounded-full bg-cyan-300/15 blur-3xl" />
+            <div className="relative flex min-h-[420px] flex-col items-center justify-center overflow-hidden rounded-3xl border-2 border-dashed border-primary/20 bg-card/40 p-12 text-center shadow-[0_20px_40px_-18px_rgba(125,211,252,0.2)] backdrop-blur-md">
+              <div className="pointer-events-none absolute -right-12 -top-12 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+              <div className="pointer-events-none absolute -bottom-12 -left-12 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
 
               <div className="relative z-10 flex flex-col items-center gap-6">
                 <div className="relative grid h-28 w-28 place-items-center">
                   <span className="absolute inset-0 rounded-full bg-primary/15 animate-ping" />
-                  <div className="relative grid h-20 w-20 place-items-center rounded-3xl bg-white shadow-xl">
+                  <div className="relative grid h-20 w-20 place-items-center rounded-3xl bg-card shadow-xl">
                     <ArrowLeftRight size={36} className="text-primary" />
                   </div>
                 </div>
@@ -177,7 +179,7 @@ export default function SkillGapPage() {
                     return (
                       <span
                         key={t.label}
-                        className="inline-flex items-center gap-2 rounded-lg border border-white bg-white/70 px-4 py-2 text-sm font-bold text-secondary-foreground"
+                        className="inline-flex items-center gap-2 rounded-lg border border-border bg-card/70 px-4 py-2 text-sm font-bold text-secondary-foreground"
                       >
                         <Icon size={16} className={t.color} />
                         {t.label}
@@ -204,7 +206,7 @@ export default function SkillGapPage() {
                   </p>
                   <button
                     onClick={() => { setRole("machine learning engineer"); analyze("machine learning engineer"); }}
-                    className="mt-6 inline-flex items-center gap-2 rounded-full bg-sky-200/90 px-6 py-2 text-sm font-bold text-primary transition-transform hover:scale-[1.03]"
+                    className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary/10 px-6 py-2 text-sm font-bold text-primary transition-transform hover:scale-[1.03]"
                   >
                     Explore gap analysis →
                   </button>
@@ -217,7 +219,7 @@ export default function SkillGapPage() {
                 />
               </div>
 
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-sky-400 p-8 text-white shadow-[0_24px_44px_-22px_rgba(0,102,134,0.5)]">
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-primary/70 p-8 text-primary-foreground shadow-[0_24px_44px_-22px_rgba(0,102,134,0.5)]">
                 <BadgeCheck size={36} className="mb-4" />
                 <h3 className="font-display text-xl font-bold leading-tight">Pro Benchmark Data</h3>
                 <p className="mt-2 text-sm text-white/85">
@@ -225,7 +227,7 @@ export default function SkillGapPage() {
                 </p>
                 <Link
                   href="/profile"
-                  className="mt-6 inline-flex rounded-full bg-white/20 px-5 py-2 text-xs font-bold backdrop-blur-md transition-colors hover:bg-white/30"
+                  className="mt-6 inline-flex rounded-full bg-background/20 px-5 py-2 text-xs font-bold backdrop-blur-md transition-colors hover:bg-background/30"
                 >
                   How it works
                 </Link>
@@ -256,12 +258,12 @@ export default function SkillGapPage() {
               {result.have.length > 0 && (
                 <div className="panel animate-fade-up p-5">
                   <p className="label mb-2 flex items-center gap-1.5">
-                    <span className="text-emerald-400">✓</span>
+                    <span className="text-primary">✓</span>
                     Have ({result.have.length}/{result.benchmarkSkills.length})
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {result.have.map((s) => (
-                      <span key={`have-${s}`} className="chip bg-emerald-400/10 text-emerald-500">
+                      <span key={`have-${s}`} className="chip bg-primary/10 text-primary">
                         {s}
                       </span>
                     ))}
@@ -272,12 +274,12 @@ export default function SkillGapPage() {
               {result.missing.length > 0 && (
                 <div className="panel animate-fade-up p-5">
                   <p className="label mb-2 flex items-center gap-1.5">
-                    <span className="text-rose-400">✗</span>
+                    <span className="text-destructive">✗</span>
                     Missing — focus here ({result.missing.length}/{result.benchmarkSkills.length})
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {result.missing.map((s) => (
-                      <span key={`missing-${s}`} className="chip bg-rose-400/10 text-rose-500">
+                      <span key={`missing-${s}`} className="chip bg-destructive/10 text-destructive">
                         {s}
                       </span>
                     ))}

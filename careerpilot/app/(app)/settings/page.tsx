@@ -178,7 +178,7 @@ export default function SettingsPage() {
         title="Settings"
         subtitle="Manage your preferences and workspace."
         icon={SettingsIcon}
-        gradient="from-slate-600 via-slate-600 to-slate-700"
+        gradient="from-primary via-primary to-primary/70"
       />
 
       <section className="space-y-4">
@@ -232,7 +232,7 @@ export default function SettingsPage() {
                 <p
                   className={cn(
                     "mt-2 text-xs",
-                    photoMsg.kind === "ok" ? "text-emerald-500" : "text-destructive"
+                    photoMsg.kind === "ok" ? "text-primary" : "text-destructive"
                   )}
                 >
                   {photoMsg.text}
@@ -266,7 +266,7 @@ export default function SettingsPage() {
                 <span
                   className={cn(
                     "text-xs",
-                    saveMsg.kind === "ok" ? "text-emerald-500" : "text-destructive"
+                    saveMsg.kind === "ok" ? "text-primary" : "text-destructive"
                   )}
                 >
                   {saveMsg.text}

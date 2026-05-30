@@ -49,12 +49,20 @@ export function AuthCharacter({ mode, state = "idle" }: AuthCharacterProps) {
   };
 
   return (
-    <div className="felix-box">
-      <div className={`felix-bubble ${state === "error" ? "bubble-shake" : ""}`}>
+    <div className="relative flex h-[260px] w-[220px] items-end justify-center">
+      <div
+        className={`absolute right-[-10px] top-0 z-20 whitespace-nowrap rounded-xl border border-border bg-card px-3.5 py-2 text-[11px] font-semibold text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.1)] transition-all duration-200 after:absolute after:bottom-[-5px] after:left-[14px] after:h-[10px] after:w-[10px] after:rotate-45 after:border-b after:border-r after:border-border after:bg-card after:content-[''] ${
+          state === "error" ? "text-destructive animate-[bubbleShake_0.5s_ease-in-out]" : ""
+        }`}
+      >
         {bubbleText()}
       </div>
 
-      <div className={`felix-wrap ${playing ? "" : "gentle-breathe"}`}>
+      <div
+        className={`relative z-[5] h-[160px] w-[160px] ${
+          playing ? "" : "animate-[breathe_4s_ease-in-out_infinite]"
+        }`}
+      >
         {playing ? (
           <Image
             key={currentFrame}
@@ -63,7 +71,7 @@ export function AuthCharacter({ mode, state = "idle" }: AuthCharacterProps) {
             width={160}
             height={160}
             priority
-            className="felix-img"
+            className="h-full w-full object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.12)]"
           />
         ) : (
           <Image
@@ -72,79 +80,20 @@ export function AuthCharacter({ mode, state = "idle" }: AuthCharacterProps) {
             width={160}
             height={160}
             priority
-            className="felix-img"
+            className="h-full w-full object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.12)]"
           />
         )}
       </div>
 
       <style jsx>{`
-        .felix-box {
-          position: relative;
-          width: 220px;
-          height: 260px;
-          display: flex;
-          align-items: flex-end;
-          justify-content: center;
-        }
-
-        .felix-bubble {
-          position: absolute;
-          top: 0;
-          right: -10px;
-          background: hsl(var(--card));
-          padding: 8px 14px;
-          border-radius: 14px;
-          font-size: 11px;
-          font-weight: 600;
-          color: hsl(var(--foreground));
-          box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-          white-space: nowrap;
-          z-index: 20;
-          transition: all 0.2s ease;
-          border: 1px solid hsl(var(--border));
-        }
-        .felix-bubble::after {
-          content: "";
-          position: absolute;
-          bottom: -5px;
-          left: 14px;
-          width: 10px;
-          height: 10px;
-          background: hsl(var(--card));
-          border-right: 1px solid hsl(var(--border));
-          border-bottom: 1px solid hsl(var(--border));
-          transform: rotate(45deg);
-        }
-        .bubble-shake {
-          animation: bubble-shake 0.5s ease-in-out;
-          color: hsl(var(--destructive));
-        }
-        @keyframes bubble-shake {
+        @keyframes bubbleShake {
           0%, 100% { transform: translateX(0); }
           25% { transform: translateX(-3px); }
           75% { transform: translateX(3px); }
         }
-
-        .felix-wrap {
-          position: relative;
-          z-index: 5;
-          width: 160px;
-          height: 160px;
-        }
-
-        .gentle-breathe {
-          animation: breathe 4s ease-in-out infinite;
-        }
         @keyframes breathe {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-3px); }
-        }
-
-        .felix-img {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-          filter: drop-shadow(0 8px 20px rgba(0,0,0,0.12));
         }
       `}</style>
     </div>

@@ -53,14 +53,14 @@ export function CvUploader({ onDone }: { onDone?: (r: any) => void }) {
       </label>
 
       {status === "uploading" && (
-        <p className="mt-4 text-sm text-amber-400 animate-pulse-glow">
+        <p className="mt-4 text-sm text-muted-foreground animate-pulse-glow">
           Parsing → chunking by section → embedding with Gemini…
         </p>
       )}
       {status === "error" && <p className="mt-4 text-sm text-primary">⚠ {error}</p>}
       {status === "done" && result && (
-        <div className="mt-4 animate-fade-up rounded-xl border border-emerald-400/30 bg-emerald-400/5 p-4">
-          <p className="text-sm font-medium text-emerald-400">
+        <div className="mt-4 animate-fade-up rounded-xl border border-primary/30 bg-primary/5 p-4">
+          <p className="text-sm font-medium text-primary">
             ✓ Indexed <span className="font-mono">{result.fileName}</span>
           </p>
           <p className="mt-1 text-sm text-muted-foreground">

@@ -70,10 +70,10 @@ const KanbanCard = memo(function KanbanCard({
             className={cn(
               "text-xs px-1.5 py-0.5 rounded font-medium",
               app.fit_score >= 75
-                ? "bg-emerald-400/10 text-emerald-400"
+                ? "bg-primary/10 text-primary"
                 : app.fit_score >= 55
-                ? "bg-amber-400/10 text-amber-400"
-                : "bg-rose-400/10 text-rose-400"
+                ? "bg-muted text-muted-foreground"
+                : "bg-destructive/10 text-destructive"
             )}
           >
             {app.fit_score}%
@@ -208,9 +208,9 @@ export default function TrackerPage() {
   return (
     <FadeIn>
     <div className="space-y-6 py-4">
-      {loadError && (
-        <p className="text-sm text-amber-400">⚠ {loadError} — data may be incomplete</p>
-      )}
+        {loadError && (
+          <p className="text-sm text-destructive">⚠ {loadError} — data may be incomplete</p>
+        )}
       <PageHeader
         eyebrow="Pillar 4 · Productivity & Progress"
         title="Your application command center."
@@ -224,7 +224,7 @@ export default function TrackerPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="panel p-5">
           <div className="flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-sky-400/15 text-sky-500 dark:text-sky-400">
+            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-primary/15 text-primary">
               <Briefcase size={18} />
             </span>
             <p className="label">Applications</p>
@@ -267,7 +267,7 @@ export default function TrackerPage() {
         </div>
         <div className="panel p-3">
           <div className="flex items-center gap-2 px-2 pt-1">
-            <span className="grid h-8 w-8 place-items-center rounded-xl bg-amber-400/15 text-amber-500 dark:text-amber-400">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-muted text-muted-foreground">
               <BarChart3 size={16} />
             </span>
             <p className="label">Pipeline</p>
@@ -391,7 +391,7 @@ export default function TrackerPage() {
               onClick={() => toggleGoal(g)}
               className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left hover:bg-secondary/40"
             >
-              <span className={`grid h-5 w-5 place-items-center rounded-md border ${g.done ? "border-emerald-400 bg-emerald-400/20 text-emerald-400" : "border-border"}`}>
+              <span className={`grid h-5 w-5 place-items-center rounded-md border ${g.done ? "border-primary bg-primary/20 text-primary" : "border-border"}`}>
                 {g.done && "✓"}
               </span>
               <span className={`text-sm ${g.done ? "text-muted-foreground line-through" : "text-foreground"}`}>{g.title}</span>

@@ -73,7 +73,8 @@ function safeFilename(name: string, fallback: string): string {
 
 export async function POST(req: NextRequest) {
   try {
-    await requireUser();
+    const _user = await requireUser();
+    if (_user instanceof Response) return _user;
     const body = await req.json().catch(() => null);
     const parsed = BodySchema.safeParse(body);
     if (!parsed.success) {

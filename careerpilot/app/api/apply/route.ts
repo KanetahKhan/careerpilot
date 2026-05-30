@@ -49,6 +49,7 @@ function daysFromToday(days: number): string {
  */
 export async function POST(req: NextRequest) {
   const user = await requireUser();
+  if (user instanceof Response) return user;
   const parsed = BodySchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json(

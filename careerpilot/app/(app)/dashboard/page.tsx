@@ -329,7 +329,7 @@ export default function DashboardPage() {
           <div className="panel p-6">
             <div className="pb-3">
               <h3 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-rose-500" />
+                <Calendar className="h-5 w-5 text-primary" />
                 Upcoming
               </h3>
             </div>
@@ -337,8 +337,8 @@ export default function DashboardPage() {
               <div className="space-y-3">
                 {events.slice(0, 5).map((event) => (
                   <div key={event.id} className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rose-500/10">
-                      <Calendar className="h-5 w-5 text-rose-500" />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                      <Calendar className="h-5 w-5 text-primary" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-foreground">{event.title}</p>

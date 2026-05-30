@@ -52,7 +52,7 @@ export default function OnboardingPage() {
                 href="/profile/edit"
                 className="panel group flex flex-col items-center gap-3 p-8 text-center transition-all hover:border-primary/50 hover:-translate-y-0.5"
               >
-                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-emerald-400/10 text-emerald-400">
+                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary">
                   <Edit3 className="h-7 w-7" />
                 </div>
                 <div>
@@ -84,7 +84,7 @@ export default function OnboardingPage() {
           {result && (
             <div className="space-y-5">
               <div className="bg-card border border-border rounded-xl p-5">
-                <p className="text-sm font-medium text-emerald-400">
+                <p className="text-sm font-medium text-primary">
                   ✓ Indexed <span className="font-mono">{result.fileName}</span> into {result.chunks} chunks
                 </p>
                 <p className="font-semibold text-sm text-muted-foreground mt-3 mb-2">Detected sections — do these look right?</p>
@@ -104,11 +104,11 @@ export default function OnboardingPage() {
 
               <div className="grid gap-3 sm:grid-cols-3">
                 <Link href="/profile" className="bg-card border border-border rounded-xl p-4 transition-transform hover:-translate-y-0.5 block">
-                  <p className="font-bold text-sky-400">See your CV profile →</p>
+                  <p className="font-bold text-primary">See your CV profile →</p>
                   <p className="mt-1 text-xs text-muted-foreground">Inspect the exact chunks the AI retrieves.</p>
                 </Link>
                 <Link href="/hunter" className="bg-card border border-border rounded-xl p-4 transition-transform hover:-translate-y-0.5 block">
-                  <p className="font-bold text-amber-400">Hunt jobs →</p>
+                  <p className="font-bold text-muted-foreground">Hunt jobs →</p>
                   <p className="mt-1 text-xs text-muted-foreground">Get fit-scored matches against your CV.</p>
                 </Link>
                 <Link href="/assistant" className="bg-card border border-border rounded-xl p-4 transition-transform hover:-translate-y-0.5 block">

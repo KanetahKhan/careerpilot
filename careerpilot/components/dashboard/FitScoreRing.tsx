@@ -7,10 +7,10 @@ export function FitScoreRing({ score }: FitScoreRingProps) {
   const strokeDashoffset = circumference - (score / 100) * circumference;
 
   const colorClass = score >= 75
-    ? "text-emerald-500 dark:text-emerald-400"
+    ? "text-primary"
     : score >= 55
-      ? "text-amber-500 dark:text-amber-400"
-      : "text-rose-500 dark:text-rose-400";
+      ? "text-muted-foreground"
+      : "text-destructive";
 
   return (
     <div className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center" title={`${score}% match`}>

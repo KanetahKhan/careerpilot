@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FadeIn } from "@/components/FadeIn";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/PageHeader";
 
 type Experience = { title: string; company: string; start: string; end: string; bullets: string[] };
 type Education = { degree: string; institution: string; start: string; end: string; details: string };
-type Project = { name: string; description: string; tech: string[] };
+type Project = { name: string; description: string; tech: string[]; githubUrl: string; liveUrl: string };
 type FormData = {
   fullName: string; headline: string; email: string; phone: string; location: string; summary: string;
   experience: Experience[]; education: Education[]; projects: Project[]; skills: string[];
@@ -24,6 +24,7 @@ const EMPTY: FormData = {
 
 export default function EditCvPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [data, setData] = useState<FormData>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -57,6 +58,48 @@ export default function EditCvPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Pre-fill from ?prefill= query param (from CV extraction)
+  useEffect(() => {
+    const raw = searchParams.get("prefill");
+    if (!raw) return;
+    try {
+      const prefill = JSON.parse(decodeURIComponent(raw));
+      setData((prev) => ({
+        ...prev,
+        fullName: prefill.fullName || prev.fullName,
+        email: prefill.email || prev.email,
+        phone: prefill.phone || prev.phone,
+        location: prefill.location || prev.location,
+        summary: prefill.summary || prev.summary,
+        skills: prefill.skills || prev.skills,
+        experience: prefill.experience?.map((e: any) => ({
+          title: e.title || "",
+          company: e.company || "",
+          start: e.duration || "",
+          end: "",
+          bullets: e.description ? [e.description] : [],
+        })) || prev.experience,
+        education: prefill.education?.map((e: any) => ({
+          degree: e.degree || "",
+          institution: e.institution || "",
+          start: e.year || "",
+          end: "",
+          details: "",
+        })) || prev.education,
+        projects: prefill.projects?.map((p: any) => ({
+          name: p.name || "",
+          description: p.description || "",
+          tech: p.technologies || [],
+          githubUrl: p.githubUrl || "",
+          liveUrl: p.liveUrl || "",
+        })) || prev.projects,
+      }));
+      router.replace("/profile/edit", { scroll: false });
+    } catch {
+      // ignore invalid prefill JSON
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const patch = useCallback((updater: (prev: FormData) => FormData) => {
     setData((prev) => updater(prev));
   }, []);
@@ -77,7 +120,7 @@ export default function EditCvPage() {
     return { ...p, education: copy };
   });
 
-  const addProj = () => patch((p) => ({ ...p, projects: [...p.projects, { name: "", description: "", tech: [] }] }));
+  const addProj = () => patch((p) => ({ ...p, projects: [...p.projects, { name: "", description: "", tech: [], githubUrl: "", liveUrl: "" }] }));
   const removeProj = (i: number) => patch((p) => ({ ...p, projects: p.projects.filter((_, idx) => idx !== i) }));
   const setProj = (i: number, field: keyof Project, value: any) => patch((p) => {
     const copy = [...p.projects];
@@ -153,7 +196,7 @@ export default function EditCvPage() {
           title="Build your CV."
           subtitle="Fill in the sections below. Your CV will be chunked and embedded — the same pipeline as a file upload — so RAG, fit scores, and the assistant all work."
           icon={FilePlus2}
-          gradient="from-indigo-500 via-indigo-500 to-blue-500"
+          gradient="from-primary via-primary to-primary/70"
         />
 
         <form onSubmit={handleSubmit} className="space-y-8 max-w-2xl">
@@ -162,29 +205,30 @@ export default function EditCvPage() {
             <h2 className="font-display text-xl font-bold">Personal Info</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label className="label mb-1 block">Full Name *</label>
-                <Input value={data.fullName} onChange={(e) => setData((p) => ({ ...p, fullName: e.target.value }))} placeholder="Jane Doe" />
+                <label htmlFor="profile-name" className="label mb-1 block">Full Name *</label>
+                <Input id="profile-name" value={data.fullName} onChange={(e) => setData((p) => ({ ...p, fullName: e.target.value }))} placeholder="Jane Doe" />
               </div>
               <div>
-                <label className="label mb-1 block">Headline</label>
-                <Input value={data.headline} onChange={(e) => setData((p) => ({ ...p, headline: e.target.value }))} placeholder="Software Engineer" />
+                <label htmlFor="profile-headline" className="label mb-1 block">Headline</label>
+                <Input id="profile-headline" value={data.headline} onChange={(e) => setData((p) => ({ ...p, headline: e.target.value }))} placeholder="Software Engineer" />
               </div>
               <div>
-                <label className="label mb-1 block">Email</label>
-                <Input value={data.email} onChange={(e) => setData((p) => ({ ...p, email: e.target.value }))} placeholder="jane@example.com" />
+                <label htmlFor="profile-email" className="label mb-1 block">Email</label>
+                <Input id="profile-email" value={data.email} onChange={(e) => setData((p) => ({ ...p, email: e.target.value }))} placeholder="jane@example.com" />
               </div>
               <div>
-                <label className="label mb-1 block">Phone</label>
-                <Input value={data.phone} onChange={(e) => setData((p) => ({ ...p, phone: e.target.value }))} placeholder="+1 555-0123" />
+                <label htmlFor="profile-phone" className="label mb-1 block">Phone</label>
+                <Input id="profile-phone" value={data.phone} onChange={(e) => setData((p) => ({ ...p, phone: e.target.value }))} placeholder="+1 555-0123" />
               </div>
               <div>
-                <label className="label mb-1 block">Location</label>
-                <Input value={data.location} onChange={(e) => setData((p) => ({ ...p, location: e.target.value }))} placeholder="San Francisco, CA" />
+                <label htmlFor="profile-location" className="label mb-1 block">Location</label>
+                <Input id="profile-location" value={data.location} onChange={(e) => setData((p) => ({ ...p, location: e.target.value }))} placeholder="San Francisco, CA" />
               </div>
             </div>
             <div>
-              <label className="label mb-1 block">Summary</label>
+              <label htmlFor="profile-summary" className="label mb-1 block">Summary</label>
               <textarea
+                id="profile-summary"
                 value={data.summary}
                 onChange={(e) => setData((p) => ({ ...p, summary: e.target.value }))}
                 placeholder="Brief professional summary…"
@@ -286,20 +330,36 @@ export default function EditCvPage() {
                   <span className="text-xs font-semibold text-muted-foreground uppercase">#{i + 1}</span>
                   <Button type="button" size="sm" variant="ghost" onClick={() => removeProj(i)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                 </div>
-                <Input value={proj.name} onChange={(e) => setProj(i, "name", e.target.value)} placeholder="Project name" />
-                <div>
-                  <label className="label mb-1 block">Tech stack (comma-separated)</label>
-                  <Input value={proj.tech?.join(", ") ?? ""} onChange={(e) => setProj(i, "tech", e.target.value.split(/,\s*/).filter(Boolean))} placeholder="React, Node.js, PostgreSQL" />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor={`proj-name-${i}`} className="label mb-1 block">Project Name</label>
+                    <Input id={`proj-name-${i}`} value={proj.name} onChange={(e) => setProj(i, "name", e.target.value)} placeholder="e.g., CareerPilot" />
+                  </div>
+                  <div>
+                    <label htmlFor={`proj-tech-${i}`} className="label mb-1 block">Technologies (comma separated)</label>
+                    <Input id={`proj-tech-${i}`} value={proj.tech?.join(", ") ?? ""} onChange={(e) => setProj(i, "tech", e.target.value.split(/,\s*/).filter(Boolean))} placeholder="React, Node.js, PostgreSQL" />
+                  </div>
                 </div>
                 <div>
-                  <label className="label mb-1 block">Description</label>
+                  <label htmlFor={`proj-desc-${i}`} className="label mb-1 block">Description</label>
                   <textarea
+                    id={`proj-desc-${i}`}
                     value={proj.description}
                     onChange={(e) => setProj(i, "description", e.target.value)}
                     rows={3}
                     className="w-full rounded-xl border border-border bg-background/50 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50"
-                    placeholder="What did you build?"
+                    placeholder="What did you build? What problem did it solve?"
                   />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor={`proj-gh-${i}`} className="label mb-1 block">GitHub URL</label>
+                    <Input id={`proj-gh-${i}`} type="url" value={proj.githubUrl} onChange={(e) => setProj(i, "githubUrl", e.target.value)} placeholder="https://github.com/username/repo" />
+                  </div>
+                  <div>
+                    <label htmlFor={`proj-live-${i}`} className="label mb-1 block">Live Demo URL</label>
+                    <Input id={`proj-live-${i}`} type="url" value={proj.liveUrl} onChange={(e) => setProj(i, "liveUrl", e.target.value)} placeholder="https://my-project.vercel.app" />
+                  </div>
                 </div>
               </div>
             ))}
@@ -332,9 +392,9 @@ export default function EditCvPage() {
             <h2 className="font-display text-xl font-bold">Certifications</h2>
             <div className="flex flex-wrap gap-2 mb-3">
               {data.certifications.map((c) => (
-                <span key={c} className="chip bg-emerald-400/10 text-emerald-400 border border-emerald-400/20">
+                <span key={c} className="chip bg-primary/10 text-primary border border-primary/20">
                   {c}
-                  <button type="button" onClick={() => removeCert(c)} className="ml-1 text-emerald-400/60 hover:text-emerald-400">&times;</button>
+                  <button type="button" onClick={() => removeCert(c)} className="ml-1 text-primary/60 hover:text-primary">&times;</button>
                 </span>
               ))}
             </div>
@@ -354,9 +414,9 @@ export default function EditCvPage() {
             <h2 className="font-display text-xl font-bold">Extracurricular</h2>
             <div className="flex flex-wrap gap-2 mb-3">
               {data.extracurricular.map((e) => (
-                <span key={e} className="chip bg-amber-400/10 text-amber-400 border border-amber-400/20">
+                <span key={e} className="chip bg-muted text-muted-foreground border border-border">
                   {e}
-                  <button type="button" onClick={() => removeExtra(e)} className="ml-1 text-amber-400/60 hover:text-amber-400">&times;</button>
+                  <button type="button" onClick={() => removeExtra(e)} className="ml-1 text-muted-foreground/60 hover:text-muted-foreground">&times;</button>
                 </span>
               ))}
             </div>

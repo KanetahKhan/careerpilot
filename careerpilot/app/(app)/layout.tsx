@@ -1,6 +1,7 @@
 import { Sidebar } from "@/components/Sidebar";
 import { AppHeader } from "@/components/AppHeader";
 import AppAmbientBackground from "@/components/app/AppAmbientBackground";
+import { AuthGuard } from "@/components/AuthGuard";
 
 export default function AppLayout({
   children,
@@ -8,7 +9,8 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen bg-background">
+    <AuthGuard>
+      <div className="flex min-h-screen bg-background">
       <Sidebar />
       <div className="relative flex-1 flex flex-col min-w-0">
         <AppAmbientBackground />
@@ -21,6 +23,7 @@ export default function AppLayout({
           </main>
         </div>
       </div>
-    </div>
+      </div>
+    </AuthGuard>
   );
 }

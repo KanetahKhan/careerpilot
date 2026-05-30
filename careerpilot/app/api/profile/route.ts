@@ -37,6 +37,7 @@ async function fetchOrCreateProfile(userId: string) {
 export async function GET() {
   try {
     const user = await requireUser();
+    if (user instanceof Response) return user;
     const profile = await fetchOrCreateProfile(user.id);
     return NextResponse.json({ profile });
   } catch (e: any) {
@@ -50,6 +51,7 @@ export async function GET() {
 export async function PATCH(req: NextRequest) {
   try {
     const user = await requireUser();
+    if (user instanceof Response) return user;
     const body = await req.json().catch(() => ({}));
     const parsed = patchSchema.safeParse(body);
     if (!parsed.success) {

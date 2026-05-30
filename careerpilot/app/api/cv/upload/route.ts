@@ -12,6 +12,7 @@ const ALLOWED_TYPES = ["application/pdf", "application/vnd.openxmlformats-office
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser();
+    if (user instanceof Response) return user;
     const form = await req.formData();
     const file = form.get("file") as File | null;
     if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });

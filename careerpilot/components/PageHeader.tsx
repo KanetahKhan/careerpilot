@@ -17,7 +17,7 @@ type Props = {
  */
 export function PageHeader({ title, eyebrow, subtitle, icon: Icon, children }: Props) {
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-100/70 via-sky-50/30 to-transparent p-6 shadow-[0_16px_38px_-26px_rgba(2,132,199,0.18)] sm:p-8">
+    <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-muted via-background to-transparent p-6 sm:p-8">
       {Icon && (
         <Icon
           aria-hidden="true"

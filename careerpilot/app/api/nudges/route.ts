@@ -14,6 +14,7 @@ const PatchSchema = z.object({
 
 export const GET = route(async () => {
   const user = await requireUser();
+  if (user instanceof Response) return user;
   const { data, error } = await listNotifications(user.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ notifications: data });
@@ -21,12 +22,14 @@ export const GET = route(async () => {
 
 export const POST = route(async () => {
   const user = await requireUser();
+  if (user instanceof Response) return user;
   const notifications = await generateNudges(user.id);
   return NextResponse.json({ notifications });
 });
 
 export const PATCH = route(async (req: Request) => {
   const user = await requireUser();
+  if (user instanceof Response) return user;
   const { id, read } = await parseJson(req, PatchSchema);
   const { data, error } = await markNotificationRead(id, user.id, read ?? true);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
