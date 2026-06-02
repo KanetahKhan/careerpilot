@@ -3,7 +3,6 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Brain, Search, ListChecks, Gauge, Globe, Info, Zap, Download, Printer, CalendarClock, CheckCircle2, type LucideIcon } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
-import { StaggerContainer, StaggerItem } from "@/components/StaggerContainer";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { FactorBars, fitScoreTextColor, type Fit } from "@/components/FitBreakdown";
@@ -390,10 +389,9 @@ function HunterInner() {
         </div>
       )}
 
-      <StaggerContainer className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         {jobs.map((j) => (
-          <StaggerItem key={j.id}>
-          <div className="panel card-hover animate-fade-up p-5">
+          <div key={j.id} className="panel card-hover animate-fade-up p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
                 {j.link ? (
@@ -465,9 +463,8 @@ function HunterInner() {
               )}
             </div>
           </div>
-          </StaggerItem>
         ))}
-      </StaggerContainer>
+      </div>
 
       {/* job detail modal — full description + full fit breakdown */}
       {detail && (
