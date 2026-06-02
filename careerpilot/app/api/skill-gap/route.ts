@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { AI_BUSY_MESSAGE, isRateLimitError } from "@/lib/ai";
 import { loadCvContext } from "@/lib/services/fit-score/fit-score";
 import { getBenchmark } from "@/lib/services/profile/benchmarks";
+import { getErrorMessage } from "@/lib/errors";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -56,12 +57,12 @@ export async function POST(req: NextRequest) {
       have,
       missing,
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (isRateLimitError(e)) {
       return NextResponse.json({ error: AI_BUSY_MESSAGE }, { status: 429 });
     }
     return NextResponse.json(
-      { error: e?.message ?? "Skill-gap analysis failed" },
+      { error: getErrorMessage(e) },
       { status: 500 },
     );
   }

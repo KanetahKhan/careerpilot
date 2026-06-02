@@ -45,7 +45,7 @@ export function Nudges() {
     fetch("/api/nudges")
       .then((r) => r.json())
       .then((d) => setItems(d.notifications ?? []))
-      .catch(() => setItems([]))
+      .catch((e) => { setError("Failed to load nudges."); setItems([]); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -70,11 +70,16 @@ export function Nudges() {
   async function markRead(n: Notification) {
     if (n.read) return;
     setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
-    await fetch("/api/nudges", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: n.id, read: true }),
-    });
+    try {
+      const r = await fetch("/api/nudges", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: n.id, read: true }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    } catch {
+      setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: false } : x)));
+    }
   }
 
   function runHunter(n: Notification, query: string) {

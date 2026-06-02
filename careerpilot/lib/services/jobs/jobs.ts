@@ -17,8 +17,25 @@ function hash(query: string, location: string) {
   return crypto.createHash("sha1").update(`${query}::${location}`.toLowerCase()).digest("hex");
 }
 
+type JSearchRawResult = {
+  job_id?: string;
+  job_title?: string;
+  employer_name?: string;
+  job_city?: string;
+  job_country?: string;
+  job_is_remote?: boolean;
+  job_min_salary?: number;
+  job_max_salary?: number;
+  job_salary?: string;
+  job_salary_currency?: string;
+  job_apply_link?: string;
+  job_description?: string;
+  job_offer_expiration_datetime_utc?: string;
+  job_highlights?: { qualifications?: string[]; responsibilities?: string[] };
+};
+
 /** Map a raw JSearch result row to our Job shape. */
-function mapJSearch(j: any): Job {
+function mapJSearch(j: JSearchRawResult): Job {
   return {
     id: j.job_id ?? crypto.randomUUID(),
     role: j.job_title ?? "Unknown role",

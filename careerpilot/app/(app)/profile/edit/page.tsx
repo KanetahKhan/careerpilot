@@ -4,8 +4,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FadeIn } from "@/components/FadeIn";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, ArrowLeft, Loader2, FilePlus2 } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, Loader2, FilePlus2, Download, Printer } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { getErrorMessage } from "@/lib/errors";
+import { downloadCvDocx, printCv } from "@/lib/export/client";
+import type { BuilderCv } from "@/lib/cv-transform";
 
 type Experience = { title: string; company: string; start: string; end: string; bullets: string[] };
 type Education = { degree: string; institution: string; start: string; end: string; details: string };
@@ -32,6 +35,40 @@ export default function EditCvPage() {
   const [skillInput, setSkillInput] = useState("");
   const [certInput, setCertInput] = useState("");
   const [extraInput, setExtraInput] = useState("");
+  const [exportBusy, setExportBusy] = useState(false);
+
+  function formDataToBuilderCv(): BuilderCv {
+    return {
+      fullName: data.fullName,
+      headline: data.headline,
+      email: data.email,
+      phone: data.phone,
+      location: data.location,
+      summary: data.summary,
+      experience: data.experience,
+      education: data.education,
+      projects: data.projects.map((p) => ({ name: p.name, description: p.description, tech: p.tech, githubUrl: p.githubUrl, liveUrl: p.liveUrl })),
+      skills: data.skills,
+      certifications: data.certifications,
+      extracurricular: data.extracurricular,
+    };
+  }
+
+  async function handleDocx() {
+    setExportBusy(true);
+    try {
+      await downloadCvDocx(formDataToBuilderCv(), { filename: `${data.fullName.trim() || "my"}-cv.docx` });
+    } catch (e: unknown) {
+      setError(getErrorMessage(e));
+    } finally {
+      setExportBusy(false);
+    }
+  }
+
+  function handlePdf() {
+    if (!data.fullName.trim()) { setError("Name is required for PDF"); return; }
+    printCv(formDataToBuilderCv());
+  }
 
   useEffect(() => {
     fetch("/api/cv/build")
@@ -171,8 +208,8 @@ export default function EditCvPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Failed to save");
       router.push("/profile");
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(getErrorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -436,6 +473,15 @@ export default function EditCvPage() {
           <div className="flex items-center gap-3 pb-8">
             <Button type="submit" disabled={saving}>
               {saving ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</> : "Save CV →"}
+            </Button>
+            <div className="flex-1" />
+            <Button type="button" variant="outline" size="sm" disabled={exportBusy || !data.fullName.trim()} onClick={handleDocx}>
+              {exportBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              DOCX
+            </Button>
+            <Button type="button" variant="outline" size="sm" disabled={!data.fullName.trim()} onClick={handlePdf}>
+              <Printer className="h-4 w-4" />
+              PDF
             </Button>
             <Button type="button" variant="ghost" onClick={() => router.push("/profile")}>
               Cancel

@@ -11,6 +11,7 @@ import {
   fitScoreTextColor,
   type Fit,
 } from "@/components/FitBreakdown";
+import { getErrorMessage } from "@/lib/errors";
 
 type Rewrite = { original: string; suggested: string; why: string };
 type TailorResult = {
@@ -57,8 +58,8 @@ export default function FitPage() {
       setFit(json.fit);
       // Keep the exact JD text the server used so /tailor scores the same job.
       setScoredJd(jd.trim() || json.jdPreview || "");
-    } catch (e: any) {
-      setScoreError(e.message);
+    } catch (e: unknown) {
+      setScoreError(getErrorMessage(e));
     } finally {
       setScoring(false);
     }
@@ -86,8 +87,8 @@ export default function FitPage() {
         gaps: json.gaps ?? [],
         citedSections: json.citedSections ?? [],
       });
-    } catch (e: any) {
-      setTailorError(e.message);
+    } catch (e: unknown) {
+      setTailorError(getErrorMessage(e));
     } finally {
       setTailoring(false);
     }

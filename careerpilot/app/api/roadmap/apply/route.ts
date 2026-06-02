@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { createGoal, createEvent } from "@/lib/services/tracker";
+import { getErrorMessage } from "@/lib/errors";
 
 export const runtime = "nodejs";
 
@@ -90,9 +91,9 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ goalsCreated, eventsCreated });
-  } catch (e: any) {
+  } catch (e: unknown) {
     return NextResponse.json(
-      { error: e?.message ?? "Failed to apply roadmap" },
+      { error: getErrorMessage(e) },
       { status: 500 }
     );
   }

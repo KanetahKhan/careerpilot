@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
 import { fitScoreTextColor } from "@/components/FitBreakdown";
+import { getErrorMessage } from "@/lib/errors";
 
 type SkillGapResult = {
   role: string;
@@ -67,8 +68,8 @@ export default function SkillGapPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Analysis failed");
       setResult(json);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(getErrorMessage(e));
     } finally {
       setLoading(false);
     }

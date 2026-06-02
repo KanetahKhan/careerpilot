@@ -71,7 +71,11 @@ function AuthPageInner() {
 
 export default function AuthPage() {
   return (
-    <Suspense>
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">Loading…</div>
+      </div>
+    }>
       <AuthPageInner />
     </Suspense>
   );

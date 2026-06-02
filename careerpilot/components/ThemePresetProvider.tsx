@@ -15,15 +15,19 @@ export function ThemePresetProvider({ children }: { children: React.ReactNode })
   const [presetName, setPresetName] = useState("skybound");
 
   useEffect(() => {
-    const saved = localStorage.getItem("careerpilot-theme-preset-v2");
-    if (saved && themePresets.find(p => p.name === saved)) {
-      setPresetName(saved);
-    }
+    try {
+      const saved = localStorage.getItem("careerpilot-theme-preset-v2");
+      if (saved && themePresets.find(p => p.name === saved)) {
+        setPresetName(saved);
+      }
+    } catch { /* localStorage not available */ }
   }, []);
 
   const setPreset = (name: string) => {
     setPresetName(name);
-    localStorage.setItem("careerpilot-theme-preset-v2", name);
+    try {
+      localStorage.setItem("careerpilot-theme-preset-v2", name);
+    } catch { /* localStorage not available */ }
   };
 
   const preset = themePresets.find(p => p.name === presetName) || themePresets[0];

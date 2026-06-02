@@ -1,25 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Sparkles, LogOut } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "./AuthProvider";
-import { createBrowserClient } from "@supabase/ssr";
+import { useLogout } from "@/hooks/useLogout";
 
 export function TopBar() {
   const { user, loading } = useAuth();
-  const router = useRouter();
-
-  const handleLogout = async () => {
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-    await supabase.auth.signOut();
-    router.replace("/");
-    router.refresh();
-  };
+  const handleLogout = useLogout();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">

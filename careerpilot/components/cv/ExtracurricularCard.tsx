@@ -15,13 +15,13 @@ export function ExtracurricularCard({ extracurricular }: { extracurricular: CVPr
 
       <div className="extra-list">
         {extracurricular.map((item, i) => (
-          <div key={i} className="extra-item">
+          <div key={`${item.organization}-${i}`} className="extra-item">
             <div className="extra-org">{item.organization}</div>
             <div className="extra-role">{item.role}</div>
             {item.activities.length > 0 && (
               <ul className="extra-activities">
                 {item.activities.map((act, j) => (
-                  <li key={j}>{act}</li>
+                  <li key={`${act}-${j}`}>{act}</li>
                 ))}
               </ul>
             )}

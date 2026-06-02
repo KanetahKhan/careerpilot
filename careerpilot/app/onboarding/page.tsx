@@ -37,6 +37,7 @@ export default function OnboardingPage() {
           {mode === "choose" && (
             <div className="grid gap-4 sm:grid-cols-2">
               <button
+                type="button"
                 onClick={() => setMode("upload")}
                 className="panel group flex flex-col items-center gap-3 p-8 text-center transition-all hover:border-primary/50 hover:-translate-y-0.5"
               >
@@ -74,6 +75,7 @@ export default function OnboardingPage() {
 
           {mode === "upload" && (
             <button
+              type="button"
               onClick={() => setMode("choose")}
               className="text-sm text-muted-foreground hover:text-foreground"
             >
@@ -96,7 +98,7 @@ export default function OnboardingPage() {
                 <p className="mt-3 text-xs text-muted-foreground">
                   Wrong or missing a section? Re-upload a cleaner CV — headings like &ldquo;Experience&rdquo;,
                   &ldquo;Education&rdquo;, &ldquo;Projects&rdquo;, &ldquo;Skills&rdquo; chunk best.{" "}
-                  <button onClick={() => { setResult(null); setMode("choose"); }} className="text-primary hover:underline">
+                  <button type="button" onClick={() => { setResult(null); setMode("choose"); }} className="text-primary hover:underline">
                     Upload again
                   </button>
                 </p>

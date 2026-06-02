@@ -10,7 +10,7 @@
 
 create table if not exists saved_searches (
   id bigint primary key generated always as identity,
-  user_id uuid not null references auth.users(id) on delete cascade,
+  user_id uuid not null references profiles(id) on delete cascade,
   label text not null default '',
   query text not null,
   location text not null default '',
@@ -22,7 +22,11 @@ create table if not exists saved_searches (
 -- Row-level security: each user sees only their own rows
 alter table saved_searches enable row level security;
 
-create policy "users can manage own saved searches"
-  on saved_searches
-  for all
-  using (auth.uid() = user_id);
+do $$ begin
+  create policy "users can manage own saved searches"
+    on saved_searches
+    for all
+    using (auth.uid() = user_id);
+exception
+  when duplicate_object then null;
+end $$;

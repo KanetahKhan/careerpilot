@@ -138,14 +138,3 @@ begin
 exception when duplicate_object then null;
 end $$;
 
--- ── Seed the demo user (matches DEMO_USER_ID in .env.example) ──
-insert into profiles (id, full_name)
-values ('00000000-0000-0000-0000-000000000001', 'Demo User')
-on conflict (id) do nothing;
-
--- A couple of seed goals so the dashboard isn't empty on first run
-insert into goals (user_id, title, due_date)
-values
-  ('00000000-0000-0000-0000-000000000001', 'Apply to 5 jobs this week', current_date + 5),
-  ('00000000-0000-0000-0000-000000000001', 'Finish DSA revision', current_date + 10)
-on conflict do nothing;

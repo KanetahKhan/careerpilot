@@ -14,4 +14,4 @@ alter table cv_documents
   add column if not exists centroid_embedding vector(768);
 
 create index if not exists idx_cv_documents_centroid
-  on cv_documents using ivfflat (centroid_embedding vector_cosine_ops);
+  on cv_documents using hnsw (centroid_embedding vector_cosine_ops);

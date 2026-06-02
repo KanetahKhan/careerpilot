@@ -13,6 +13,7 @@ import {
   printCoverLetter,
   looksLikeCoverLetter,
 } from "@/lib/export/client";
+import { getErrorMessage } from "@/lib/errors";
 
 const QUICK = [
   "Am I ready for a Software Engineer role at Google?",
@@ -40,11 +41,13 @@ function newSessionId() {
 
 function readOrCreateSessionId() {
   if (typeof window === "undefined") return null;
-  const existing = window.localStorage.getItem(SESSION_STORAGE_KEY);
-  if (existing) return existing;
-  const fresh = newSessionId();
-  window.localStorage.setItem(SESSION_STORAGE_KEY, fresh);
-  return fresh;
+  try {
+    const existing = window.localStorage.getItem(SESSION_STORAGE_KEY);
+    if (existing) return existing;
+    const fresh = newSessionId();
+    window.localStorage.setItem(SESSION_STORAGE_KEY, fresh);
+    return fresh;
+  } catch { return null; }
 }
 
 type Ready = {
@@ -72,8 +75,8 @@ export default function AssistantPage() {
         })
       );
       setReady({ sessionId, initial });
-    } catch (e: any) {
-      setLoadError(e.message);
+    } catch (e: unknown) {
+      setLoadError(getErrorMessage(e));
       setReady({ sessionId, initial: [] });
     }
   }, []);
@@ -86,9 +89,11 @@ export default function AssistantPage() {
 
   function startNewChat() {
     const fresh = newSessionId();
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(SESSION_STORAGE_KEY, fresh);
-    }
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(SESSION_STORAGE_KEY, fresh);
+      }
+    } catch { /* localStorage not available */ }
     setLoadError(null);
     setReady({ sessionId: fresh, initial: [] });
   }
@@ -349,8 +354,8 @@ function CoverLetterDownload({ text }: { text: string }) {
       await downloadCoverLetterDocx(text, {
         filename: `cover-letter-${todayStamp()}.docx`,
       });
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e));
     } finally {
       setBusy(null);
     }

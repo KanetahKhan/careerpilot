@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { listApplications } from "@/lib/services/tracker";
+import { getErrorMessage } from "@/lib/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -148,9 +149,9 @@ export async function GET() {
     const insight = pickInsight(apps);
 
     return NextResponse.json({ stages, rates, insight });
-  } catch (e: any) {
+  } catch (e: unknown) {
     return NextResponse.json(
-      { error: e?.message ?? "Failed to compute analytics" },
+      { error: getErrorMessage(e) },
       { status: 500 }
     );
   }

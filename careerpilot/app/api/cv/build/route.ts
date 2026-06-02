@@ -4,6 +4,7 @@ import { ingestSections, getCvProfile } from "@/lib/services/profile";
 import { serializeBuilderCv, parseBuilderFromSections } from "@/lib/cv-transform";
 import { AI_BUSY_MESSAGE, isRateLimitError } from "@/lib/ai";
 import { requireUser } from "@/lib/auth";
+import { getErrorMessage } from "@/lib/errors";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -62,11 +63,11 @@ export async function POST(req: Request) {
     const sections = serializeBuilderCv(parsed.data);
     const result = await ingestSections(user.id, sections, "Built CV");
     return NextResponse.json({ ok: true, ...result });
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (isRateLimitError(e)) {
       return NextResponse.json({ error: AI_BUSY_MESSAGE }, { status: 429 });
     }
-    return NextResponse.json({ error: e?.message ?? "Build failed" }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(e) }, { status: 500 });
   }
 }
 
@@ -80,7 +81,7 @@ export async function GET() {
     }
     const builder = parseBuilderFromSections(profile.sections);
     return NextResponse.json(builder);
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "Failed to load CV" }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: getErrorMessage(e) }, { status: 500 });
   }
 }

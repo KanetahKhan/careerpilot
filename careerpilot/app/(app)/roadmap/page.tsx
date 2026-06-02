@@ -5,6 +5,7 @@ import { CalendarPlus, Check, CheckCircle2, Route } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
 import { PageHeader } from "@/components/PageHeader";
 import { cn } from "@/lib/utils";
+import { getErrorMessage } from "@/lib/errors";
 
 type RoadmapItem = { key: string; text: string };
 type Week = {
@@ -107,8 +108,8 @@ export default function RoadmapPage() {
       if (!res.ok) throw new Error(json.error ?? "Failed to generate roadmap");
       setRoadmap(json.roadmap as Roadmap);
       setCompleted({});
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(getErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -134,7 +135,7 @@ export default function RoadmapPage() {
     try {
       const json = await patchProgress({ itemKey: key, done: next });
       setCompleted(json.completed);
-    } catch (e: any) {
+    } catch (e: unknown) {
       // Roll back on failure.
       setCompleted((prev) => {
         const copy = { ...prev };
@@ -142,7 +143,7 @@ export default function RoadmapPage() {
         else copy[key] = true;
         return copy;
       });
-      setError(e.message);
+      setError(getErrorMessage(e));
     }
   }
 
@@ -156,9 +157,9 @@ export default function RoadmapPage() {
     try {
       const json = await patchProgress({ itemKeys: keys, done: true });
       setCompleted(json.completed);
-    } catch (e: any) {
+    } catch (e: unknown) {
       setCompleted(prev);
-      setError(e.message);
+      setError(getErrorMessage(e));
     }
   }
 
@@ -179,8 +180,8 @@ export default function RoadmapPage() {
         goalsCreated: json.goalsCreated ?? 0,
         eventsCreated: json.eventsCreated ?? 0,
       });
-    } catch (e: any) {
-      setApplyError(e.message);
+    } catch (e: unknown) {
+      setApplyError(getErrorMessage(e));
     } finally {
       setApplying(false);
     }

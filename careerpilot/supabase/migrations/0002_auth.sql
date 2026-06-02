@@ -6,8 +6,15 @@
 -- 1. Alter the profiles table so the PK matches auth.uid()
 --    (the column already exists; we just remove the gen_random_uuid default
 --     because auth.uid() supplies the id).
-alter table profiles
-  alter column id drop default;
+do $$ begin
+  if exists (
+    select 1 from pg_attrdef where adrelid = 'profiles'::regclass and adnum = (
+      select attnum from pg_attribute where attrelid = 'profiles'::regclass and attname = 'id'
+    )
+  ) then
+    alter table profiles alter column id drop default;
+  end if;
+end $$;
 
 -- 2. Function + trigger: auto-create a profile row whenever a new user signs up.
 --    Idempotent — safe to re-run (on conflict do nothing).

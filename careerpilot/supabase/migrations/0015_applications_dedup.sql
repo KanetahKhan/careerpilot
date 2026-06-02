@@ -17,7 +17,6 @@ where id in (
   where dup.rn > 1
 );
 
--- 2. Add the unique constraint
-alter table applications
-  add constraint applications_user_role_company_key
-  unique (user_id, lower(trim(role)), lower(trim(company)));
+-- 2. Add the unique index (PostgreSQL does not support expressions in UNIQUE constraints)
+create unique index if not exists applications_dedup_idx
+  on applications (user_id, lower(trim(role)), lower(trim(company)));

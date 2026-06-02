@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { FactorBars, fitScoreTextColor, type Fit } from "@/components/FitBreakdown";
 import { downloadCoverLetterDocx, printCoverLetter } from "@/lib/export/client";
 import { useDebounce } from "@/lib/hooks/useDebounce";
+import { getErrorMessage } from "@/lib/errors";
 
 type Job = {
   id: string; role: string; company: string; location: string;
@@ -140,8 +141,8 @@ function HunterInner() {
           }
         }
       }
-    } catch (e: any) {
-      if (e?.name !== "AbortError") setRunError("Search failed — please try again.");
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name !== "AbortError") setRunError("Search failed — please try again.");
     } finally {
       abortRef.current = null;
       setLoading(false);
@@ -221,8 +222,8 @@ function HunterInner() {
       setSavedSearches(refresh.searches ?? []);
       // Also run the search in the main UI so the user sees results
       run(s.query);
-    } catch (e: any) {
-      setCheckError(e.message);
+    } catch (e: unknown) {
+      setCheckError(getErrorMessage(e));
     } finally {
       setRunningId(null);
     }

@@ -10,6 +10,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/Avatar";
+import { getErrorMessage } from "@/lib/errors";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -50,8 +51,8 @@ export default function SettingsPage() {
         if (cancelled) return;
         setProfile(json.profile);
         setDisplayName(json.profile?.display_name ?? "");
-      } catch (e: any) {
-        if (!cancelled) setSaveMsg({ kind: "err", text: e.message });
+      } catch (e: unknown) {
+        if (!cancelled) setSaveMsg({ kind: "err", text: getErrorMessage(e) });
       } finally {
         if (!cancelled) setProfileLoading(false);
       }
@@ -93,8 +94,8 @@ export default function SettingsPage() {
       setProfile(json.profile);
       setDisplayName(json.profile?.display_name ?? "");
       setSaveMsg({ kind: "ok", text: "Saved." });
-    } catch (e: any) {
-      setSaveMsg({ kind: "err", text: e.message });
+    } catch (e: unknown) {
+      setSaveMsg({ kind: "err", text: getErrorMessage(e) });
     } finally {
       setSaving(false);
     }
@@ -140,9 +141,9 @@ export default function SettingsPage() {
       setProfile((p) => (p ? { ...p, avatar_url: json.avatar_url } : p));
       clearLocalPreview();
       setPhotoMsg({ kind: "ok", text: "Photo updated." });
-    } catch (e: any) {
+    } catch (e: unknown) {
       clearLocalPreview();
-      setPhotoMsg({ kind: "err", text: e.message });
+      setPhotoMsg({ kind: "err", text: getErrorMessage(e) });
     } finally {
       setPhotoBusy(false);
     }
@@ -159,8 +160,8 @@ export default function SettingsPage() {
       setProfile((p) => (p ? { ...p, avatar_url: null } : p));
       clearLocalPreview();
       setPhotoMsg({ kind: "ok", text: "Photo removed." });
-    } catch (e: any) {
-      setPhotoMsg({ kind: "err", text: e.message });
+    } catch (e: unknown) {
+      setPhotoMsg({ kind: "err", text: getErrorMessage(e) });
     } finally {
       setPhotoBusy(false);
     }

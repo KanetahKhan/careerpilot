@@ -5,6 +5,7 @@ import { parseBuilderFromSections, transformBackendData } from "@/lib/cv-transfo
 import { generateObjectWithFallback, AI_BUSY_MESSAGE, isRateLimitError } from "@/lib/ai";
 import { requireUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase";
+import { getErrorMessage } from "@/lib/errors";
 import type { PortfolioData } from "@/types/portfolio";
 
 export const runtime = "nodejs";
@@ -12,12 +13,36 @@ export const maxDuration = 60;
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
+const ALLOWED_HOSTS = [
+  "localhost:3000",
+  "localhost:3001",
+  // Add your production domains here:
+  // "careerpilot.vercel.app",
+  // "www.careerpilot.dev",
+];
+
 /** Public origin of the current request (proxy-aware), for building share URLs. */
 function originOf(req: Request): string {
-  const h = req.headers;
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "https";
-  return host ? `${proto}://${host}` : new URL(req.url).origin;
+  const host = req.headers.get("host") || "localhost:3000";
+  const forwardedHost = req.headers.get("x-forwarded-host");
+  const forwardedProto = req.headers.get("x-forwarded-proto");
+
+  let finalHost = host;
+  let finalProto = "https";
+
+  if (forwardedHost && ALLOWED_HOSTS.includes(forwardedHost)) {
+    finalHost = forwardedHost;
+  }
+
+  if (forwardedProto === "http" || forwardedProto === "https") {
+    finalProto = forwardedProto;
+  }
+
+  if (!ALLOWED_HOSTS.includes(finalHost)) {
+    finalHost = ALLOWED_HOSTS[0] || "localhost:3000";
+  }
+
+  return `${finalProto}://${finalHost}`;
 }
 
 function slugifyName(name: string): string {
@@ -221,11 +246,11 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ slug, url: `${originOf(req)}/p/${slug}`, published: true });
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (isRateLimitError(e)) {
       return NextResponse.json({ error: AI_BUSY_MESSAGE }, { status: 429 });
     }
-    return NextResponse.json({ error: e?.message ?? "Failed to generate portfolio" }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(e) }, { status: 500 });
   }
 }
 
@@ -251,8 +276,8 @@ export async function GET(req: Request) {
         updatedAt: row.updated_at,
       },
     });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "Failed to load portfolio" }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: getErrorMessage(e) }, { status: 500 });
   }
 }
 
@@ -285,7 +310,7 @@ export async function PATCH(req: Request) {
       published: row.published,
       url: `${originOf(req)}/p/${row.slug}`,
     });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "Failed to update portfolio" }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: getErrorMessage(e) }, { status: 500 });
   }
 }

@@ -1,8 +1,7 @@
 import { NextRequest } from "next/server";
-import { google } from "@ai-sdk/google";
-import { generateObject } from "ai";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
+import { generateObjectWithFallback } from "@/lib/ai";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -51,32 +50,14 @@ export async function POST(req: NextRequest) {
   if (user instanceof Response) return user;
 
   try {
-    const formData = await req.formData();
-    const file = formData.get("cv") as File | null;
-    if (!file) {
-      return Response.json({ error: "No file provided" }, { status: 400 });
-    }
-
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const lower = file.name.toLowerCase();
-
-    let text: string;
-    if (lower.endsWith(".pdf")) {
-      const pdf = (await import("pdf-parse")).default;
-      const data = await pdf(buffer);
-      text = data.text;
-    } else if (lower.endsWith(".docx")) {
-      const mammoth = await import("mammoth");
-      const { value } = await mammoth.extractRawText({ buffer });
-      text = value;
-    } else {
-      text = buffer.toString("utf-8");
+    const { text } = await req.json();
+    if (!text || typeof text !== "string" || !text.trim()) {
+      return Response.json({ error: "No CV text provided" }, { status: 400 });
     }
 
     const truncatedText = text.slice(0, 12000);
 
-    const { object } = await generateObject({
-      model: google("gemini-2.5-flash"),
+    const { object } = await generateObjectWithFallback({
       schema: ExtractedProfileSchema,
       system: `You are a precise CV parser. Extract structured information from the CV text.
 Rules:

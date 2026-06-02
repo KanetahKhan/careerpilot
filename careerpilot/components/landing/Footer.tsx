@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 export function Footer() {
   return (
@@ -24,16 +24,6 @@ export function Footer() {
           <Link href="/">About</Link>
           <Link href="/">Privacy</Link>
           <Link href="/">Terms</Link>
-        </div>
-
-        <div className="sky-footer-col">
-          <h4>Newsletter</h4>
-          <div className="sky-news">
-            <input type="email" placeholder="Email address" aria-label="Email address" />
-            <button type="button" aria-label="Subscribe">
-              <ArrowRight size={18} />
-            </button>
-          </div>
         </div>
       </div>
 

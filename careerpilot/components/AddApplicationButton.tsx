@@ -3,12 +3,21 @@
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
 
+type NewApplication = {
+  id: string;
+  role: string;
+  company: string;
+  location: string;
+  link: string;
+  status: string;
+  created_at: string;
+};
+
 export function AddApplicationButton({
   onAdd,
   variant = "primary",
 }: {
-  onAdd: (app: any) => void;
-  /** "onColor" renders a white trigger for use on a colored/gradient surface. */
+  onAdd: (app: NewApplication) => void;
   variant?: "primary" | "onColor";
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,18 +35,24 @@ export function AddApplicationButton({
     if (!form.role.trim() || !form.company.trim()) return;
 
     setIsSubmitting(true);
-    const res = await fetch("/api/applications", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    const data = await res.json();
-    setIsSubmitting(false);
+    try {
+      const res = await fetch("/api/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
 
-    if (data.application) {
-      onAdd(data.application);
-      setIsOpen(false);
-      setForm({ role: "", company: "", location: "", link: "", status: "applied" });
+      if (data.application) {
+        onAdd(data.application);
+        setIsOpen(false);
+        setForm({ role: "", company: "", location: "", link: "", status: "applied" });
+      }
+    } catch {
+      // silent - user can retry
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -62,6 +77,7 @@ export function AddApplicationButton({
               <button
                 onClick={() => setIsOpen(false)}
                 className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                aria-label="Close"
               >
                 <X size={18} />
               </button>

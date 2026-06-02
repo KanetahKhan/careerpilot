@@ -1,5 +1,3 @@
-import mammoth from "mammoth";
-
 export type Chunk = { section: string; content: string; position: number };
 
 /** Extract raw text from an uploaded PDF or DOCX buffer. */
@@ -9,6 +7,7 @@ export async function extractText(
 ): Promise<string> {
   const lower = fileName.toLowerCase();
   if (lower.endsWith(".docx")) {
+    const mammoth = await import("mammoth");
     const { value } = await mammoth.extractRawText({ buffer });
     return value;
   }

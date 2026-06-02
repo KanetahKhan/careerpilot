@@ -6,6 +6,7 @@ import { FadeIn } from "@/components/FadeIn";
 import { PageHeader } from "@/components/PageHeader";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerContainer";
 import { VoiceInputButton } from "@/components/interview/VoiceInputButton";
+import { getErrorMessage } from "@/lib/errors";
 import { ReadAloudToggle } from "@/components/interview/ReadAloudToggle";
 
 type Question = {
@@ -74,8 +75,8 @@ export default function InterviewPage() {
       setCurrentIdx(0);
       setStep("interview");
       await streamTurn(json.sessionId, json.questions, [], jdTrimmed);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(getErrorMessage(e));
     } finally {
       setStarting(false);
     }
@@ -135,9 +136,9 @@ export default function InterviewPage() {
           }
         }
         setTranscript((prev) => [...prev, { role: "assistant", content: fullText }]);
-      } catch (e: any) {
-        if (e.name !== "AbortError") {
-          setError(e.message);
+      } catch (e: unknown) {
+        if (e instanceof Error && e.name !== "AbortError") {
+          setError(getErrorMessage(e));
         }
       } finally {
         setStreaming(false);
@@ -171,8 +172,8 @@ export default function InterviewPage() {
       if (!res.ok) throw new Error(json.error ?? "Feedback failed");
       setFeedback(json.feedback);
       setStep("feedback");
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(getErrorMessage(e));
     } finally {
       setFeedbackLoading(false);
     }

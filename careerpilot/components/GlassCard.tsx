@@ -1,8 +1,7 @@
 import { cn } from "@/lib/utils";
-import { ReactNode } from "react";
+import type { PropsWithChildren } from "react";
 
-interface GlassCardProps {
-  children: ReactNode;
+interface GlassCardProps extends PropsWithChildren {
   className?: string;
 }
 

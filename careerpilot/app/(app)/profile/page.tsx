@@ -13,6 +13,7 @@ import { CvStructuredView } from "@/components/cv/CvStructuredView";
 import { PortfolioPanel } from "@/components/portfolio/PortfolioPanel";
 import { downloadCvDocx, printCv } from "@/lib/export/client";
 import type { BuilderCv } from "@/lib/cv-transform";
+import { getErrorMessage } from "@/lib/errors";
 
 type ProfileSection = { section: string; chunks: { position: number; content: string }[] };
 type CvProfile = {
@@ -82,8 +83,8 @@ export default function ProfilePage() {
     setExportErr(null);
     try {
       await downloadCvDocx(builderCv, { filename: `${nameSlug()}-cv.docx` });
-    } catch (e: any) {
-      setExportErr(e.message);
+    } catch (e: unknown) {
+      setExportErr(getErrorMessage(e));
     } finally {
       setExportBusy(null);
     }
@@ -109,13 +110,61 @@ export default function ProfilePage() {
         const err = await uploadRes.json();
         throw new Error(err.error ?? "Upload failed");
       }
+      const uploadData = await uploadRes.json();
 
-      const extractForm = new FormData();
-      extractForm.append("cv", file);
-      const extractRes = await fetch("/api/cv/extract", { method: "POST", body: extractForm });
-      const extractData = await extractRes.json();
-      if (extractData.extracted) {
-        setExtracted(extractData.extracted);
+      const extractRes = await fetch("/api/cv/extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: uploadData.rawText ?? "" }),
+      });
+      let extractedData: ExtractedProfile | null = null;
+      if (extractRes.ok) {
+        const data = await extractRes.json();
+        if (data.extracted) {
+          extractedData = data.extracted as ExtractedProfile;
+          setExtracted(extractedData);
+        }
+      }
+
+      // Auto-save extracted data as builder CV so export buttons appear immediately
+      if (extractedData) {
+        const builderPayload: BuilderCv = {
+          fullName: extractedData.fullName ?? "",
+          headline: "",
+          email: extractedData.email ?? "",
+          phone: extractedData.phone ?? "",
+          location: extractedData.location ?? "",
+          summary: extractedData.summary ?? "",
+          skills: extractedData.skills ?? [],
+          experience: (extractedData.experience ?? []).map((e) => ({
+            title: e.title,
+            company: e.company,
+            start: e.duration ?? "",
+            end: "",
+            bullets: e.description ? [e.description] : [],
+          })),
+          education: (extractedData.education ?? []).map((e) => ({
+            degree: e.degree,
+            institution: e.institution,
+            start: e.year ?? "",
+            end: "",
+            details: "",
+          })),
+          projects: (extractedData.projects ?? []).map((p) => ({
+            name: p.name,
+            description: p.description ?? "",
+            tech: p.technologies ?? [],
+            githubUrl: p.githubUrl ?? "",
+            liveUrl: p.liveUrl ?? "",
+          })),
+          certifications: [],
+          extracurricular: [],
+        };
+        await fetch("/api/cv/build", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(builderPayload),
+        }).catch(() => {});
       }
 
       // Refresh profile data
@@ -131,8 +180,8 @@ export default function ProfilePage() {
           setBuilderCv(buildJson as BuilderCv);
         }
       }
-    } catch (e: any) {
-      setUploadErr(e.message);
+    } catch (e: unknown) {
+      setUploadErr(getErrorMessage(e));
     } finally {
       setIsUploading(false);
       setIsExtracting(false);
@@ -172,11 +221,17 @@ export default function ProfilePage() {
             chunking and embedding pipeline.
           </p>
           <div className="flex items-center justify-center gap-3 pt-2">
-            <Link href="/profile/edit">
-              <Button variant="primary">
-                <Upload className="h-4 w-4" /> Upload your CV
-              </Button>
-            </Link>
+            <Button
+              variant="primary"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Uploading…</>
+              ) : (
+                <><Upload className="h-4 w-4" /> Upload your CV</>
+              )}
+            </Button>
             <Link href="/profile/edit">
               <Button variant="outline">
                 <Edit3 className="h-4 w-4" /> Build one here

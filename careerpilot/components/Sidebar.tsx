@@ -144,6 +144,7 @@ export function Sidebar() {
               <button
                 onClick={() => setCollapsed(false)}
                 className="mx-auto mb-2 hidden md:grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
+                aria-label="Expand sidebar"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -160,6 +161,7 @@ export function Sidebar() {
               <button
                 onClick={() => setCollapsed(true)}
                 className="mb-2 hidden md:grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
+                aria-label="Collapse sidebar"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>

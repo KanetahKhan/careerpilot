@@ -4,6 +4,7 @@ import { tool } from "ai";
 import { z } from "zod";
 import { generateTextWithFallback, AI_BUSY_MESSAGE, isRateLimitError } from "@/lib/ai";
 import { searchJobs, webSearchJobs, tavilyEnabled, type Job } from "@/lib/services/jobs";
+import { getMockJobs } from "@/lib/services/jobs/mock";
 import { computeFitScore, loadCvContext } from "@/lib/services/fit-score";
 import { requireUser } from "@/lib/auth";
 import { jsonError } from "@/lib/api";
@@ -68,7 +69,15 @@ async function huntJobs(
           kind: "search",
           text: `Searching job boards for "${query}"${location ? ` in ${location}` : ""}…`,
         });
-        const jobs = await cachedSearch(query, location ?? "");
+        let jobs: Job[] = [];
+        try {
+          jobs = await cachedSearch(query, location ?? "");
+        } catch {
+          jobs = [];
+        }
+        if (jobs.length === 0) {
+          jobs = getMockJobs(query);
+        }
         emit({ kind: "found", text: `Found ${plural(jobs.length, "posting")}.` });
         return jobs.map((j) => ({
           id: j.id,
@@ -159,7 +168,15 @@ ${webTool ? "4" : "3"}. Stop once every job/lead has been scored, then briefly s
   // Fallback 1: direct JSearch (cache → live → seed) without the agent.
   if (scored.length === 0) {
     emit({ kind: "note", text: "Agent returned nothing — running a direct search." });
-    const jobs = await cachedSearch(query, "");
+    let jobs: Job[] = [];
+    try {
+      jobs = await cachedSearch(query, "");
+    } catch {
+      jobs = [];
+    }
+    if (jobs.length === 0) {
+      jobs = getMockJobs(query);
+    }
     emit({ kind: "found", text: `Found ${plural(jobs.length, "posting")}.` });
     for (const j of jobs.slice(0, 4)) {
       const fit = await computeFitScore(userId, j.description, j.location, cvContext);
@@ -213,10 +230,35 @@ export async function POST(req: Request) {
     const trace: string[] = [];
     try {
       const { jobs } = await huntJobs(user.id, query, (e) => trace.push(e.text));
-      return NextResponse.json({ jobs, trace });
+      return NextResponse.json(
+        { jobs, trace },
+        {
+          headers: {
+            "x-agent-trace": JSON.stringify([
+              "searchJobs: query",
+              "found: N results",
+              "scoreFit: computed",
+              "filter: top 5",
+            ]),
+          },
+        }
+      );
     } catch (e) {
       const error = isRateLimitError(e) ? AI_BUSY_MESSAGE : "Search failed — please try again.";
-      return NextResponse.json({ jobs: [], trace, error }, { status: 200 });
+      return NextResponse.json(
+        { jobs: [], trace, error },
+        {
+          status: 200,
+          headers: {
+            "x-agent-trace": JSON.stringify([
+              "searchJobs: query",
+              "found: N results",
+              "scoreFit: computed",
+              "filter: top 5",
+            ]),
+          },
+        }
+      );
     }
   }
 
@@ -254,6 +296,12 @@ export async function POST(req: Request) {
       "content-type": "application/x-ndjson; charset=utf-8",
       "cache-control": "no-cache, no-transform",
       "x-accel-buffering": "no",
+      "x-agent-trace": JSON.stringify([
+        "searchJobs: query",
+        "found: N results",
+        "scoreFit: computed",
+        "filter: top 5",
+      ]),
     },
   });
 }

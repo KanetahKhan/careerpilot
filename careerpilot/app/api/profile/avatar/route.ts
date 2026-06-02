@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
+import { getErrorMessage } from "@/lib/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -79,9 +80,9 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ avatar_url });
-  } catch (e: any) {
+  } catch (e: unknown) {
     return NextResponse.json(
-      { error: e?.message ?? "Avatar upload failed" },
+      { error: getErrorMessage(e) },
       { status: 500 }
     );
   }
@@ -106,9 +107,9 @@ export async function DELETE() {
     if (dbErr) return NextResponse.json({ error: dbErr.message }, { status: 500 });
 
     return NextResponse.json({ avatar_url: null });
-  } catch (e: any) {
+  } catch (e: unknown) {
     return NextResponse.json(
-      { error: e?.message ?? "Failed to remove avatar" },
+      { error: getErrorMessage(e) },
       { status: 500 }
     );
   }

@@ -7,6 +7,7 @@ import {
   isRateLimitError,
 } from "@/lib/ai";
 import { retrieveChunks, formatContext } from "@/lib/services/profile";
+import { getErrorMessage } from "@/lib/errors";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -89,12 +90,12 @@ ${cvContext}
       gaps: object.gaps,
       citedSections: [...new Set(chunks.map((c) => c.section))],
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (isRateLimitError(e)) {
       return NextResponse.json({ error: AI_BUSY_MESSAGE }, { status: 429 });
     }
     return NextResponse.json(
-      { error: e?.message ?? "Tailoring failed" },
+      { error: getErrorMessage(e) },
       { status: 500 }
     );
   }

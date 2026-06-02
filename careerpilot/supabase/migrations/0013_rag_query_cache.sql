@@ -9,7 +9,7 @@
 
 create table if not exists rag_query_cache (
   id         bigserial primary key,
-  user_id    text not null,
+  user_id    uuid not null references profiles(id) on delete cascade,
   query_hash text not null,
   results    jsonb not null,
   created_at timestamptz default now(),

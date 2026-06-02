@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
+import { getErrorMessage } from "@/lib/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,9 +41,9 @@ export async function GET() {
     if (user instanceof Response) return user;
     const profile = await fetchOrCreateProfile(user.id);
     return NextResponse.json({ profile });
-  } catch (e: any) {
+  } catch (e: unknown) {
     return NextResponse.json(
-      { error: e?.message ?? "Failed to load profile" },
+      { error: getErrorMessage(e) },
       { status: 500 }
     );
   }
@@ -78,9 +79,9 @@ export async function PATCH(req: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     return NextResponse.json({ profile: data });
-  } catch (e: any) {
+  } catch (e: unknown) {
     return NextResponse.json(
-      { error: e?.message ?? "Failed to update profile" },
+      { error: getErrorMessage(e) },
       { status: 500 }
     );
   }

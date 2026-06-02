@@ -1,10 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const safePaths = ["/dashboard", "/profile", "/settings", "/tracker", "/hunter", "/"];
+
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const nextRaw = searchParams.get("next") ?? "/dashboard";
+  const next = safePaths.includes(nextRaw) ? nextRaw : "/dashboard";
 
   if (code) {
     let supabaseResponse = NextResponse.redirect(`${origin}${next}`);

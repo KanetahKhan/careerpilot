@@ -9,6 +9,7 @@ import {
   totalActionCount,
   type PersistedRoadmap,
 } from "@/lib/services/assistant";
+import { getErrorMessage } from "@/lib/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -65,9 +66,9 @@ export async function GET() {
       });
     }
     return NextResponse.json(summarize(row));
-  } catch (e: any) {
+  } catch (e: unknown) {
     return NextResponse.json(
-      { error: e?.message ?? "Failed to load progress" },
+      { error: getErrorMessage(e) },
       { status: 500 }
     );
   }
@@ -134,9 +135,9 @@ export async function PATCH(req: NextRequest) {
     }
 
     return NextResponse.json(summarize(data as ActiveRow));
-  } catch (e: any) {
+  } catch (e: unknown) {
     return NextResponse.json(
-      { error: e?.message ?? "Failed to update progress" },
+      { error: getErrorMessage(e) },
       { status: 500 }
     );
   }

@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase";
 import { searchJobs } from "@/lib/services/jobs";
 import { insertNotifications } from "@/lib/services/tracker";
 import crypto from "crypto";
+import { getErrorMessage } from "@/lib/errors";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -131,7 +132,7 @@ export async function POST(req: NextRequest) {
   }
 
     return NextResponse.json({ checked: results.length, results });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "Failed to check saved searches" }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: getErrorMessage(e) }, { status: 500 });
   }
 }

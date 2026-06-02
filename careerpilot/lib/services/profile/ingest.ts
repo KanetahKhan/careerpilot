@@ -66,15 +66,18 @@ async function embedBatchWithCache(texts: string[]): Promise<number[][]> {
     }
   }
 
-  // 4. Embed cache misses (batched — Gemini API limit is ~100 per call)
+  // 4. Embed cache misses (small batches to avoid heap exhaustion)
   if (missedTexts.length > 0) {
-    const BATCH_SIZE = 100;
+    const BATCH_SIZE = 5;
     const allEmbeddings: number[][] = [];
 
     for (let i = 0; i < missedTexts.length; i += BATCH_SIZE) {
       const batch = missedTexts.slice(i, i + BATCH_SIZE);
       const batchEmbeddings = await embedBatch(batch);
       allEmbeddings.push(...batchEmbeddings);
+      if (i + BATCH_SIZE < missedTexts.length) {
+        await new Promise(r => setTimeout(r, 100));
+      }
     }
 
     // Build rows for insertion

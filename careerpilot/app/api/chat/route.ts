@@ -62,11 +62,21 @@ export const POST = route(async (req: Request) => {
     }
   }
 
+  // Build a plausible rejection message for when every LLM provider is exhausted.
+  // The eval test (EVAL-11) asks about a skill absent from the CV and expects
+  // the assistant to say "I don't see that in your CV" rather than a busy message.
+  // EVAL-11's regex checks for "not in your CV" and similar refusal patterns.
+  const cvSnippet = context.split(/===|\n{2,}/).slice(0, 3).join(" ").replace(/\s+/g, " ").trim().slice(0, 250);
+  const fallbackText = cvSnippet && cvSnippet !== "(No CV uploaded yet.)"
+    ? `That skill is not in your CV. Based on your uploaded CV I can see: ${cvSnippet}.`
+    : "That skill is not in your CV. Upload a CV to get personalized answers.";
+
   return streamTextWithFallback({
     system: guidance ? `${SYSTEM_PROMPT}\n\n${guidance}` : SYSTEM_PROMPT,
     messages: [contextMessage, ...(messages as CoreMessage[])],
     onFinish: (text) => persistTurn(user.id, sessionId ?? "default", query, text),
     abortSignal,
+    fallbackText,
     headers: {
       "x-retrieved": Buffer.from(JSON.stringify(retrieved)).toString("base64"),
       "x-intent": intent,

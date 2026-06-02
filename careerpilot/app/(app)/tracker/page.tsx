@@ -40,7 +40,7 @@ const COLUMNS: { id: string; label: string }[] = [
   { id: "rejected", label: "Rejected" },
 ];
 
-const BAR_COLORS = ["#5AA9E6", "#FFB23E", "#3DD9A0", "#a78bfa"];
+const BAR_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))"];
 
 const KanbanCard = memo(function KanbanCard({
   provided,

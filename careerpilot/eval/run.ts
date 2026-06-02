@@ -6,6 +6,7 @@
  * This is the artifact judges can run to verify your claims.
  */
 import { loadEnvConfig } from "@next/env";
+import { getErrorMessage } from "@/lib/errors";
 
 // Load .env.local exactly like `next dev` does, so EVAL_SECRET / EVAL_BASE_URL
 // are picked up when this runs standalone under tsx.
@@ -23,6 +24,30 @@ const H: Record<string, string> = {
   ...(EVAL_SECRET ? { "x-eval-secret": EVAL_SECRET } : {}),
 };
 
+type JobFit = {
+  score: number;
+  semantic: number;
+  skills: number;
+  seniority: number;
+  education: number;
+  location: number;
+  [key: string]: number | undefined;
+};
+
+type JobCard = {
+  fit?: JobFit;
+  [key: string]: unknown;
+};
+
+type AppItem = {
+  company: string;
+  [key: string]: unknown;
+};
+
+type SearchResponse = { jobs?: JobCard[]; trace?: string[] };
+
+const TIMEOUT_MS = 30000;
+
 type Case = { id: string; desc: string; run: () => Promise<{ pass: boolean; actual: string }> };
 
 const cases: Case[] = [
@@ -34,11 +59,12 @@ const cases: Case[] = [
         method: "POST",
         headers: H,
         body: JSON.stringify({ query: "react frontend" }),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
       });
-      const j = await r.json();
+      const j: SearchResponse = await r.json();
       const jobs = j.jobs ?? [];
-      const ok = jobs.length >= 1 && jobs.every((x: any) => x.fit?.score >= 0 && x.fit?.score <= 100);
-      return { pass: ok, actual: `${jobs.length} jobs, scores ${jobs.map((x: any) => x.fit?.score).join(",")}` };
+      const ok = jobs.length >= 1 && jobs.every((x) => x.fit?.score !== undefined && x.fit.score >= 0 && x.fit.score <= 100);
+      return { pass: ok, actual: `${jobs.length} jobs, scores ${jobs.map((x) => x.fit?.score).join(",")}` };
     },
   },
   {
@@ -50,6 +76,7 @@ const cases: Case[] = [
           method: "POST",
           headers: H,
           body: JSON.stringify({ query: "node backend" }),
+          signal: AbortSignal.timeout(TIMEOUT_MS),
         });
         const j = await r.json();
         return j.jobs?.[0]?.fit?.score ?? -1;
@@ -67,8 +94,9 @@ const cases: Case[] = [
         method: "POST",
         headers: H,
         body: JSON.stringify({ query: "ml internship" }),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
       });
-      const j = await r.json();
+      const j: SearchResponse = await r.json();
       return { pass: (j.trace ?? []).length > 0, actual: (j.trace ?? []).join(" | ") };
     },
   },
@@ -80,6 +108,7 @@ const cases: Case[] = [
         method: "POST",
         headers: H,
         body: JSON.stringify({ messages: [{ role: "user", content: "Hello, who am I?" }] }),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
       });
       const text = await r.text();
       return { pass: r.ok && text.length > 0, actual: `status ${r.status}, ${text.length} bytes` };
@@ -93,8 +122,9 @@ const cases: Case[] = [
         method: "POST",
         headers: H,
         body: JSON.stringify({ role: "Eval Role", company: "EvalCo", fit_score: 77 }),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
       });
-      const r = await fetch(`${BASE}/api/applications`, { headers: H });
+      const r = await fetch(`${BASE}/api/applications`, { headers: H, signal: AbortSignal.timeout(TIMEOUT_MS) });
       const j = await r.json();
       const found = (j.applications ?? []).some((a: any) => a.company === "EvalCo");
       return { pass: found, actual: `${(j.applications ?? []).length} apps, EvalCo present=${found}` };
@@ -104,7 +134,7 @@ const cases: Case[] = [
     id: "EVAL-6",
     desc: "Goals API returns the seeded demo goals",
     run: async () => {
-      const r = await fetch(`${BASE}/api/goals`, { headers: H });
+      const r = await fetch(`${BASE}/api/goals`, { headers: H, signal: AbortSignal.timeout(TIMEOUT_MS) });
       const j = await r.json();
       return { pass: (j.goals ?? []).length >= 1, actual: `${(j.goals ?? []).length} goals` };
     },
@@ -114,9 +144,9 @@ const cases: Case[] = [
     desc: "Job cache works (repeat query is fast / consistent)",
     run: async () => {
       const q = { query: "full-stack engineer" };
-      const r1 = await fetch(`${BASE}/api/jobs/search`, { method: "POST", headers: H, body: JSON.stringify(q) });
+      const r1 = await fetch(`${BASE}/api/jobs/search`, { method: "POST", headers: H, body: JSON.stringify(q), signal: AbortSignal.timeout(TIMEOUT_MS) });
       const j1 = await r1.json();
-      const r2 = await fetch(`${BASE}/api/jobs/search`, { method: "POST", headers: H, body: JSON.stringify(q) });
+      const r2 = await fetch(`${BASE}/api/jobs/search`, { method: "POST", headers: H, body: JSON.stringify(q), signal: AbortSignal.timeout(TIMEOUT_MS) });
       const j2 = await r2.json();
       return { pass: (j1.jobs?.length ?? 0) === (j2.jobs?.length ?? 0), actual: `run1=${j1.jobs?.length} run2=${j2.jobs?.length}` };
     },
@@ -129,8 +159,9 @@ const cases: Case[] = [
         method: "POST",
         headers: H,
         body: JSON.stringify({ query: "backend developer dhaka" }),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
       });
-      const j = await r.json();
+      const j: SearchResponse = await r.json();
       const factors = ["semantic", "skills", "seniority", "education", "location"] as const;
       const jobs = j.jobs ?? [];
       const ok =
@@ -151,7 +182,7 @@ const cases: Case[] = [
     id: "EVAL-9",
     desc: "Health endpoint returns { status: ok }",
     run: async () => {
-      const r = await fetch(`${BASE}/api/health`, { headers: H });
+      const r = await fetch(`${BASE}/api/health`, { headers: H, signal: AbortSignal.timeout(TIMEOUT_MS) });
       const j = await r.json();
       return {
         pass: r.ok && j.status === "ok" && typeof j.time === "string",
@@ -170,6 +201,7 @@ const cases: Case[] = [
         body: JSON.stringify({
           messages: [{ role: "user", content: "Build me a 4-week roadmap to become job-ready." }],
         }),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
       });
       const intent = r.headers.get("x-intent");
       return { pass: !!intent && valid.includes(intent), actual: `x-intent=${intent}` };
@@ -190,6 +222,7 @@ const cases: Case[] = [
             },
           ],
         }),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
       });
       // Reconstruct the assistant's text from the data-stream protocol (0:"..." lines).
       const body = await r.text();
@@ -228,8 +261,8 @@ async function main() {
       if (pass) passed++;
       console.log(`  ${pass ? "✓ PASS" : "✗ FAIL"}  ${c.id}  ${c.desc}`);
       console.log(`          ↳ ${actual}`);
-    } catch (e: any) {
-      console.log(`  ✗ ERROR ${c.id}  ${c.desc}\n          ↳ ${e.message}`);
+    } catch (e: unknown) {
+      console.log(`  ✗ ERROR ${c.id}  ${c.desc}\n          ↳ ${getErrorMessage(e)}`);
     }
   }
   console.log(`\n  ${passed}/${cases.length} passed\n`);

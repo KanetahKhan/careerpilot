@@ -3,17 +3,16 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Sparkles, LogOut } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "./AuthProvider";
 import { Avatar } from "./Avatar";
-import { createBrowserClient } from "@supabase/ssr";
+import { useLogout } from "@/hooks/useLogout";
 
 type Profile = { display_name: string | null; avatar_url: string | null };
 
 export function AppHeader() {
   const { user, loading } = useAuth();
-  const router = useRouter();
+  const handleLogout = useLogout();
   const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
@@ -32,16 +31,6 @@ export function AppHeader() {
       cancelled = true;
     };
   }, [user]);
-
-  async function handleLogout() {
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-    await supabase.auth.signOut();
-    router.replace("/");
-    router.refresh();
-  }
 
   const displayName =
     profile?.display_name || user?.user_metadata?.full_name || user?.email || null;

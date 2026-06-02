@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { buildLetterDocx, buildCvDocx } from "@/lib/export/docx";
+import { getErrorMessage } from "@/lib/errors";
 
 export const runtime = "nodejs";
 
@@ -118,9 +119,9 @@ export async function POST(req: NextRequest) {
         "Cache-Control": "no-store",
       },
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     return NextResponse.json(
-      { error: e?.message ?? "Export failed" },
+      { error: getErrorMessage(e) },
       { status: 500 }
     );
   }

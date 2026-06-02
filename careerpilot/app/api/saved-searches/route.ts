@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase";
+import { getErrorMessage } from "@/lib/errors";
 
 export const runtime = "nodejs";
 
@@ -27,8 +28,8 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     return NextResponse.json({ searches: data ?? [] });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "Failed to list saved searches" }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: getErrorMessage(e) }, { status: 500 });
   }
 }
 
@@ -65,8 +66,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     return NextResponse.json({ search: data });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "Failed to save search" }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: getErrorMessage(e) }, { status: 500 });
   }
 }
 
@@ -91,7 +92,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "Failed to delete search" }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: getErrorMessage(e) }, { status: 500 });
   }
 }

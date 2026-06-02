@@ -27,8 +27,9 @@ export default function PrintCvPage() {
 
   if (ready && !cv) {
     return (
-      <div className="print-empty">
-        Nothing to print. Open this page from the profile&apos;s Download → PDF action.
+      <div className="print-empty p-8 text-center">
+        <p className="mb-4">Nothing to print. Open this page from the profile&apos;s Download → PDF action.</p>
+        <a href="/profile" className="text-primary underline hover:no-underline">Go to Profile</a>
       </div>
     );
   }

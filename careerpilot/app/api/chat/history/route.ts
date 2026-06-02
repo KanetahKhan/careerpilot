@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase";
 import { requireUser } from "@/lib/auth";
+import { getErrorMessage } from "@/lib/errors";
 
 export const runtime = "edge";
 export const dynamic = "force-dynamic";
@@ -33,9 +34,9 @@ export async function GET(req: NextRequest) {
     }));
 
     return NextResponse.json({ messages });
-  } catch (e: any) {
+  } catch (e: unknown) {
     return NextResponse.json(
-      { error: e?.message ?? "Failed to load history" },
+      { error: getErrorMessage(e) },
       { status: 500 }
     );
   }

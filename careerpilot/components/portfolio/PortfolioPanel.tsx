@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Globe, Copy, ExternalLink, Check, Sparkles, Eye, EyeOff, Upload } from "lucide-react";
 import Link from "next/link";
+import { getErrorMessage } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 
 type PortfolioState = { slug: string; published: boolean; url: string } | null;
@@ -34,8 +35,8 @@ export function PortfolioPanel({ hasCv }: { hasCv: boolean }) {
       const j = await res.json();
       if (!res.ok) throw new Error(j?.error ?? "Failed to generate portfolio");
       setPortfolio({ slug: j.slug, url: j.url, published: true });
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(getErrorMessage(e));
     } finally {
       setBusy(null);
     }
@@ -54,8 +55,8 @@ export function PortfolioPanel({ hasCv }: { hasCv: boolean }) {
       const j = await res.json();
       if (!res.ok) throw new Error(j?.error ?? "Failed to update portfolio");
       setPortfolio((p) => (p ? { ...p, published: j.published } : p));
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(getErrorMessage(e));
     } finally {
       setBusy(null);
     }

@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { AI_BUSY_MESSAGE, isRateLimitError, streamTextWithFallback } from "@/lib/ai";
 import { retrieveChunks, formatContext } from "@/lib/services/profile";
 import { persistTurn } from "@/lib/services/assistant";
+import { getErrorMessage } from "@/lib/errors";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -76,10 +77,10 @@ export async function POST(req: NextRequest) {
       onFinish: (text) => persistTurn(user.id, sessionId, userText, text),
       abortSignal: req.signal,
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (isRateLimitError(e)) {
       return NextResponse.json({ error: AI_BUSY_MESSAGE }, { status: 429 });
     }
-    return NextResponse.json({ error: e?.message ?? "Interview turn failed" }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(e) }, { status: 500 });
   }
 }

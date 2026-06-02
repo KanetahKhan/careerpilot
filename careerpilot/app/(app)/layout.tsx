@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { Sidebar } from "@/components/Sidebar";
 import { AppHeader } from "@/components/AppHeader";
 import AppAmbientBackground from "@/components/app/AppAmbientBackground";
 import { AuthGuard } from "@/components/AuthGuard";
+
+export const metadata: Metadata = {
+  title: "CareerPilot",
+  description: "Your AI-powered career co-pilot",
+};
 
 export default function AppLayout({
   children,

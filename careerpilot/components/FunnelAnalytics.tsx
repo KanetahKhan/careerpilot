@@ -11,6 +11,7 @@ import {
   LabelList,
 } from "recharts";
 import { TrendingUp, Lightbulb } from "lucide-react";
+import { getErrorMessage } from "@/lib/errors";
 
 type Stages = { applied: number; interview: number; offer: number };
 type Rates = { appliedToInterview: number; interviewToOffer: number };
@@ -22,7 +23,7 @@ type Insight = {
 
 type FunnelResponse = { stages: Stages; rates: Rates; insight: Insight };
 
-const STAGE_COLORS = ["#5AA9E6", "#FFB23E", "#3DD9A0"];
+const STAGE_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))"];
 
 export function FunnelAnalytics() {
   const [data, setData] = useState<FunnelResponse | null>(null);
@@ -40,8 +41,8 @@ export function FunnelAnalytics() {
       .then((j) => {
         if (!cancelled) setData(j);
       })
-      .catch((e) => {
-        if (!cancelled) setError(e.message);
+      .catch((e: unknown) => {
+        if (!cancelled) setError(getErrorMessage(e));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

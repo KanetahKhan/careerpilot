@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { AI_BUSY_MESSAGE, isRateLimitError, generateObjectWithFallback } from "@/lib/ai";
 import { retrieveChunks, formatContext } from "@/lib/services/profile";
+import { getErrorMessage } from "@/lib/errors";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -85,10 +86,10 @@ ${interviewLog}`,
     });
 
     return NextResponse.json({ feedback: object });
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (isRateLimitError(e)) {
       return NextResponse.json({ error: AI_BUSY_MESSAGE }, { status: 429 });
     }
-    return NextResponse.json({ error: e?.message ?? "Failed to generate feedback" }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(e) }, { status: 500 });
   }
 }

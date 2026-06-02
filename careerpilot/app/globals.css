@@ -1,14 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&family=Hanken+Grotesk:wght@400;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-:root {
-  --font-display: "Bricolage Grotesque", system-ui;
-  --font-body: "Hanken Grotesk", system-ui;
-  --font-mono: "JetBrains Mono", ui-monospace;
-}
 
 @layer base {
   :root {
@@ -60,6 +52,21 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+}
+
+/* Chart colors */
+:root {
+  --chart-1: 194 100% 26%;
+  --chart-2: 35 100% 50%;
+  --chart-3: 160 60% 45%;
+  --chart-4: 263 70% 50%;
+}
+
+.dark {
+  --chart-1: 194 80% 55%;
+  --chart-2: 35 90% 55%;
+  --chart-3: 160 60% 50%;
+  --chart-4: 263 70% 60%;
 }
 
 /* Glass card theme variables */
