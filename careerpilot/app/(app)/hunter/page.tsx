@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { FactorBars, fitScoreTextColor, type Fit } from "@/components/FitBreakdown";
 import { downloadCoverLetterDocx, printCoverLetter } from "@/lib/export/client";
+import { SearchHistory, type SearchHistoryHandle } from "@/components/SearchHistory";
 
 type Job = {
   id: string; role: string; company: string; location: string;
@@ -72,6 +73,7 @@ function HunterInner() {
   const [checkError, setCheckError] = useState<string | null>(null);
   const autoRanRef = useRef(false);
   const traceRef = useRef<HTMLOListElement | null>(null);
+  const searchRef = useRef<SearchHistoryHandle>(null);
 
   // Keep the newest trace line in view while the agent is streaming.
   useEffect(() => {
@@ -141,6 +143,7 @@ function HunterInner() {
     if (autoRanRef.current) return;
     if (!initialQ) return;
     autoRanRef.current = true;
+    searchRef.current?.addToHistory(initialQ);
     run(initialQ);
   }, [initialQ, run]);
 
@@ -254,15 +257,18 @@ function HunterInner() {
       />
 
       <div className="panel flex flex-col gap-3 p-4 sm:flex-row">
-        <input
+        <SearchHistory
+          ref={searchRef}
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && run(query)}
+          onChange={setQuery}
+          onSearch={run}
           placeholder='e.g. "ML internships in Dhaka open this month"'
-          className="flex-1 rounded-xl border border-border bg-background/60 px-4 py-3 text-foreground outline-none placeholder:text-muted-foreground focus:border-primary/60"
         />
         <button
-          onClick={() => run(query)}
+          onClick={() => {
+            searchRef.current?.addToHistory(query);
+            run(query);
+          }}
           disabled={loading}
           aria-busy={loading || undefined}
           className="btn-primary disabled:opacity-50"

@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
+import { createBrowserClient } from "@supabase/ssr";
 import {
   Search,
   Sparkles,
@@ -21,6 +22,7 @@ import {
   Gauge,
   Mic,
   Rocket,
+  Repeat,
 } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 import { cn } from "@/lib/utils";
@@ -39,10 +41,24 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, setTheme } = useTheme();
   const { user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [switching, setSwitching] = useState(false);
+
+  async function handleSwitchAccount() {
+    if (switching) return;
+    setSwitching(true);
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    );
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   const [appCount, setAppCount] = useState(0);
   const [pendingGoals, setPendingGoals] = useState(0);
@@ -157,6 +173,16 @@ export function Sidebar() {
                 </div>
               )}
             </div>
+            {!collapsed && (
+              <button
+                onClick={handleSwitchAccount}
+                disabled={switching}
+                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors disabled:opacity-60"
+              >
+                <Repeat className="h-3.5 w-3.5" />
+                {switching ? "Signing out…" : "Switch account"}
+              </button>
+            )}
           </div>
         ) : (
           <div className="p-4">
