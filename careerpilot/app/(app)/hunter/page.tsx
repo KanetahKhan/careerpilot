@@ -323,7 +323,11 @@ function HunterInner() {
               </span>
             )}
           </div>
-          <ol className="space-y-1.5">
+          <ol
+            className={`space-y-1.5${
+              !loading && jobs.length > 0 ? " max-h-60 overflow-y-auto pr-2" : ""
+            }`}
+          >
             {trace.map((t, i) => {
               const { icon: Icon, color } = TRACE_STYLE[t.kind] ?? TRACE_STYLE.note;
               return (
@@ -364,12 +368,24 @@ function HunterInner() {
           <div className="panel card-hover animate-fade-up p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <button
-                  onClick={() => setDetail(j)}
-                  className="text-left font-display text-lg font-bold leading-tight hover:text-primary"
-                >
-                  {j.role}
-                </button>
+                {j.link ? (
+                  <a
+                    href={j.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-baseline gap-1.5 text-left font-display text-lg font-bold leading-tight hover:text-primary"
+                  >
+                    {j.role}
+                    <span aria-hidden="true" className="text-sm opacity-60">↗</span>
+                  </a>
+                ) : (
+                  <button
+                    onClick={() => setDetail(j)}
+                    className="text-left font-display text-lg font-bold leading-tight hover:text-primary"
+                  >
+                    {j.role}
+                  </button>
+                )}
                 <p className="text-sm text-muted-foreground">{j.company} · {j.location}</p>
                 {j.salary && <p className="mt-1 text-xs text-muted-foreground">{j.salary}</p>}
               </div>
