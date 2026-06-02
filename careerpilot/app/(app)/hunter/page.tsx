@@ -71,6 +71,13 @@ function HunterInner() {
   const [runningId, setRunningId] = useState<number | null>(null);
   const [checkError, setCheckError] = useState<string | null>(null);
   const autoRanRef = useRef(false);
+  const traceRef = useRef<HTMLOListElement | null>(null);
+
+  // Keep the newest trace line in view while the agent is streaming.
+  useEffect(() => {
+    const el = traceRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [trace.length]);
 
   const run = useCallback(async (q: string) => {
     setLoading(true);
@@ -323,11 +330,7 @@ function HunterInner() {
               </span>
             )}
           </div>
-          <ol
-            className={`space-y-1.5${
-              !loading && jobs.length > 0 ? " max-h-60 overflow-y-auto pr-2" : ""
-            }`}
-          >
+          <ol ref={traceRef} className="max-h-72 space-y-1.5 overflow-y-auto pr-2">
             {trace.map((t, i) => {
               const { icon: Icon, color } = TRACE_STYLE[t.kind] ?? TRACE_STYLE.note;
               return (
@@ -360,6 +363,25 @@ function HunterInner() {
           accent="text-sky-500"
           iconBg="bg-sky-500/10"
         />
+      )}
+
+      {!loading && trace.length > 0 && jobs.length === 0 && !runError && (
+        <div className="panel p-6 text-center">
+          <p className="text-sm text-muted-foreground">
+            The agent finished but no postings made it through — try a different or broader query.
+          </p>
+        </div>
+      )}
+
+      {jobs.length > 0 && (
+        <div className="flex flex-wrap items-end justify-between gap-2 pt-2">
+          <h2 className="font-display text-xl font-bold text-foreground">
+            {jobs.length} {jobs.length === 1 ? "match" : "matches"}
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Click a title to open the posting ↗
+          </p>
+        </div>
       )}
 
       <StaggerContainer className="grid gap-4 md:grid-cols-2">
