@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { FadeIn } from "@/components/FadeIn";
 import {
   Upload, Edit3, Download, FileText, Printer, Sparkles,
-  ExternalLink, Loader2, FileUp,
+  ExternalLink, Loader2, FileUp, CheckCircle2, X, UploadCloud,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -34,18 +34,24 @@ type ExtractedProfile = {
   projects?: { name: string; description?: string; technologies?: string[]; githubUrl?: string; liveUrl?: string }[];
 };
 
+type UploadStep = "select" | "uploading" | "parsing" | "extracting" | "done" | "error";
+
 export default function ProfilePage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<CvProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [builderCv, setBuilderCv] = useState<BuilderCv | null>(null);
   const [exportBusy, setExportBusy] = useState<"docx" | null>(null);
   const [exportErr, setExportErr] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isExtracting, setIsExtracting] = useState(false);
-  const [extracted, setExtracted] = useState<ExtractedProfile | null>(null);
   const [uploadErr, setUploadErr] = useState<string | null>(null);
+
+  // Upload portal state
+  const [showUploadPortal, setShowUploadPortal] = useState(false);
+  const [uploadStep, setUploadStep] = useState<UploadStep>("select");
+  const [uploadFileName, setUploadFileName] = useState("");
+  const [extracted, setExtracted] = useState<ExtractedProfile | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,8 +102,8 @@ export default function ProfilePage() {
   }
 
   async function handleFileUpload(file: File) {
-    setIsUploading(true);
-    setIsExtracting(true);
+    setUploadFileName(file.name);
+    setUploadStep("uploading");
     setUploadErr(null);
     setExtracted(null);
 
@@ -105,6 +111,7 @@ export default function ProfilePage() {
       const formData = new FormData();
       formData.append("file", file);
 
+      setUploadStep("uploading");
       const uploadRes = await fetch("/api/cv/upload", { method: "POST", body: formData });
       if (!uploadRes.ok) {
         const err = await uploadRes.json();
@@ -112,6 +119,7 @@ export default function ProfilePage() {
       }
       const uploadData = await uploadRes.json();
 
+      setUploadStep("extracting");
       const extractRes = await fetch("/api/cv/extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -126,7 +134,6 @@ export default function ProfilePage() {
         }
       }
 
-      // Auto-save extracted data as builder CV so export buttons appear immediately
       if (extractedData) {
         const builderPayload: BuilderCv = {
           fullName: extractedData.fullName ?? "",
@@ -167,7 +174,6 @@ export default function ProfilePage() {
         }).catch(() => {});
       }
 
-      // Refresh profile data
       const [profileRes, buildRes] = await Promise.all([
         fetch("/api/cv/profile"),
         fetch("/api/cv/build", { cache: "no-store" }),
@@ -180,11 +186,11 @@ export default function ProfilePage() {
           setBuilderCv(buildJson as BuilderCv);
         }
       }
+
+      setUploadStep("done");
     } catch (e: unknown) {
       setUploadErr(getErrorMessage(e));
-    } finally {
-      setIsUploading(false);
-      setIsExtracting(false);
+      setUploadStep("error");
     }
   }
 
@@ -194,43 +200,48 @@ export default function ProfilePage() {
       await handleFileUpload(file);
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (uploadInputRef.current) uploadInputRef.current.value = "";
+  }
+
+  function openUploadPortal() {
+    setShowUploadPortal(true);
+    setUploadStep("select");
+    setUploadFileName("");
+    setExtracted(null);
+    setUploadErr(null);
+  }
+
+  function closeUploadPortal() {
+    setShowUploadPortal(false);
+    router.refresh();
   }
 
   return (
     <FadeIn>
     <div className="space-y-6 py-4">
       <PageHeader
-        eyebrow="Pillar 2 · CV Profile"
-        title="Exactly what the AI sees."
-        subtitle="Your CV, parsed into section-tagged chunks and embedded in pgvector."
+        eyebrow="CV Profile"
+        title="Your CV, your way."
+        subtitle="Upload a file or build in-app — same chunking and embedding pipeline either way."
         icon={FileText}
         gradient="from-primary via-primary to-primary/70"
       />
 
       {loading && (
         <div className="panel p-8 text-center">
-          <p className="text-sm text-muted-foreground animate-pulse">Loading your CV profile…</p>
+          <p className="text-sm text-muted-foreground animate-pulse">Loading your CV profile...</p>
         </div>
       )}
 
       {!loading && !hasCv && (
         <div className="panel p-8 text-center space-y-4">
-          <p className="text-muted-foreground">No CV indexed yet.</p>
+          <p className="text-muted-foreground">No CV yet.</p>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            Upload a file or build your CV in-app — either way it goes through the same
-            chunking and embedding pipeline.
+            Upload a file or build your CV in-app.
           </p>
           <div className="flex items-center justify-center gap-3 pt-2">
-            <Button
-              variant="primary"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
-            >
-              {isUploading ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /> Uploading…</>
-              ) : (
-                <><Upload className="h-4 w-4" /> Upload your CV</>
-              )}
+            <Button variant="primary" onClick={openUploadPortal}>
+              <Upload className="h-4 w-4" /> Upload your CV
             </Button>
             <Link href="/profile/edit">
               <Button variant="outline">
@@ -249,109 +260,20 @@ export default function ProfilePage() {
         className="hidden"
       />
 
+      {uploadErr && !showUploadPortal && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {uploadErr}
+        </div>
+      )}
+
       {!loading && hasCv && profile && (
         <>
           <div className="flex items-center justify-between gap-4">
             <div />
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={isUploading}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {isUploading ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /> Uploading…</>
-              ) : (
-                <><FileUp className="h-4 w-4" /> Re-upload CV</>
-              )}
+            <Button variant="outline" size="sm" onClick={openUploadPortal}>
+              <FileUp className="h-4 w-4" /> Re-upload CV
             </Button>
           </div>
-
-          {uploadErr && (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {uploadErr}
-            </div>
-          )}
-
-          {extracted && (
-            <div className="rounded-lg border border-border bg-card p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-foreground">Extracted from CV</h3>
-                <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-                  AI Parsed
-                </span>
-              </div>
-
-              {extracted.fullName && (
-                <p className="text-sm text-muted-foreground">
-                  Name: <span className="font-medium text-foreground">{extracted.fullName}</span>
-                </p>
-              )}
-
-              {extracted.skills && extracted.skills.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {extracted.skills.map((s, i) => (
-                    <span
-                      key={i}
-                      className="inline-flex items-center rounded-full border border-border bg-background px-2.5 py-0.5 text-xs text-foreground"
-                    >
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {extracted.projects && extracted.projects.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="text-sm font-medium text-foreground">Projects</h4>
-                  {extracted.projects.map((proj, i) => (
-                    <div
-                      key={i}
-                      className="rounded-md border border-border bg-background p-3 text-sm"
-                    >
-                      <p className="font-medium text-foreground">{proj.name}</p>
-                      <p className="text-muted-foreground line-clamp-2">{proj.description}</p>
-                      <div className="mt-2 flex gap-3">
-                        {proj.githubUrl && (
-                          <a
-                            href={proj.githubUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                          >
-                            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-                            GitHub ↗
-                          </a>
-                        )}
-                        {proj.liveUrl && (
-                          <a
-                            href={proj.liveUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                            Live Demo ↗
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <Button
-                onClick={() =>
-                  router.push(
-                    `/profile/edit?prefill=${encodeURIComponent(JSON.stringify(extracted))}`,
-                  )
-                }
-                className="w-full"
-              >
-                Populate Profile Form
-              </Button>
-            </div>
-          )}
 
           <PortfolioPanel hasCv />
 
@@ -370,6 +292,169 @@ export default function ProfilePage() {
 
           {exportErr && <p className="text-xs text-destructive">{exportErr}</p>}
         </>
+      )}
+
+      {/* Upload Portal Modal */}
+      {showUploadPortal && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm"
+          onClick={closeUploadPortal}
+        >
+          <div
+            className="panel my-8 w-full max-w-lg animate-fade-up p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="font-display text-xl font-bold">Upload your CV</h2>
+              <button onClick={closeUploadPortal} className="text-muted-foreground hover:text-foreground">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Steps indicator */}
+            <div className="mb-6 flex items-center gap-1 text-xs font-medium">
+              {["select", "uploading", "extracting", "done"].map((step, idx) => {
+                const stepOrder = ["select", "uploading", "extracting", "done"];
+                const currentIdx = stepOrder.indexOf(uploadStep === "error" ? "select" : uploadStep === "parsing" ? "uploading" : uploadStep);
+                const isActive = stepOrder.indexOf(step) === currentIdx;
+                const isPast = stepOrder.indexOf(step) < currentIdx;
+                return (
+                  <div key={step} className="flex items-center gap-1 flex-1">
+                    <span
+                      className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[10px] font-bold ${
+                        isPast
+                          ? "bg-primary text-primary-foreground"
+                          : isActive
+                          ? "bg-primary/20 text-primary ring-2 ring-primary/40"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {isPast ? "✓" : idx + 1}
+                    </span>
+                    <span className={`hidden sm:inline ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
+                      {step === "select" ? "File" : step === "uploading" ? "Upload" : step === "extracting" ? "Extract" : "Done"}
+                    </span>
+                    {idx < 3 && <div className={`h-px flex-1 ${isPast ? "bg-primary" : "bg-border"}`} />}
+                  </div>
+                );
+              })}
+            </div>
+
+            {uploadStep === "select" && (
+              <div
+                className="flex cursor-pointer flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-border bg-background/40 px-6 py-12 text-center transition-colors hover:border-primary/50"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const f = e.dataTransfer.files?.[0];
+                  if (f) handleFileUpload(f);
+                }}
+                onClick={() => uploadInputRef.current?.click()}
+              >
+                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary">
+                  <UploadCloud className="h-7 w-7" />
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">Drop your CV here or click to browse</p>
+                  <p className="mt-1 text-sm text-muted-foreground">PDF, DOCX, or TXT</p>
+                </div>
+              </div>
+            )}
+
+            {uploadStep === "uploading" && (
+              <div className="flex flex-col items-center gap-3 py-6">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="font-medium text-foreground">Uploading...</p>
+                <p className="text-sm text-muted-foreground">{uploadFileName}</p>
+              </div>
+            )}
+
+            {uploadStep === "parsing" && (
+              <div className="flex flex-col items-center gap-3 py-6">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="font-medium text-foreground">Parsing text...</p>
+                <p className="text-sm text-muted-foreground">Extracting content from your file</p>
+              </div>
+            )}
+
+            {uploadStep === "extracting" && (
+              <div className="flex flex-col items-center gap-3 py-6">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="font-medium text-foreground">AI is analyzing your CV...</p>
+                <p className="text-sm text-muted-foreground">Structuring skills, experience, and education</p>
+              </div>
+            )}
+
+            {uploadStep === "done" && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+                  <CheckCircle2 className="h-6 w-6 shrink-0 text-primary" />
+                  <div>
+                    <p className="font-medium text-foreground">Your CV is ready!</p>
+                    <p className="text-sm text-muted-foreground">{uploadFileName} has been uploaded, parsed, and saved.</p>
+                  </div>
+                </div>
+
+                {extracted && (
+                  <div className="rounded-lg border border-border bg-background/50 p-4 space-y-3">
+                    <p className="font-semibold text-foreground">What we found</p>
+                    {extracted.fullName && (
+                      <p className="text-sm text-muted-foreground">Name: <span className="font-medium text-foreground">{extracted.fullName}</span></p>
+                    )}
+                    {extracted.skills && extracted.skills.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {extracted.skills.slice(0, 8).map((s, i) => (
+                          <span key={i} className="chip bg-primary/10 text-primary text-xs">{s}</span>
+                        ))}
+                        {extracted.skills.length > 8 && (
+                          <span className="chip bg-muted text-muted-foreground text-xs">+{extracted.skills.length - 8}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3 pt-2">
+                  <Link href="/profile" className="flex-1">
+                    <Button variant="primary" className="w-full" onClick={closeUploadPortal}>
+                      Done
+                    </Button>
+                  </Link>
+                  <Link href="/profile/edit">
+                    <Button variant="outline">
+                      <Edit3 className="h-4 w-4" /> Edit
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {uploadStep === "error" && (
+              <div className="space-y-4">
+                <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4">
+                  <p className="font-medium text-destructive">Upload failed</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{uploadErr || "Something went wrong."}</p>
+                </div>
+                <div className="flex gap-3">
+                  <Button variant="outline" className="flex-1" onClick={() => setUploadStep("select")}>
+                    Try again
+                  </Button>
+                  <Button variant="ghost" onClick={closeUploadPortal}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <input
+              type="file"
+              ref={uploadInputRef}
+              onChange={onFileSelected}
+              accept=".pdf,.docx,.txt"
+              className="hidden"
+            />
+          </div>
+        </div>
       )}
     </div>
     </FadeIn>

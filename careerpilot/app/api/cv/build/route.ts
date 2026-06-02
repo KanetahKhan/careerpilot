@@ -39,6 +39,8 @@ const BuilderSchema = z.object({
       name: z.string().min(1),
       description: z.string().default(""),
       tech: z.array(z.string()).optional(),
+      githubUrl: z.string().optional(),
+      liveUrl: z.string().optional(),
     }),
   ).default([]),
   skills: z.array(z.string()).default([]),

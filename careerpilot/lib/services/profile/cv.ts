@@ -1,3 +1,9 @@
+// Static top-level require — keeps pdf-parse out of the client bundle
+// AND lets Turbopack treat it as an external package (serverExternalPackages)
+// so its internal dynamic require() works at runtime via Node.js.
+const pdfParse = require("pdf-parse");
+const mammoth = require("mammoth");
+
 export type Chunk = { section: string; content: string; position: number };
 
 /** Extract raw text from an uploaded PDF or DOCX buffer. */
@@ -7,14 +13,11 @@ export async function extractText(
 ): Promise<string> {
   const lower = fileName.toLowerCase();
   if (lower.endsWith(".docx")) {
-    const mammoth = await import("mammoth");
     const { value } = await mammoth.extractRawText({ buffer });
     return value;
   }
   if (lower.endsWith(".pdf")) {
-    // require() keeps pdf-parse out of the edge/client bundle
-    const pdf = (await import("pdf-parse")).default;
-    const data = await pdf(buffer);
+    const data = await pdfParse(buffer);
     return data.text;
   }
   // .txt or unknown → treat as plain text

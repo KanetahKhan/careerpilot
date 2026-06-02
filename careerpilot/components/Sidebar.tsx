@@ -35,8 +35,8 @@ const navItems = [
   { href: "/skill-gap", label: "Skill Gap", icon: Gauge, id: "skill-gap" },
   { href: "/roadmap", label: "Roadmap", icon: Route, id: "roadmap" },
   { href: "/interview", label: "Mock Interview", icon: Mic, id: "interview" },
-  { href: "/settings", label: "Settings", icon: Settings, id: "settings" },
   { href: "/fit", label: "Score a JD", icon: Target, id: "fit" },
+  { href: "/settings", label: "Settings", icon: Settings, id: "settings" },
 ];
 
 export function Sidebar() {
@@ -44,7 +44,20 @@ export function Sidebar() {
   const { theme, setTheme } = useTheme();
   const { user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [hidden, setHidden] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Cycle: full → collapsed → hidden → full
+  function toggleSidebar() {
+    if (!collapsed) setCollapsed(true);
+    else if (!hidden) setHidden(true);
+    else { setCollapsed(false); setHidden(false); }
+  }
+
+  function showSidebar() {
+    setHidden(false);
+    setCollapsed(false);
+  }
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
@@ -66,7 +79,7 @@ export function Sidebar() {
         </span>
       </Link>
 
-      <nav className="flex-1 space-y-1 px-2 py-4">
+      <nav className="flex-1 space-y-1 px-2 py-4 overflow-y-auto">
         {navItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
           return (
@@ -149,6 +162,13 @@ export function Sidebar() {
                 <ChevronRight className="h-4 w-4" />
               </button>
               <button
+                onClick={toggleSidebar}
+                className="mx-auto mb-2 hidden md:grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
+                aria-label="Hide sidebar"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 className="mx-auto flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
                 aria-label="Toggle theme"
@@ -159,7 +179,7 @@ export function Sidebar() {
           ) : (
             <>
               <button
-                onClick={() => setCollapsed(true)}
+                onClick={toggleSidebar}
                 className="mb-2 hidden md:grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
                 aria-label="Collapse sidebar"
               >
@@ -197,7 +217,7 @@ export function Sidebar() {
 
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 h-full w-64 bg-background shadow-xl transition-transform duration-300 md:hidden",
+          "fixed left-0 top-0 z-50 h-screen w-64 bg-background shadow-xl transition-transform duration-300 md:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -212,12 +232,24 @@ export function Sidebar() {
 
       <aside
         className={cn(
-          "hidden md:flex flex-col border-r border-border bg-background transition-all duration-200",
+          "transition-all duration-200",
+          hidden
+            ? "hidden md:hidden"
+            : "hidden md:flex flex-col border-r border-border bg-background sticky top-0 h-screen",
           collapsed ? "w-[72px]" : "w-64"
         )}
       >
         {sidebarContent}
       </aside>
+      {hidden && (
+        <button
+          onClick={showSidebar}
+          className="fixed left-0 top-1/2 z-30 hidden md:grid h-12 w-5 -translate-y-1/2 place-items-center rounded-r-md border border-border border-l-0 bg-background text-muted-foreground shadow-sm hover:text-foreground hover:bg-secondary transition-colors"
+          aria-label="Show sidebar"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      )}
     </>
   );
 }
