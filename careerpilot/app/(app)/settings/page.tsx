@@ -40,6 +40,12 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const objectUrlRef = useRef<string | null>(null);
 
+  // next-themes and the preset provider both read from localStorage, so the
+  // server renders the default state. Gate any UI that depends on those
+  // values on `mounted` so the first client render matches the server.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -296,7 +302,7 @@ export default function SettingsPage() {
                   onClick={() => setTheme(t.value)}
                   className={cn(
                     "flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm transition-all",
-                    theme === t.value
+                    mounted && theme === t.value
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border bg-background text-muted-foreground hover:text-foreground"
                   )}
@@ -317,7 +323,7 @@ export default function SettingsPage() {
                   onClick={() => setPreset(p.name)}
                   className={cn(
                     "flex flex-col items-center gap-2 rounded-lg border p-3 transition-all",
-                    preset.name === p.name
+                    mounted && preset.name === p.name
                       ? "border-primary bg-primary/10"
                       : "border-border bg-background hover:border-primary/50"
                   )}

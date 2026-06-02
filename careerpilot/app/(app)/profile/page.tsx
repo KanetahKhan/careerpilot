@@ -70,7 +70,15 @@ export default function ProfilePage() {
     : 0;
   const completeness = Math.round((present / KEY_SECTIONS.length) * 100);
   const experience = builderCv?.experience ?? [];
-  const skills = builderCv?.skills ?? [];
+  const skills = (() => {
+    const seen = new Set<string>();
+    return (builderCv?.skills ?? []).filter((s) => {
+      const k = s.trim().toLowerCase();
+      if (!k || seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  })();
 
   function nameSlug() {
     const n = builderCv?.fullName?.trim();
