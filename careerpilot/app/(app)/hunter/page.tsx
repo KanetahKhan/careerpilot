@@ -258,7 +258,7 @@ function HunterInner() {
     <div className="space-y-6 py-4">
       <PageHeader
         eyebrow="Job Hunter"
-        title="Search jobs like Google."
+        title="Find your next role."
         subtitle="Describe what you want and the AI finds & ranks matches against your CV."
         icon={Search}
         gradient="from-primary via-primary to-primary/70"

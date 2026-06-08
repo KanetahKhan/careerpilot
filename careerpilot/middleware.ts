@@ -6,7 +6,7 @@ function buildCsp(nonce: string): string {
     "default-src 'self'",
     // 'strict-dynamic' lets nonce-trusted scripts load further scripts (webpack chunks etc.)
     // 'unsafe-inline' is ignored by browsers that honour nonces, kept for legacy fallback only
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval'`,
     // Inline styles are needed by styled-jsx, next-themes, and Tailwind generated blocks
     "style-src 'self' 'unsafe-inline'",
     // next/image proxies external images through /_next/image so 'self' covers most cases;
