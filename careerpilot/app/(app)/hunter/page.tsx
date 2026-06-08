@@ -10,7 +10,6 @@ import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { FactorBars, fitScoreTextColor, type Fit } from "@/components/FitBreakdown";
 import { downloadCoverLetterDocx, printCoverLetter } from "@/lib/export/client";
-import { useDebounce } from "@/lib/hooks/useDebounce";
 import { JobCard } from "@/components/jobs/JobCard";
 
 type Job = {
@@ -178,26 +177,6 @@ function HunterInner() {
     setHistory(loadHistory());
     run(trimmed);
   }, [run]);
-
-  const debouncedQuery = useDebounce(query, 300);
-  const hasChanged = useRef(false);
-
-  useEffect(() => {
-    if (!initialQ) return;
-    try {
-      const cached = sessionStorage.getItem(`hunt:${initialQ}`);
-      if (cached) setJobs(JSON.parse(cached));
-    } catch { /* ignore */ }
-  }, [initialQ]);
-
-  useEffect(() => {
-    if (!hasChanged.current) {
-      hasChanged.current = true;
-      return;
-    }
-    if (debouncedQuery.length < 2) return;
-    run(debouncedQuery);
-  }, [debouncedQuery, run]);
 
   useEffect(() => {
     if (autoRanRef.current) return;

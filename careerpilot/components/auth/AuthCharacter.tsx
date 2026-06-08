@@ -50,13 +50,13 @@ export function AuthCharacter({ mode, state = "idle" }: AuthCharacterProps) {
 
   return (
     <div className="relative flex h-[260px] w-[220px] items-end justify-center">
-      <div
-        className={`absolute right-[-10px] top-0 z-20 whitespace-nowrap rounded-xl border border-border bg-card px-3.5 py-2 text-[11px] font-semibold text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.1)] transition-all duration-200 after:absolute after:bottom-[-5px] after:left-[14px] after:h-[10px] after:w-[10px] after:rotate-45 after:border-b after:border-r after:border-border after:bg-card after:content-[''] ${
+      <p
+        className={`absolute right-[-10px] top-0 z-20 whitespace-nowrap text-[11px] font-semibold text-foreground transition-all duration-200 ${
           state === "error" ? "text-destructive animate-[bubbleShake_0.5s_ease-in-out]" : ""
         }`}
       >
         {bubbleText()}
-      </div>
+      </p>
 
       <div
         className={`relative z-[5] h-[160px] w-[160px] ${

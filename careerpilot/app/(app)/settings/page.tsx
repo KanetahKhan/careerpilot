@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { LogOut, User, Bell, Shield, Upload, Trash2, Settings as SettingsIcon } from "lucide-react";
+import { LogOut, User, Bell, Shield, Upload, Trash2, Download, Settings as SettingsIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
 import { createBrowserClient } from "@supabase/ssr";
@@ -11,6 +11,10 @@ import { Avatar } from "@/components/Avatar";
 import { getErrorMessage } from "@/lib/errors";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Select } from "@/components/ui/select";
+import { useSettings } from "@/lib/hooks/useSettings";
+import type { NotificationSettings, PrivacySettings } from "@/lib/hooks/useSettings";
 
 type Profile = {
   id: string;
@@ -169,10 +173,49 @@ export default function SettingsPage() {
     }
   }
 
+  const { preferences, loading: settingsLoading, updateField } = useSettings();
+
   const shownAvatar = previewUrl ?? profile?.avatar_url ?? null;
   const shownName =
     displayName.trim() || profile?.display_name || user?.email || "User";
   const hasPhoto = Boolean(profile?.avatar_url || previewUrl);
+
+  const notif = preferences.notifications!;
+  const priv = preferences.privacy!;
+
+  const notifFields: { key: keyof NotificationSettings; label: string; desc: string }[] = [
+    { key: "job_match_alerts", label: "Job match alerts", desc: "Get notified when new jobs match your profile" },
+    { key: "application_reminders", label: "Application reminders", desc: "Receive reminders to follow up on applications" },
+    { key: "weekly_digest", label: "Weekly digest", desc: "A weekly summary of job recommendations and activity" },
+    { key: "email_notifications", label: "Email notifications", desc: "Receive notifications via email" },
+    { key: "push_notifications", label: "Push notifications", desc: "Receive push notifications in your browser" },
+  ] as const;
+
+  const privacySelects: { key: keyof PrivacySettings; label: string; options: { value: string; label: string }[] }[] = [
+    {
+      key: "profile_visibility",
+      label: "Profile visibility",
+      options: [
+        { value: "public", label: "Public — anyone can see your profile" },
+        { value: "private", label: "Private — only you can see your profile" },
+        { value: "connections", label: "Connections — only your connections" },
+      ],
+    },
+    {
+      key: "cv_sharing",
+      label: "CV sharing",
+      options: [
+        { value: "all", label: "All employers — share CV with all employers" },
+        { value: "applied", label: "Applied only — share CV after you apply" },
+        { value: "none", label: "None — do not share your CV" },
+      ],
+    },
+  ] as const;
+
+  const privacyToggles: { key: keyof PrivacySettings; label: string; desc: string }[] = [
+    { key: "analytics_consent", label: "Usage analytics", desc: "Help us improve with anonymous usage data" },
+    { key: "public_fit_scores", label: "Public fit scores", desc: "Show your match scores on your public profile" },
+  ] as const;
 
   return (
     <div className="space-y-8 max-w-2xl">
@@ -308,8 +351,24 @@ export default function SettingsPage() {
           <Bell className="h-5 w-5 text-primary" />
           <h2 className="text-lg font-semibold text-foreground">Notifications</h2>
         </div>
-        <div className="rounded-xl border border-border bg-card p-6">
-          <p className="text-sm text-muted-foreground">Notification preferences coming soon.</p>
+        <div className="rounded-xl border border-border bg-card p-6 space-y-5">
+          {settingsLoading ? (
+            <p className="text-sm text-muted-foreground">Loading preferences...</p>
+          ) : (
+            notifFields.map((field) => (
+              <div key={field.key} className="flex items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium text-foreground">{field.label}</p>
+                  <p className="text-xs text-muted-foreground">{field.desc}</p>
+                </div>
+                <Switch
+                  id={`notif-${field.key}`}
+                  checked={notif[field.key]}
+                  onChange={(e) => updateField("notifications", field.key, e.target.checked)}
+                />
+              </div>
+            ))
+          )}
         </div>
       </section>
 
@@ -318,8 +377,51 @@ export default function SettingsPage() {
           <Shield className="h-5 w-5 text-primary" />
           <h2 className="text-lg font-semibold text-foreground">Privacy</h2>
         </div>
-        <div className="rounded-xl border border-border bg-card p-6">
-          <p className="text-sm text-muted-foreground">Privacy settings coming soon.</p>
+        <div className="rounded-xl border border-border bg-card p-6 space-y-5">
+          {settingsLoading ? (
+            <p className="text-sm text-muted-foreground">Loading preferences...</p>
+          ) : (
+            <>
+              {privacySelects.map((field) => (
+                <div key={field.key} className="space-y-2">
+                  <label htmlFor={`priv-${field.key}`} className="text-sm font-medium text-foreground">
+                    {field.label}
+                  </label>
+                  <Select
+                    id={`priv-${field.key}`}
+                    value={priv[field.key] as string}
+                    options={field.options}
+                    onChange={(e) => updateField("privacy", field.key, e.target.value)}
+                  />
+                </div>
+              ))}
+              <hr className="border-border" />
+              {privacyToggles.map((field) => (
+                <div key={field.key} className="flex items-center justify-between gap-4">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium text-foreground">{field.label}</p>
+                    <p className="text-xs text-muted-foreground">{field.desc}</p>
+                  </div>
+                  <Switch
+                    id={`priv-${field.key}`}
+                    checked={priv[field.key] as boolean}
+                    onChange={(e) => updateField("privacy", field.key, e.target.checked)}
+                  />
+                </div>
+              ))}
+              <hr className="border-border" />
+              <div className="pt-2">
+                <p className="text-sm font-medium text-foreground mb-1">Export your data</p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Download all your profile data, CVs, and applications.
+                </p>
+                <Button type="button" variant="outline" size="sm" onClick={() => {}}>
+                  <Download className="h-3.5 w-3.5" />
+                  Export Data
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </section>
     </div>
