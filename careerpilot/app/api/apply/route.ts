@@ -9,6 +9,7 @@ import {
 import { retrieveChunks, formatContext } from "@/lib/services/profile";
 import { createApplication, createEvent } from "@/lib/services/tracker";
 import { route, parseJson, ApiError } from "@/lib/api";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -50,6 +51,7 @@ function daysFromToday(days: number): string {
  */
 export const POST = route(async (req: Request) => {
   const user = await requireUser();
+  await enforceRateLimit(user.id, "apply", "medium");
   const { role, company, location, description, link, fit_score, deadline } = await parseJson(req, BodySchema);
   const warnings: string[] = [];
 

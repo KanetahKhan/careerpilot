@@ -6,6 +6,7 @@ import { generateObjectWithFallback } from "@/lib/ai";
 import { requireUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase";
 import { route, ApiError } from "@/lib/api";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import type { PortfolioData } from "@/types/portfolio";
 
 export const runtime = "nodejs";
@@ -181,6 +182,7 @@ function buildSnapshot(
 /** POST — generate/publish: snapshot the CV, polish it, assign a slug, publish. */
 export const POST = route(async (req: Request) => {
   const user = await requireUser();
+  await enforceRateLimit(user.id, "portfolio", "medium");
   const body = await req.json().catch(() => ({}));
   const includeContact = body?.includeContact === true;
 

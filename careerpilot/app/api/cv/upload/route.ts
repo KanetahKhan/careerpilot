@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { ingestCv } from "@/lib/services/profile";
 import { requireUser } from "@/lib/auth";
 import { route, ApiError } from "@/lib/api";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export const POST = route(async (req: Request) => {
   const user = await requireUser();
+  await enforceRateLimit(user.id, "cv/upload", "heavy");
   const form = await (req as any).formData();
   const file = form.get("file") as File | null;
   if (!file) throw new ApiError("No file provided", 400);

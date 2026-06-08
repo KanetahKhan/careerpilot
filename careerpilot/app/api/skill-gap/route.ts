@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { loadCvContext } from "@/lib/services/fit-score/fit-score";
 import { getBenchmark } from "@/lib/services/profile/benchmarks";
 import { route, parseJson, ApiError } from "@/lib/api";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -14,6 +15,7 @@ const BodySchema = z.object({
 
 export const POST = route(async (req: Request) => {
   const user = await requireUser();
+  await enforceRateLimit(user.id, "skill-gap", "medium");
   const { role } = await parseJson(req, BodySchema);
 
   const cv = await loadCvContext(user.id);
