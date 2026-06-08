@@ -10,11 +10,7 @@ const nextConfig = {
       { protocol: "https", hostname: "avatars.githubusercontent.com" },
     ],
   },
-  // Point Turbopack at the correct root (avoids scanning parent dir with duplicate lockfile)
   output: "standalone",
-  turbopack: {
-    root: process.cwd(),
-  },
   async headers() {
     return [{
       source: "/(.*)",

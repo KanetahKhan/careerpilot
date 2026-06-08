@@ -24,7 +24,10 @@ export const POST = route(async (req: Request) => {
   if (file.size > MAX_FILE_BYTES)
     throw new ApiError("File too large — maximum 5 MB.", 413);
 
+  console.log(`[upload] Starting ingest for user=${user.id} file=${file.name} size=${file.size}`);
   const buffer = Buffer.from(await file.arrayBuffer());
+  console.log(`[upload] Buffer ready, calling ingestCv`);
   const result = await ingestCv(user.id, buffer, file.name);
+  console.log(`[upload] Done:`, result);
   return NextResponse.json({ ok: true, ...result });
 });
