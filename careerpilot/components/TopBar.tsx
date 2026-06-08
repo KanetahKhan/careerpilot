@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Sparkles, LogOut } from "lucide-react";
-import { ThemeToggle } from "./ThemeToggle";
+import { Sparkles, LogOut, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 import { useAuth } from "./AuthProvider";
 import { useLogout } from "@/hooks/useLogout";
 
 export function TopBar() {
+  const { theme, setTheme } = useTheme();
   const { user, loading } = useAuth();
   const handleLogout = useLogout();
 
@@ -62,25 +63,19 @@ export function TopBar() {
               </Link>
               <Link
                 href="/auth?mode=signup"
-                className="text-sm font-semibold text-white px-5 py-2 rounded-xl transition-all"
-                style={{
-                  background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-                  boxShadow: "0 4px 14px rgba(37, 99, 235, 0.25)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                  e.currentTarget.style.boxShadow = "0 6px 20px rgba(37, 99, 235, 0.35)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "";
-                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(37, 99, 235, 0.25)";
-                }}
+                className="text-sm font-semibold text-primary-foreground px-5 py-2 rounded-xl bg-gradient-to-br from-primary to-primary/80 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/25"
               >
                 Get Started
               </Link>
             </>
           )}
-          <ThemeToggle />
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="inline-flex items-center justify-center rounded-md w-9 h-9 text-foreground hover:bg-secondary transition-colors border border-border"
+            aria-label="Toggle theme"
+          >
+            {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
         </div>
       </div>
     </header>

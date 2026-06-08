@@ -5,15 +5,15 @@ type Props = {
   eyebrow?: string;
   subtitle?: React.ReactNode;
   icon?: LucideIcon;
-  /** Accepted for backwards-compat with callers; not used in the Skybound style. */
+  /** Accepted for backwards-compat with callers. */
   gradient?: string;
   /** Right-side actions (buttons, toggles). */
   children?: React.ReactNode;
 };
 
 /**
- * Shared page banner — Skybound style: a soft sky-blue gradient with dark teal
- * text and a faint oversized icon, so every screen opens light and airy.
+ * Shared page banner: a soft gradient with dark teal
+ * text and a faint oversized icon.
  */
 export function PageHeader({ title, eyebrow, subtitle, icon: Icon, children }: Props) {
   return (

@@ -85,6 +85,10 @@ async function huntJobs(
           company: j.company,
           location: j.location,
           description: j.description,
+          link: j.link,
+          salary: j.salary,
+          isMock: j.isMock,
+          employerLogo: j.employerLogo,
         }));
       },
     }),
@@ -98,6 +102,8 @@ async function huntJobs(
         description: z.string(),
         link: z.string().optional(),
         salary: z.string().optional(),
+        isMock: z.boolean().optional(),
+        employerLogo: z.string().optional(),
       }),
       execute: async (j) => {
         const fit = await computeFitScore(userId, j.description, j.location ?? "", cvContext);
@@ -117,6 +123,8 @@ async function huntJobs(
           link: j.link ?? null,
           salary: j.salary ?? null,
           deadline: null,
+          isMock: j.isMock ?? undefined,
+          employerLogo: j.employerLogo ?? undefined,
           fit,
         });
         return { score: fit.score, missing: fit.missingSkills.slice(0, 4) };

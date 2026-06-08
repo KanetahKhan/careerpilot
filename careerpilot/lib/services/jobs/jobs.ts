@@ -11,6 +11,8 @@ export type Job = {
   deadline: string | null;
   link: string | null;
   description: string;
+  employerLogo?: string;
+  isMock?: boolean;
 };
 
 function hash(query: string, location: string) {
@@ -31,6 +33,8 @@ type JSearchRawResult = {
   job_apply_link?: string;
   job_description?: string;
   job_offer_expiration_datetime_utc?: string;
+  job_employer_logo?: string;
+  job_employment_type?: string;
   job_highlights?: { qualifications?: string[]; responsibilities?: string[] };
 };
 
@@ -49,6 +53,7 @@ function mapJSearch(j: JSearchRawResult): Job {
         : null,
     deadline: j.job_offer_expiration_datetime_utc ?? null,
     link: j.job_apply_link ?? null,
+    employerLogo: j.job_employer_logo ?? undefined,
     description: (j.job_description ?? "").slice(0, 4000),
   };
 }

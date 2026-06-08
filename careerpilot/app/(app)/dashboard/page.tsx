@@ -190,7 +190,6 @@ export default function DashboardPage() {
             value={applications.length}
             change="See all"
             changeType="neutral"
-            accentColor="blue"
           />
           <StatCard
             icon={Target}
@@ -198,21 +197,18 @@ export default function DashboardPage() {
             value={interviewCount}
             change={interviewCount > 0 ? `${interviewCount} active` : "No interviews yet"}
             changeType={interviewCount > 0 ? "positive" : "neutral"}
-            accentColor="amber"
           />
           <StatCard
             icon={Calendar}
             label="This Week"
             value={thisWeekCount}
             subtitle="deadlines"
-            accentColor="rose"
           />
           <StatCard
             icon={Flame}
             label="Streak"
             value={`${streak}d`}
             subtitle={streak > 0 ? "Keep it up!" : "Start applying today"}
-            accentColor="orange"
           />
         </div>
       </section>

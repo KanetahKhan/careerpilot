@@ -24,7 +24,7 @@ export default function AppAmbientBackground() {
   }, []);
 
   if (!mounted || reduced) return null;
-  // The flow field reads as a gray haze over the light Skybound theme, so it's
+  // The flow field reads as a gray haze over light backgrounds, so it's
   // dark-mode only; light mode keeps the clean sky wash from body::before.
   if (resolvedTheme !== "dark") return null;
 

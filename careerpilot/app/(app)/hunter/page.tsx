@@ -3,8 +3,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Brain, Search, ListChecks, Gauge, Globe, Info, Zap, Download, Printer,
-  CalendarClock, CheckCircle2, ExternalLink, Clock, MapPin, Briefcase,
-  X, Clock as HistoryIcon, Trash2,
+  CalendarClock, CheckCircle2, Clock as HistoryIcon,
   type LucideIcon,
 } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
@@ -14,11 +13,12 @@ import { EmptyState } from "@/components/EmptyState";
 import { FactorBars, fitScoreTextColor, type Fit } from "@/components/FitBreakdown";
 import { downloadCoverLetterDocx, printCoverLetter } from "@/lib/export/client";
 import { useDebounce } from "@/lib/hooks/useDebounce";
+import { JobCard } from "@/components/jobs/JobCard";
 
 type Job = {
   id: string; role: string; company: string; location: string;
   salary: string | null; link: string | null; description?: string;
-  deadline?: string | null; fit: Fit;
+  deadline?: string | null; employerLogo?: string; isMock?: boolean; fit: Fit;
 };
 
 type ApplyResult = {
@@ -365,64 +365,37 @@ function HunterInner() {
         />
       )}
 
-      {/* Google-like results */}
-      <StaggerContainer className="divide-y divide-border">
-        {jobs.map((j) => (
-          <StaggerItem key={j.id}>
-          <div className="animate-fade-up py-5 first:pt-0">
-            {/* Role as link */}
-            {j.link ? (
-              <a
-                href={j.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-lg font-semibold text-primary hover:underline leading-tight"
-              >
-                {j.role}
-              </a>
-            ) : (
-              <button
-                onClick={() => setDetail(j)}
-                className="text-left text-lg font-semibold text-primary hover:underline leading-tight"
-              >
-                {j.role}
-              </button>
-            )}
-
-            {/* Green URL */}
-            {j.link && (
-              <p className="mt-0.5 text-sm text-green-700 dark:text-green-500 truncate">
-                {new URL(j.link).hostname.replace("www.", "")}
-                <span className="text-muted-foreground">{new URL(j.link).pathname}</span>
-              </p>
-            )}
-
-            {/* Snippet */}
-            {j.description && (
-              <p className="mt-1 text-sm leading-relaxed text-foreground/80">
-                {snippet(j.description)}
-              </p>
-            )}
-
-            {/* Meta row */}
-            <div className="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
-              <span>{j.company}</span>
-              <span>·</span>
-              <span>{j.location}</span>
-              {j.salary && <><span>·</span><span>{j.salary}</span></>}
-              <span>·</span>
-              <span className={`font-medium ${fitScoreTextColor(j.fit.score)}`}>{j.fit.score}/100</span>
-              <button
-                onClick={() => setDetail(j)}
-                className="ml-auto text-xs text-muted-foreground hover:text-foreground"
-              >
-                Details
-              </button>
+      {loading && jobs.length === 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-64 rounded-xl border border-border bg-card p-5 animate-pulse">
+              <div className="h-10 w-10 rounded-full bg-muted" />
+              <div className="mt-3 h-4 w-3/4 rounded bg-muted" />
+              <div className="mt-2 h-3 w-1/2 rounded bg-muted" />
+              <div className="mt-3 space-y-2">
+                <div className="h-3 w-full rounded bg-muted" />
+                <div className="h-3 w-5/6 rounded bg-muted" />
+              </div>
+              <div className="mt-auto pt-4 flex justify-between">
+                <div className="h-3 w-20 rounded bg-muted" />
+                <div className="h-7 w-16 rounded bg-muted" />
+              </div>
             </div>
-          </div>
-          </StaggerItem>
-        ))}
-      </StaggerContainer>
+          ))}
+        </div>
+      )}
+
+      {!loading && jobs.length > 0 && (
+        <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {jobs.map((j) => (
+            <StaggerItem key={j.id} className="h-full">
+              <div className="animate-fade-up h-full">
+                <JobCard job={j} onDetail={(job) => setDetail(job)} />
+              </div>
+            </StaggerItem>
+          ))}
+        </StaggerContainer>
+      )}
 
       {/* Detail modal */}
       {detail && (

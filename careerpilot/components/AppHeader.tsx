@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Sparkles, LogOut } from "lucide-react";
-import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "./AuthProvider";
 import { Avatar } from "./Avatar";
 import { useLogout } from "@/hooks/useLogout";
@@ -74,8 +73,7 @@ export function AppHeader() {
                 <span className="hidden sm:inline">Sign out</span>
               </button>
             </>
-          ) : null}
-          <ThemeToggle />
+            ) : null}
         </div>
       </div>
     </header>

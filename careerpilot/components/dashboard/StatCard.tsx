@@ -8,47 +8,17 @@ interface StatCardProps {
   change?: string;
   changeType?: "positive" | "negative" | "neutral";
   subtitle?: string;
-  accentColor?: "blue" | "amber" | "rose" | "orange" | "emerald";
 }
 
-const accentStyles: Record<string, { bg: string; icon: string; change: string }> = {
-  blue: {
-    bg: "bg-primary/10",
-    icon: "text-primary",
-    change: "text-primary",
-  },
-  amber: {
-    bg: "bg-muted",
-    icon: "text-muted-foreground",
-    change: "text-muted-foreground",
-  },
-  rose: {
-    bg: "bg-destructive/10",
-    icon: "text-destructive",
-    change: "text-destructive",
-  },
-  orange: {
-    bg: "bg-accent/10",
-    icon: "text-accent-foreground",
-    change: "text-accent-foreground",
-  },
-  emerald: {
-    bg: "bg-primary/10",
-    icon: "text-primary",
-    change: "text-primary",
-  },
-};
-
-export function StatCard({ icon: Icon, label, value, change, changeType = "neutral", subtitle, accentColor = "blue" }: StatCardProps) {
-  const s = accentStyles[accentColor] || accentStyles.blue;
+export function StatCard({ icon: Icon, label, value, change, changeType = "neutral", subtitle }: StatCardProps) {
   return (
     <div className="panel p-5 transition-all duration-200 hover:shadow-md">
       <div className="flex items-center justify-between">
-        <div className={cn("grid h-10 w-10 place-items-center rounded-2xl", s.bg)}>
-          <Icon className={cn("h-5 w-5", s.icon)} />
+        <div className="grid h-10 w-10 place-items-center rounded-2xl bg-primary/10">
+          <Icon className="h-5 w-5 text-primary" />
         </div>
         {change && (
-          <span className={cn("text-xs font-medium", changeType === "positive" ? s.change : changeType === "negative" ? "text-destructive" : "text-muted-foreground")}>
+          <span className={cn("text-xs font-medium", changeType === "positive" ? "text-primary" : changeType === "negative" ? "text-destructive" : "text-muted-foreground")}>
             {change}
           </span>
         )}

@@ -6,7 +6,8 @@
     "location": "Remote",
     "salary": "1200-1800 USD",
     "deadline": null,
-    "link": "https://www.linkedin.com/jobs/search/?keywords=Frontend%20Engineer%20React",
+    "link": "https://stripe.com/jobs/search?query=frontend",
+    "isMock": true,
     "description": "Build performant React + TypeScript interfaces. Experience with Next.js, Tailwind CSS, REST APIs, and state management required. Bonus: testing with Jest, CI/CD."
   },
   {
@@ -16,7 +17,8 @@
     "location": "Dhaka, Bangladesh",
     "salary": null,
     "deadline": null,
-    "link": "https://www.linkedin.com/jobs/search/?keywords=Backend%20Developer%20Node.js",
+    "link": "https://www.mongodb.com/careers",
+    "isMock": true,
     "description": "Design Node.js microservices with PostgreSQL and Docker. Knowledge of REST, message queues, and basic Kubernetes a plus. 1+ years experience."
   },
   {
@@ -26,7 +28,8 @@
     "location": "Remote",
     "salary": "Stipend",
     "deadline": null,
-    "link": "https://www.linkedin.com/jobs/search/?keywords=Machine%20Learning%20Intern",
+    "link": "https://openai.com/careers",
+    "isMock": true,
     "description": "Work on RAG pipelines and embeddings. Python, NumPy, Pandas, and familiarity with vector databases and LLM APIs expected. Great for students."
   },
   {
@@ -36,7 +39,8 @@
     "location": "Singapore",
     "salary": "3000-4500 USD",
     "deadline": null,
-    "link": "https://www.linkedin.com/jobs/search/?keywords=Full%20Stack%20Engineer",
+    "link": "https://www.notion.com/careers",
+    "isMock": true,
     "description": "End-to-end product work: React on the front, Node/Postgres on the back. We value clean commits and strong system design. 2+ years."
   },
   {
@@ -46,7 +50,8 @@
     "location": "Remote",
     "salary": null,
     "deadline": null,
-    "link": "https://www.linkedin.com/jobs/search/?keywords=Robotics%20Software%20Engineer%20ROS2",
+    "link": "https://www.tesla.com/careers/search/?type=3",
+    "isMock": true,
     "description": "C++ and ROS2 for autonomous navigation. Experience with Gazebo simulation, sensor fusion, and path planning desired."
   },
   {
@@ -56,7 +61,8 @@
     "location": "Remote",
     "salary": "1500-2200 USD",
     "deadline": null,
-    "link": "https://www.linkedin.com/jobs/search/?keywords=Junior%20Software%20Engineer",
+    "link": "https://cloud.google.com/careers",
+    "isMock": true,
     "description": "Generalist role across our web stack. We use TypeScript, React, and Postgres. Strong fundamentals in data structures and algorithms required."
   }
 ]

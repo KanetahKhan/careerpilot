@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useTheme } from "next-themes";
-import { useThemePreset } from "@/components/ThemePresetProvider";
-import { Moon, Sun, Palette, LogOut, User, Bell, Shield, Upload, Trash2, Settings as SettingsIcon } from "lucide-react";
+import { LogOut, User, Bell, Shield, Upload, Trash2, Settings as SettingsIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
 import { createBrowserClient } from "@supabase/ssr";
@@ -24,8 +22,6 @@ const ALLOWED_MIME = new Set(["image/png", "image/jpeg", "image/webp"]);
 const MAX_BYTES = 2 * 1024 * 1024;
 
 export default function SettingsPage() {
-  const { theme, setTheme } = useTheme();
-  const { preset, setPreset, presets } = useThemePreset();
   const { user } = useAuth();
   const router = useRouter();
 
@@ -273,63 +269,6 @@ export default function SettingsPage() {
                   {saveMsg.text}
                 </span>
               )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <div className="flex items-center gap-2 mb-4">
-          <Palette className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold text-foreground">Appearance</h2>
-        </div>
-
-        <div className="rounded-xl border border-border bg-card p-6 space-y-6">
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-foreground">Theme mode</label>
-            <div className="flex gap-2">
-              {[
-                { value: "light" as const, icon: Sun, label: "Light" },
-                { value: "dark" as const, icon: Moon, label: "Dark" },
-              ].map((t) => (
-                <button
-                  key={t.value}
-                  onClick={() => setTheme(t.value)}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm transition-all",
-                    theme === t.value
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border bg-background text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <t.icon className="h-4 w-4" />
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-foreground">Accent color</label>
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-              {presets.map((p) => (
-                <button
-                  key={p.name}
-                  onClick={() => setPreset(p.name)}
-                  className={cn(
-                    "flex flex-col items-center gap-2 rounded-lg border p-3 transition-all",
-                    preset.name === p.name
-                      ? "border-primary bg-primary/10"
-                      : "border-border bg-background hover:border-primary/50"
-                  )}
-                >
-                  <div
-                    className="h-8 w-8 rounded-full shadow-sm"
-                    style={{ backgroundColor: `hsl(${p.hue}, ${p.saturation}%, ${p.lightness}%)` }}
-                  />
-                  <span className="text-xs text-muted-foreground">{p.label}</span>
-                </button>
-              ))}
             </div>
           </div>
         </div>

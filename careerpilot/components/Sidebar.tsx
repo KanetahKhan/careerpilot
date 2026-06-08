@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useTheme } from "next-themes";
 import {
   Home,
   Search,
@@ -23,6 +22,7 @@ import {
   LogIn,
   Rocket,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { useAuth } from "./AuthProvider";
 import { cn } from "@/lib/utils";
 
