@@ -1,19 +1,24 @@
+import { z } from "zod";
 import { NextResponse } from "next/server";
 import { generateRoadmap } from "@/lib/services/assistant";
 import { requireUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase";
-import { route, ApiError } from "@/lib/api";
+import { route, parseJson, ApiError } from "@/lib/api";
 import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+const RoadmapSchema = z.object({
+  goal: z.string().max(500).optional(),
+});
+
 export const POST = route(async (req: Request) => {
   const user = await requireUser();
   await enforceRateLimit(user.id, "roadmap", "heavy");
 
-  const { goal } = await req.json().catch(() => ({}));
-  const plan = await generateRoadmap(user.id, typeof goal === "string" ? goal : "");
+  const { goal } = await parseJson(req, RoadmapSchema);
+  const plan = await generateRoadmap(user.id, goal ?? "");
 
   const supabase = createAdminClient();
   await supabase
