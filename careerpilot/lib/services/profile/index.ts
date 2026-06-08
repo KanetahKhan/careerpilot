@@ -21,7 +21,17 @@
  *             match_cv_chunks RPC). Consumed by: assistant, fit-score, profile UI, CV builder.
  */
 export { extractText, chunkCv, type Chunk } from "./cv";
-export { ingestCv, ingestSections, extractProfileFromText, type IngestResult, type ExtractedProfile } from "./ingest";
+export {
+  ingestCv,
+  ingestSections,
+  extractProfileFromText,
+  type IngestResult,
+  type ExtractedProfile,
+  type SectionContent,
+  type ExperienceEntry,
+  type EducationEntry,
+  type ProjectEntry,
+} from "./ingest";
 export { retrieveChunks, formatContext, type RetrievedChunk } from "./rag";
 export { getCvProfile, type CvProfile, type ProfileSection } from "./profile";
 export { extractSkills } from "./skills";

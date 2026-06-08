@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { extractText, chunkCv, type Chunk } from "./cv";
-import { embedBatch, isEmbeddingEnabled } from "@/lib/ai";
+import { embedBatch, isEmbeddingEnabled, LLM_ENABLED } from "@/lib/ai";
 import { createAdminClient } from "@/lib/supabase";
 
 export type IngestResult = {
@@ -11,100 +11,141 @@ export type IngestResult = {
   extracted: ExtractedProfile | null;
 };
 
+// ── Structured entry types ────────────────────────────────────────────────
+
+export type ExperienceEntry = {
+  title: string;
+  company: string;
+  duration?: string;
+  description?: string;
+};
+
+export type EducationEntry = {
+  degree: string;
+  institution: string;
+  year?: string;
+};
+
+export type ProjectEntry = {
+  name: string;
+  description?: string;
+  technologies?: string[];
+  githubUrl?: string;
+  liveUrl?: string;
+};
+
+// ── New nested-sections shape ────────────────────────────────────────────
+
+export type SectionContent = {
+  summary?: string;
+  education?: EducationEntry[];
+  experience?: ExperienceEntry[];
+  skills?: string[];
+  projects?: ProjectEntry[];
+  certifications?: string[];
+  interests?: string[];
+  coursework?: string[];
+  achievements?: string[];
+};
+
+// ── Backward-compat flat ExtractedProfile ─────────────────────────────────
+
 export type ExtractedProfile = {
   fullName?: string;
   email?: string;
   phone?: string;
   location?: string;
+  linkedin?: string;
+  github?: string;
+  /** Per-section structured data */
+  sections: SectionContent;
+  // Legacy flat fields (populated from sections for backward compat)
   summary?: string;
   skills?: string[];
-  experience?: { title: string; company: string; duration?: string; description?: string }[];
-  education?: { degree: string; institution: string; year?: string }[];
-  projects?: { name: string; description?: string; technologies?: string[]; githubUrl?: string; liveUrl?: string }[];
+  experience?: ExperienceEntry[];
+  education?: EducationEntry[];
+  projects?: ProjectEntry[];
 };
+
+// ── Constants ─────────────────────────────────────────────────────────────
 
 const MAX_CHARS = 1000;
 const OVERLAP = 100;
 const MAX_CHUNKS = 50;
 
-/* ── Line-based CV parser ────────────────────────────────────────────────── */
+// ── Header-only section patterns ─────────────────────────────────────────
+// Each pattern must match the ENTIRE line (after stripping # prefix & trailing colon)
+// to avoid triggering on content lines that happen to contain a keyword.
 
-interface SectionChunk {
+const HEADER_PATTERNS: Record<string, RegExp> = {
+  summary: /^(?:summary|profile|objective|about\s+me|professional\s+summary)$/i,
+  education: /^(?:education|academic\s+background|qualifications?|degrees?)$/i,
+  experience: /^(?:experience|work\s+experience|employment|professional\s+experience|career|internships?|volunteer\s+experience)$/i,
+  skills: /^(?:skills|technical\s+skills|competencies|expertise|technologies|tools)$/i,
+  projects: /^(?:projects|portfolio|personal\s+projects|academic\s+projects)$/i,
+  certifications: /^(?:certifications?|licenses?|accreditations)$/i,
+  interests: /^(?:interests|hobbies|activities)$/i,
+  coursework: /^(?:coursework|courses|relevant\s+courses)$/i,
+  achievements: /^(?:achievements|awards?|honors?|accomplishments)$/i,
+};
+
+// ── Section detection (header-only, no content keywords) ─────────────────
+
+function detectSection(line: string): string | null {
+  if (line.length > 60) return null;
+
+  const cleaned = line.replace(/^#+\s*/, "").replace(/:$/, "").trim();
+  if (!cleaned || cleaned.length > 50) return null;
+
+  // Must look like a heading — markdown, ALL-CAPS, or Title Case
+  const isHeaderStyle =
+    line.startsWith("#") ||
+    (cleaned === cleaned.toUpperCase() && cleaned.length >= 3 && cleaned.length <= 30) ||
+    /^[A-Z][a-z]*(?:\s+[A-Z][a-z]*)*$/.test(cleaned);
+
+  if (!isHeaderStyle) return null;
+
+  const lower = cleaned.toLowerCase();
+  for (const [section, pattern] of Object.entries(HEADER_PATTERNS)) {
+    if (pattern.test(lower)) return section;
+  }
+
+  return null;
+}
+
+// ── Section-block builder ────────────────────────────────────────────────
+
+interface SectionBlock {
   section: string;
   lines: string[];
 }
 
-const SECTION_KEYWORDS: Record<string, RegExp> = {
-  education: /education|academic|qualifications|degrees/i,
-  experience: /experience|work|employment|career|professional|internship|volunteer/i,
-  skills: /skills|technical|competencies|expertise|technologies|tools/i,
-  projects: /projects|portfolio|personal projects|academic projects/i,
-  certifications: /certifications|certificates|licenses|accreditations/i,
-  interests: /interests|hobbies|activities/i,
-  summary: /summary|profile|objective|about me|professional summary/i,
-  coursework: /coursework|courses|relevant courses/i,
-};
-
-function isContactLine(line: string): boolean {
-  return !!(
-    line.includes('@') ||
-    line.includes('github.com') ||
-    line.includes('linkedin.com') ||
-    /\+\d{10,}/.test(line) ||
-    (/\d{10,}/.test(line) && line.includes('|'))
-  );
-}
-
-function isSectionHeader(line: string): boolean {
-  if (line.length > 60) return false;
-  if (line.startsWith('#')) return true;
-  if (line === line.toUpperCase() && line.length > 3 && line.length < 30) return true;
-  for (const pattern of Object.values(SECTION_KEYWORDS)) {
-    if (pattern.test(line)) return true;
-  }
-  return false;
-}
-
-function detectSection(line: string): string {
-  const lower = line.toLowerCase().replace(/^#+\s*/, '');
-  for (const [name, pattern] of Object.entries(SECTION_KEYWORDS)) {
-    if (pattern.test(lower)) return name;
-  }
-  return 'other';
-}
-
-function parseCvToChunks(text: string): SectionChunk[] {
-  const cleaned = text
-    .replace(/\r\n/g, '\n')
-    .replace(/\r/g, '\n')
-    .trim();
-
-  const rawLines = cleaned.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-
-  const chunks: SectionChunk[] = [];
-  let currentSection = 'header';
+function buildSectionBlocks(lines: string[]): SectionBlock[] {
+  const blocks: SectionBlock[] = [];
+  let currentSection = "header";
   let currentLines: string[] = [];
 
-  for (const line of rawLines) {
-    if (isSectionHeader(line)) {
+  for (const line of lines) {
+    const detected = detectSection(line);
+    if (detected) {
       if (currentLines.length > 0) {
-        chunks.push({ section: currentSection, lines: currentLines });
+        blocks.push({ section: currentSection, lines: currentLines });
         currentLines = [];
       }
-      currentSection = detectSection(line);
+      currentSection = detected;
     } else {
       currentLines.push(line);
     }
   }
 
   if (currentLines.length > 0) {
-    chunks.push({ section: currentSection, lines: currentLines });
+    blocks.push({ section: currentSection, lines: currentLines });
   }
 
-  return chunks.filter(c => c.lines.join('').length > 5);
+  return blocks.filter((b) => b.lines.join("").trim().length > 0);
 }
 
-/* ── Basic extractors ───────────────────────────────────────────────────── */
+// ── Contact / header extractors ──────────────────────────────────────────
 
 function extractEmail(text: string): string | undefined {
   const m = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
@@ -112,7 +153,7 @@ function extractEmail(text: string): string | undefined {
 }
 
 function extractPhone(text: string): string | undefined {
-  const m = text.match(/\+\d{10,}/);
+  const m = text.match(/\+\d{7,}/);
   return m?.[0];
 }
 
@@ -126,23 +167,62 @@ function extractGitHub(text: string): string | undefined {
   return m ? `https://${m[0].toLowerCase()}` : undefined;
 }
 
-/* ── Section-specific parsers ───────────────────────────────────────────── */
+function extractName(lines: string[]): string | undefined {
+  for (const line of lines) {
+    if (
+      line.length > 2 &&
+      line.length < 50 &&
+      !line.includes("@") &&
+      !line.includes("|") &&
+      !/^[+\d]/.test(line) &&
+      !line.match(/github|linkedin/i)
+    ) {
+      return line;
+    }
+  }
+  return undefined;
+}
 
-function parseEducationChunk(lines: string[]): ExtractedProfile["education"] {
-  const entries: ExtractedProfile["education"] = [];
-  let current: { institution: string; degree: string; year?: string } | null = null;
+function extractLocation(lines: string[]): string | undefined {
+  for (const line of lines) {
+    if (
+      /^[A-Z][a-z]+,\s*[A-Z]/.test(line) &&
+      !line.includes("@") &&
+      !line.includes("github") &&
+      !line.includes("linkedin") &&
+      line.length < 50
+    ) {
+      return line;
+    }
+  }
+  return undefined;
+}
+
+// ── Entity extraction per section ─────────────────────────────────────────
+
+function parseSummary(lines: string[]): string | undefined {
+  const joined = lines.slice(0, 3).join(" ");
+  return joined.length > 20 ? joined.slice(0, 500) : undefined;
+}
+
+function parseEducation(lines: string[]): EducationEntry[] {
+  const entries: EducationEntry[] = [];
+  let current: EducationEntry | null = null;
 
   for (const line of lines) {
-    if (/University|College|School|Institute/i.test(line) && !/GPA|CGPA|Year|Graduation|Passing|Bachelor|Master/i.test(line)) {
+    if (
+      /University|College|School|Institute/i.test(line) &&
+      !/GPA|CGPA|Year|Graduation|Passing|Bachelor|Master/i.test(line)
+    ) {
       if (current) entries.push(current);
-      current = { institution: line, degree: '' };
+      current = { institution: line, degree: "" };
     } else if (/Bachelor|Master|Secondary|Higher|Certificate|Diploma|HSC|SSC|B\.?S\.?c?|M\.?S\.?c?/i.test(line)) {
       if (current) current.degree = line;
-      else current = { institution: '', degree: line };
+      else current = { institution: "", degree: line };
     } else if (/GPA|CGPA/i.test(line)) {
-      if (!current) current = { institution: '', degree: '' };
+      if (!current) current = { institution: "", degree: "" };
     } else if (/Year|Graduation|Passing|Expected/i.test(line)) {
-      if (!current) current = { institution: '', degree: '' };
+      if (!current) current = { institution: "", degree: "" };
       const yM = line.match(/20\d{2}/);
       if (yM) current.year = yM[0];
     }
@@ -152,24 +232,29 @@ function parseEducationChunk(lines: string[]): ExtractedProfile["education"] {
   return entries;
 }
 
-function parseSkillsChunk(lines: string[]): string[] {
+function parseSkills(lines: string[]): string[] {
   const skills: string[] = [];
   for (const line of lines) {
-    if (line.includes(':')) {
-      const items = line.split(':').slice(1).join(':');
-      const parts = items.split(/[,;]/).map(s => s.replace(/\s*\(.*?\)/g, '').trim()).filter(Boolean);
+    if (line.includes(":")) {
+      const items = line.split(":").slice(1).join(":");
+      const parts = items
+        .split(/[,;]/)
+        .map((s) => s.replace(/\s*\(.*?\)/g, "").trim())
+        .filter(Boolean);
       skills.push(...parts);
     } else {
-      const parts = line.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+      const parts = line.split(/[,;]/).map((s) => s.trim()).filter(Boolean);
       skills.push(...parts);
     }
   }
-  return [...new Set(skills.map(s => s.toLowerCase()))].filter(s => s.length > 0 && s.length < 40).slice(0, 30);
+  return [...new Set(skills.map((s) => s.toLowerCase()))]
+    .filter((s) => s.length > 0 && s.length < 40)
+    .slice(0, 30);
 }
 
-function parseProjectsChunk(lines: string[]): ExtractedProfile["projects"] {
-  const entries: ExtractedProfile["projects"] = [];
-  let current: { name: string; technologies?: string[]; description?: string; githubUrl?: string; liveUrl?: string } | null = null;
+function parseProjects(lines: string[]): ProjectEntry[] {
+  const entries: ProjectEntry[] = [];
+  let current: ProjectEntry | null = null;
 
   for (const line of lines) {
     const headerMatch = line.match(/^(.+?)\s*\(([^)]+)\)\s*[–-]\s*(.+)/);
@@ -178,18 +263,18 @@ function parseProjectsChunk(lines: string[]): ExtractedProfile["projects"] {
       const link = headerMatch[3].trim();
       current = {
         name: headerMatch[1].trim(),
-        technologies: headerMatch[2].split(/[,;]/).map(s => s.trim()).filter(Boolean),
-        description: '',
+        technologies: headerMatch[2].split(/[,;]/).map((s) => s.trim()).filter(Boolean),
+        description: "",
       };
-      if (/github/i.test(link) || link.includes('github.com')) {
-        current.githubUrl = link.startsWith('http') ? link : `https://github.com/${link.replace(/^https?:\/\/github\.com\//i, '')}`;
-      } else if (link.startsWith('http')) {
+      if (/github/i.test(link) || link.includes("github.com")) {
+        current.githubUrl = link.startsWith("http") ? link : `https://github.com/${link.replace(/^https?:\/\/github\.com\//i, "")}`;
+      } else if (link.startsWith("http")) {
         current.liveUrl = link;
       }
     } else if (current && line.length > 5) {
-      current.description += (current.description ? ' ' : '') + line;
+      current.description += (current.description ? " " : "") + line;
     } else if (!current && line.length > 3 && line.length < 60) {
-      current = { name: line, technologies: [], description: '' };
+      current = { name: line, technologies: [], description: "" };
     }
   }
 
@@ -197,19 +282,24 @@ function parseProjectsChunk(lines: string[]): ExtractedProfile["projects"] {
   return entries;
 }
 
-function parseExperienceChunk(lines: string[]): ExtractedProfile["experience"] {
-  const entries: ExtractedProfile["experience"] = [];
-  let current: { title: string; company: string; duration?: string; description?: string } | null = null;
+function parseExperience(lines: string[]): ExperienceEntry[] {
+  const entries: ExperienceEntry[] = [];
+  let current: ExperienceEntry | null = null;
 
   for (const line of lines) {
     const sepMatch = line.match(/^(.+?)\s*[|–—-]\s*(.+?)\s*[|–—-]\s*(.+)/);
     if (sepMatch) {
       if (current) entries.push(current);
-      current = { title: sepMatch[1].trim(), company: sepMatch[2].trim(), duration: sepMatch[3].trim(), description: '' };
+      current = {
+        title: sepMatch[1].trim(),
+        company: sepMatch[2].trim(),
+        duration: sepMatch[3].trim(),
+        description: "",
+      };
     } else if (current) {
-      current.description += (current.description ? ' ' : '') + line;
+      current.description += (current.description ? " " : "") + line;
     } else {
-      current = { title: line, company: '', description: '' };
+      current = { title: line, company: "", description: "" };
     }
   }
 
@@ -217,91 +307,151 @@ function parseExperienceChunk(lines: string[]): ExtractedProfile["experience"] {
   return entries;
 }
 
-/* ── Summary extraction ───────────────────────────────────────────────── */
-
-function extractSummary(lines: string[]): string | undefined {
-  const joined = lines.slice(0, 3).join(" ");
-  if (joined.length > 20) return joined.slice(0, 500);
-  return undefined;
+function parseSimpleList(lines: string[]): string[] {
+  return lines
+    .flatMap((line) => line.split(/[,;]/).map((s) => s.trim()).filter(Boolean))
+    .filter((s) => s.length > 0 && s.length < 40);
 }
 
-/* ── Main extraction orchestrator ─────────────────────────────────────── */
+// ── Route block → entities ───────────────────────────────────────────────
 
-export function extractProfileFromText(text: string): ExtractedProfile {
-  const chunks = parseCvToChunks(text);
+function extractEntities(block: SectionBlock): Partial<SectionContent> {
+  switch (block.section) {
+    case "summary":
+      return { summary: parseSummary(block.lines) };
+    case "education":
+      return { education: parseEducation(block.lines) };
+    case "skills":
+      return { skills: parseSkills(block.lines) };
+    case "projects":
+      return { projects: parseProjects(block.lines) };
+    case "experience":
+      return { experience: parseExperience(block.lines) };
+    case "certifications":
+    case "interests":
+    case "coursework":
+    case "achievements":
+      return { [block.section]: parseSimpleList(block.lines) };
+    default:
+      return {};
+  }
+}
 
-  const headerChunk = chunks.find(c => c.section === 'header');
-  const headerText = headerChunk ? headerChunk.lines.join('\n') : text;
+// ── AI classification for ambiguous lines (gated) ────────────────────────
+// Only called when LLM_ENABLED is true at runtime. Uses a direct Groq REST
+// call (no AI SDK) to keep the import graph lean.
 
-  const name = (() => {
-    for (const line of headerChunk?.lines || []) {
-      if (line.length > 2 && line.length < 50 && !line.includes('@') && !line.includes('|') && !/^[+\d]/.test(line) && !line.match(/github|linkedin/i)) {
-        return line;
+async function classifyLinesWithAI(
+  blocks: SectionBlock[]
+): Promise<Partial<SectionContent>> {
+  if (!LLM_ENABLED) return {};
+  if (blocks.length === 0) return {};
+
+  try {
+    const unknownLines = blocks
+      .filter((b) => b.section === "header")
+      .flatMap((b) => b.lines)
+      .slice(0, 50);
+
+    if (unknownLines.length === 0) return {};
+
+    const prompt = unknownLines.map((l, i) => `${i}: "${l.substring(0, 120)}"`).join("\n");
+
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-8b-instant",
+        messages: [
+          {
+            role: "system",
+            content:
+              "Classify each numbered line into one of: summary, education, experience, skills, projects, certifications, interests, coursework, achievements, or none. Return a JSON array of strings in the same order as input.",
+          },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.1,
+        max_tokens: 300,
+      }),
+    });
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) return {};
+    const parsed: string[] = JSON.parse(content);
+    if (!Array.isArray(parsed)) return {};
+
+    const result: Partial<SectionContent> = {};
+    for (let i = 0; i < Math.min(parsed.length, unknownLines.length); i++) {
+      const section = parsed[i];
+      if (section && section !== "none" && section in result) {
+        (result as any)[section].push(unknownLines[i]);
+      } else if (section && section !== "none") {
+        (result as any)[section] = [unknownLines[i]];
       }
     }
-    return undefined;
-  })();
+    return result;
+  } catch {
+    return {};
+  }
+}
 
+// ── Main extraction orchestrator (sync, pure regex) ──────────────────────
+
+export function extractProfileFromText(text: string): ExtractedProfile {
+  const cleaned = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+  const rawLines = cleaned.split("\n").map((l) => l.trim()).filter((l) => l.length > 0);
+
+  const blocks = buildSectionBlocks(rawLines);
+
+  // Header / contact info
+  const headerBlock = blocks.find((b) => b.section === "header");
+  const headerLines = headerBlock?.lines ?? [];
+  const headerText = headerLines.join("\n");
+
+  const fullName = extractName(headerLines);
   const email = extractEmail(headerText) || extractEmail(text);
   const phone = extractPhone(headerText) || extractPhone(text);
+  const location = extractLocation(headerLines);
   const linkedin = extractLinkedIn(headerText) || extractLinkedIn(text);
   const github = extractGitHub(headerText) || extractGitHub(text);
 
-  const education: ExtractedProfile["education"] = [];
-  for (const c of chunks) {
-    if (c.section === 'education') {
-      const parsed = parseEducationChunk(c.lines);
-      if (parsed) education.push(...parsed);
-    }
+  // Per-section entity extraction
+  const sections: SectionContent = {};
+  for (const block of blocks) {
+    if (block.section === "header") continue;
+    Object.assign(sections, extractEntities(block));
   }
-
-  const skills = [...new Set(
-    chunks
-      .filter(c => c.section === 'skills')
-      .flatMap(c => parseSkillsChunk(c.lines))
-      .map(s => s.toLowerCase())
-  )].slice(0, 30);
-
-  const projects: ExtractedProfile["projects"] = [];
-  for (const c of chunks) {
-    if (c.section === 'projects') {
-      const parsed = parseProjectsChunk(c.lines);
-      if (parsed) projects.push(...parsed);
-    }
-  }
-
-  const experience: ExtractedProfile["experience"] = [];
-  for (const c of chunks) {
-    if (c.section === 'experience') {
-      const parsed = parseExperienceChunk(c.lines);
-      if (parsed) experience.push(...parsed);
-    }
-  }
-
-  const summary = chunks
-    .filter(c => c.section === 'summary')
-    .flatMap(c => extractSummary(c.lines))
-    .find(Boolean);
 
   const result: ExtractedProfile = {
-    fullName: name,
+    fullName,
     email,
     phone,
-    summary,
-    skills: skills.length > 0 ? skills : undefined,
-    experience: experience.length > 0 ? experience : undefined,
-    education: education.length > 0 ? education : undefined,
-    projects: projects.length > 0 ? projects : undefined,
+    location,
+    linkedin,
+    github,
+    sections,
+    summary: sections.summary,
+    skills: sections.skills?.length ? sections.skills : undefined,
+    experience: sections.experience?.length ? sections.experience : undefined,
+    education: sections.education?.length ? sections.education : undefined,
+    projects: sections.projects?.length ? sections.projects : undefined,
   };
 
-  console.log('[EXTRACTED]', JSON.stringify({
+  console.log("[EXTRACTED]", JSON.stringify({
     name: result.fullName,
     email: result.email,
     phone: result.phone,
+    location: result.location,
     education: result.education?.length,
     skills: result.skills?.length,
     projects: result.projects?.length,
-  }, null, 2));
+    experience: result.experience?.length,
+    sections: Object.keys(sections),
+  }));
 
   return result;
 }
@@ -491,11 +641,14 @@ export async function ingestCv(
   const text = await extractText(buffer, fileName);
   if (!text.trim()) throw new Error("Could not extract text from file");
 
-  // Line-based section parsing (NO LLM)
-  const sectionChunks = parseCvToChunks(text);
+  // Line-based section parsing (header-only regex)
   const extracted = extractProfileFromText(text);
 
-  const sections = sectionChunks
+  const sectionBlocks = buildSectionBlocks(
+    text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim().split("\n").map(l => l.trim()).filter(l => l.length > 0)
+  );
+
+  const sections = sectionBlocks
     .filter(c => c.section !== 'header')
     .map(c => ({
       section: c.section,
