@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
-import { AI_BUSY_MESSAGE, isRateLimitError, generateObjectWithFallback } from "@/lib/ai";
+import { generateObjectWithFallback } from "@/lib/ai";
 import { retrieveChunks, formatContext } from "@/lib/services/profile";
-import { getErrorMessage } from "@/lib/errors";
+import { route, parseJson } from "@/lib/api";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -19,28 +20,26 @@ const QuestionsSchema = z.object({
       z.object({
         question: z.string(),
         type: z.enum(["behavioral", "role-specific", "gap-probing"]),
-        rationale: z.string().describe("Why this question is relevant given the candidate's CV context"),
+        rationale: z
+          .string()
+          .describe("Why this question is relevant given the candidate's CV context"),
       }),
     )
     .length(5),
 });
 
-export async function POST(req: NextRequest) {
-  try {
-    const user = await requireUser();
-    if (user instanceof Response) return user;
-    const body = await req.json().catch(() => null);
-    const parsed = BodySchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Provide a job description (min 10 chars)" }, { status: 400 });
-    }
+export const POST = route(async (req: Request) => {
+  const user = await requireUser();
+  if (user instanceof Response) return user;
+  await enforceRateLimit(user.id, "interview/start", "medium");
+  const { jd } = await parseJson(req, BodySchema);
 
-    const cvContext = await retrieveChunks(user.id, parsed.data.jd, 8);
-    const contextStr = formatContext(cvContext);
+  const cvContext = await retrieveChunks(user.id, jd, 8);
+  const contextStr = formatContext(cvContext);
 
-    const { object } = await generateObjectWithFallback({
-      schema: QuestionsSchema,
-      prompt: `You are a technical interviewer. Based on the job description below and the candidate's CV context, generate exactly 5 interview questions.
+  const { object } = await generateObjectWithFallback({
+    schema: QuestionsSchema,
+    prompt: `You are a technical interviewer. Based on the job description below and the candidate's CV context, generate exactly 5 interview questions.
 
 RULES:
 - Mix types: at least 1 behavioral, 2 role-specific, 1 gap-probing (something the CV context doesn't fully cover).
@@ -50,25 +49,19 @@ RULES:
 - Extract the target role title from the JD.
 
 JOB DESCRIPTION:
-${parsed.data.jd.slice(0, 6000)}
+${jd.slice(0, 6000)}
 
 CANDIDATE CV CONTEXT:
 ${contextStr}`,
-      schemaName: "interview_questions",
-      temperature: 0.4,
-    });
+    schemaName: "interview_questions",
+    temperature: 0.4,
+  });
 
-    const sessionId = `interview:${crypto.randomUUID()}`;
+  const sessionId = `interview:${crypto.randomUUID()}`;
 
-    return NextResponse.json({
-      sessionId,
-      role: object.role,
-      questions: object.questions,
-    });
-  } catch (e: unknown) {
-    if (isRateLimitError(e)) {
-      return NextResponse.json({ error: AI_BUSY_MESSAGE }, { status: 429 });
-    }
-    return NextResponse.json({ error: getErrorMessage(e) }, { status: 500 });
-  }
-}
+  return NextResponse.json({
+    sessionId,
+    role: object.role,
+    questions: object.questions,
+  });
+});

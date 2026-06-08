@@ -37,6 +37,12 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const objectUrlRef = useRef<string | null>(null);
 
+  // next-themes and the preset provider both read from localStorage, so the
+  // server renders the default state. Gate any UI that depends on those
+  // values on `mounted` so the first client render matches the server.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {

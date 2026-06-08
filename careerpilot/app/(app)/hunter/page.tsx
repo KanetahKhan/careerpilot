@@ -7,7 +7,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
-import { StaggerContainer, StaggerItem } from "@/components/StaggerContainer";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { FactorBars, fitScoreTextColor, type Fit } from "@/components/FitBreakdown";
@@ -93,10 +92,17 @@ function HunterInner() {
   const runIdRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const traceRef = useRef<HTMLOListElement | null>(null);
 
   useEffect(() => {
     setHistory(loadHistory());
   }, []);
+
+  // Keep the newest trace line in view while the agent is streaming.
+  useEffect(() => {
+    const el = traceRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [trace.length]);
 
   const run = useCallback(async (q: string) => {
     abortRef.current?.abort();
@@ -330,7 +336,7 @@ function HunterInner() {
               </span>
             )}
           </div>
-          <ol className="space-y-1.5">
+          <ol ref={traceRef} className="max-h-72 space-y-1.5 overflow-y-auto pr-2">
             {trace.map((t, i) => {
               const { icon: Icon, color } = TRACE_STYLE[t.kind] ?? TRACE_STYLE.note;
               return (
@@ -386,15 +392,13 @@ function HunterInner() {
       )}
 
       {!loading && jobs.length > 0 && (
-        <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {jobs.map((j) => (
-            <StaggerItem key={j.id} className="h-full">
-              <div className="animate-fade-up h-full">
-                <JobCard job={j} onDetail={(job) => setDetail(job)} />
-              </div>
-            </StaggerItem>
+            <div key={j.id} className="animate-fade-up h-full">
+              <JobCard job={j} onDetail={(job) => setDetail(job)} />
+            </div>
           ))}
-        </StaggerContainer>
+        </div>
       )}
 
       {/* Detail modal */}

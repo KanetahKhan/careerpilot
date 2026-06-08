@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { generateNudges, listNotifications, markNotificationRead } from "@/lib/services/tracker";
 import { requireUser } from "@/lib/auth";
 import { route, parseJson } from "@/lib/api";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -23,6 +24,7 @@ export const GET = route(async () => {
 export const POST = route(async () => {
   const user = await requireUser();
   if (user instanceof Response) return user;
+  await enforceRateLimit(user.id, "nudges", "medium");
   const notifications = await generateNudges(user.id);
   return NextResponse.json({ notifications });
 });

@@ -6,13 +6,13 @@
 
 Built in 14 days for [CodeSprint 2026](https://poridhi.io) (IUT Computer Society).
 
-**Live demo:** _add your Vercel URL_ · **Demo video:** _add your link_
+**Live demo:** [careerpilot-ebon.vercel.app](https://careerpilot-ebon.vercel.app) · **Demo video:** _add your link_
 
 ---
 
 ## 🚀 Live Demo
 
-**URL:** _add your Vercel/Render/Railway URL here_
+**URL:** https://careerpilot-ebon.vercel.app
 
 **Sign in:** Create an account at `/signup` (email + password) or use **Continue with Google**. Each user gets their own CV, applications, and chat history, isolated per account. After signing in, upload your CV from `/onboarding` to personalize everything.
 
@@ -86,7 +86,7 @@ The LLM only extracts skill lists; the factors, weights, and blend are all TypeS
 
 | Layer | Technology | Purpose |
 |-------|------------|---------|
-| Framework | Next.js 15.5.7 (App Router) | Frontend + API routes |
+| Framework | Next.js 16.2.7 (App Router) | Frontend + API routes |
 | Language | TypeScript 5.7 | Type safety |
 | Styling | Tailwind CSS 3.4 + CSS variables | Utility-first design system |
 | Fonts | Geist Sans + Geist Mono | Typography |
@@ -172,6 +172,10 @@ RAPIDAPI_KEY=your_rapidapi_key_here
 TAVILY_API_KEY=your_tavily_key_here
 ```
 
+# Sentry — free tier — https://sentry.io (create a Next.js project, copy the DSN)
+# Optional: omit to disable error monitoring. Never required for the demo.
+NEXT_PUBLIC_SENTRY_DSN=https://your-key@oXXXXXX.ingest.sentry.io/XXXXXXX
+
 > **Cost:** every dependency runs on a free tier. **Do not enable billing** on any service — the worst case is a rate-limit (429), never a charge.
 
 ---
@@ -205,6 +209,8 @@ npm install
 #    - Then run the remaining migrations in order: 0008_role_benchmarks.sql,
 #      0009_saved_searches.sql, 0010_roadmaps.sql, 0011_portfolios.sql
 #      (0011 adds the owner-only `portfolios` table behind the public /p/[slug] page)
+#    - Then run 0012_nudges_read_at.sql and 0013_rate_limits.sql
+#      (0013 creates ai_rate_limits table + the per-user rate-limit RPC)
 
 # 4. Configure environment
 cp .env.example .env.local

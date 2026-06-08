@@ -11,6 +11,7 @@ import {
 import { requireUser } from "@/lib/auth";
 import { getBenchmark } from "@/lib/services/profile/benchmarks";
 import { route, parseJson } from "@/lib/api";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -29,6 +30,7 @@ function extractRole(query: string): string | null {
 export const POST = route(async (req: Request) => {
   const user = await requireUser();
   if (user instanceof Response) return user;
+  await enforceRateLimit(user.id, "chat", "medium");
   const { messages, sessionId } = await parseJson(req, BodySchema);
   const abortSignal = req.signal;
 

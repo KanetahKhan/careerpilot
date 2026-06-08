@@ -7,7 +7,8 @@ import { searchJobs, webSearchJobs, tavilyEnabled, type Job } from "@/lib/servic
 import { getMockJobs } from "@/lib/services/jobs/mock";
 import { computeFitScore, loadCvContext } from "@/lib/services/fit-score";
 import { requireUser } from "@/lib/auth";
-import { jsonError } from "@/lib/api";
+import { route, ApiError } from "@/lib/api";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 /** Stale-while-revalidate cache for job searches — 1-hour TTL. */
 const cachedSearch = unstable_cache(
@@ -221,14 +222,15 @@ ${webTool ? "4" : "3"}. Stop once every job/lead has been scored, then briefly s
   return { jobs: top, summary };
 }
 
-export async function POST(req: Request) {
+export const POST = route(async (req: Request) => {
   const user = await requireUser();
   if (user instanceof Response) return user;
+  await enforceRateLimit(user.id, "jobs/search", "heavy");
 
   const body = await req.json().catch(() => null);
   const query: unknown = body?.query;
   if (typeof query !== "string" || query.trim().length === 0) {
-    return jsonError("query is required", 400);
+    throw new ApiError("query is required", 400);
   }
 
   const wantsStream = (req.headers.get("accept") ?? "").includes("x-ndjson");
@@ -312,4 +314,4 @@ export async function POST(req: Request) {
       ]),
     },
   });
-}
+});

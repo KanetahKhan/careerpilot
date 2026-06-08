@@ -69,11 +69,13 @@ export async function searchJobs(query: string, location = ""): Promise<Job[]> {
   const supabase = createAdminClient();
   const key = hash(query, location);
 
-  // 1. cache
+  // 1. cache — 24-hour TTL: ignore entries older than 24 h so live results refresh
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const { data: cached } = await supabase
     .from("job_cache")
     .select("payload")
     .eq("query_hash", key)
+    .gte("created_at", cutoff)
     .maybeSingle();
   if (cached?.payload) return cached.payload as Job[];
 

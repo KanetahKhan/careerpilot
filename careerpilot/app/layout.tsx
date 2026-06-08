@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Bricolage_Grotesque, Hanken_Grotesk } from "next/font/google";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
+import { headers } from "next/headers";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -22,15 +23,19 @@ export const metadata: Metadata = {
   description: "AI-powered job search, fit scoring, and application tracking grounded in your actual CV.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Read the per-request nonce forwarded by middleware so next-themes' inline script
+  // gets the nonce attribute and isn't blocked by the Content-Security-Policy.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html lang="en" suppressHydrationWarning className={`${bricolage.variable} ${hanken.variable} ${GeistSans.variable} ${GeistMono.variable}`}>
       <body className="font-sans bg-background text-foreground antialiased">
-        <Providers>{children}</Providers>
+        <Providers nonce={nonce}>{children}</Providers>
       </body>
     </html>
   );

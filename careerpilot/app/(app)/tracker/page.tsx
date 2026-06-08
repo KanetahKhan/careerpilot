@@ -56,6 +56,7 @@ const KanbanCard = memo(function KanbanCard({
       ref={provided.innerRef}
       {...provided.draggableProps}
       {...provided.dragHandleProps}
+      aria-label={`${app.role} at ${app.company}${app.fit_score != null ? `, fit score ${app.fit_score}%` : ""}`}
       className={cn(
         "rounded-md border border-border bg-card p-3 shadow-sm transition-all",
         snapshot.isDragging && "shadow-lg ring-2 ring-primary/20 rotate-1"
@@ -284,9 +285,10 @@ export default function TrackerPage() {
       </div>
 
       {/* view toggle: Kanban board vs month calendar */}
-      <div className="inline-flex rounded-xl border border-border bg-secondary/30 p-1 text-sm">
+      <div role="group" aria-label="View mode" className="inline-flex rounded-xl border border-border bg-secondary/30 p-1 text-sm">
         <button
           onClick={() => setView("board")}
+          aria-pressed={view === "board"}
           className={cn(
             "rounded-lg px-4 py-1.5 font-medium transition-colors",
             view === "board" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
@@ -296,6 +298,7 @@ export default function TrackerPage() {
         </button>
         <button
           onClick={() => setView("calendar")}
+          aria-pressed={view === "calendar"}
           className={cn(
             "rounded-lg px-4 py-1.5 font-medium transition-colors",
             view === "calendar" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
@@ -328,6 +331,7 @@ export default function TrackerPage() {
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
+                    aria-label={`${col.label} — ${getAppsByStatus(col.id).length} ${getAppsByStatus(col.id).length === 1 ? "application" : "applications"}`}
                     className={cn(
                       "flex-1 rounded-lg border border-border bg-secondary/30 p-2 space-y-2 transition-colors min-h-[120px]",
                       snapshot.isDraggingOver && "bg-primary/5 border-primary/20"
@@ -367,12 +371,14 @@ export default function TrackerPage() {
             onChange={(e) => setGoalTitle(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addGoal()}
             placeholder="Add a goal…"
+            aria-label="Goal title"
             className="flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
           <input
             type="date"
             value={goalDue}
             onChange={(e) => setGoalDue(e.target.value)}
+            aria-label="Due date"
             className="w-36 rounded-md border border-border bg-background px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
           <button

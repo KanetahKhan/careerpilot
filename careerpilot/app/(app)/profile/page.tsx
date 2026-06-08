@@ -74,7 +74,7 @@ export default function ProfilePage() {
     return () => { cancelled = true; };
   }, []);
 
-  const hasCv = profile?.totalChunks && profile.totalChunks > 0;
+  const hasCv = Boolean(profile?.totalChunks && profile.totalChunks > 0);
   const canExport = Boolean(builderCv);
 
   function nameSlug() {
