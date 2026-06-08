@@ -41,7 +41,7 @@ export function Navbar() {
           <div className="sky-nav-skeleton" />
         ) : (
           <Link href={user ? "/hunter" : "/auth"} className="sky-btn sky-btn--nav">
-            {user ? "Dashboard" : "Sign Up/Sign In"}
+            {user ? "Go to Hunter" : "Sign Up/Sign In"}
           </Link>
         )}
       </div>

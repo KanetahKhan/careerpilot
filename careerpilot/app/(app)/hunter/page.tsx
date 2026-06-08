@@ -2,9 +2,8 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  Brain, Search, ListChecks, Gauge, Globe, Info, Zap, Download, Printer,
-  CalendarClock, CheckCircle2, Clock as HistoryIcon,
-  type LucideIcon,
+  Search, Zap, Download, Printer,
+  CalendarClock, CheckCircle2, Clock as HistoryIcon, Sparkles,
 } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
 import { PageHeader } from "@/components/PageHeader";
@@ -27,17 +26,7 @@ type ApplyResult = {
   event: { title: string; event_date: string; type: string } | null;
 };
 
-type TraceKind = "plan" | "search" | "found" | "score" | "web" | "note";
-type TraceEvent = { kind: TraceKind; text: string };
-
-const TRACE_STYLE: Record<TraceKind, { icon: LucideIcon; color: string }> = {
-  plan: { icon: Brain, color: "text-primary" },
-  search: { icon: Search, color: "text-primary" },
-  found: { icon: ListChecks, color: "text-primary" },
-  score: { icon: Gauge, color: "text-muted-foreground" },
-  web: { icon: Globe, color: "text-primary" },
-  note: { icon: Info, color: "text-muted-foreground" },
-};
+type TraceEvent = { kind: string; text: string };
 
 const HISTORY_KEY = "hunt:history";
 
@@ -89,26 +78,17 @@ function HunterInner() {
   const [history, setHistory] = useState<string[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const autoRanRef = useRef(false);
-  const runIdRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const traceRef = useRef<HTMLOListElement | null>(null);
 
   useEffect(() => {
     setHistory(loadHistory());
   }, []);
 
-  // Keep the newest trace line in view while the agent is streaming.
-  useEffect(() => {
-    const el = traceRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [trace.length]);
-
   const run = useCallback(async (q: string) => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
-    const runId = ++runIdRef.current;
 
     setLoading(true);
     setTrace([]);
@@ -253,12 +233,6 @@ function HunterInner() {
     }
   }
 
-  function snippet(text?: string, maxLen = 180): string {
-    if (!text) return "";
-    if (text.length <= maxLen) return text;
-    return text.slice(0, maxLen).replace(/\s+\S*$/, "") + "…";
-  }
-
   return (
     <FadeIn>
     <div className="space-y-6 py-4">
@@ -279,9 +253,9 @@ function HunterInner() {
               id="hunter-query"
               aria-label="Job search query"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onFocus={() => !loading && setShowHistory(true)}
+              onFocus={() => { if (!loading && !query.trim()) setShowHistory(true); }}
               onBlur={() => setTimeout(() => setShowHistory(false), 200)}
+              onChange={(e) => { setQuery(e.target.value); if (e.target.value.trim()) setShowHistory(false); }}
               onKeyDown={(e) => e.key === "Enter" && query.trim() && run(query)}
               placeholder='e.g. "React developer remote"'
               className="w-full rounded-xl border border-border bg-background/60 pl-9 pr-4 py-3 text-foreground outline-none placeholder:text-muted-foreground focus:border-primary/60"
@@ -325,39 +299,17 @@ function HunterInner() {
         <div className="panel border-destructive/30 p-4 text-sm text-destructive">⚠ {runError}</div>
       )}
 
-      {(loading || trace.length > 0) && (
-        <div className="panel p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <span className="label">Agent reasoning</span>
-            {loading && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                <span className="h-1.5 w-1.5 animate-pulse-glow rounded-full bg-primary" />
-                live
-              </span>
-            )}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-16 gap-4">
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-primary animate-bounce-dot" style={{ animationDelay: "0s" }} />
+            <span className="h-2 w-2 rounded-full bg-primary animate-bounce-dot" style={{ animationDelay: "0.16s" }} />
+            <span className="h-2 w-2 rounded-full bg-primary animate-bounce-dot" style={{ animationDelay: "0.32s" }} />
           </div>
-          <ol ref={traceRef} className="max-h-72 space-y-1.5 overflow-y-auto pr-2">
-            {trace.map((t, i) => {
-              const { icon: Icon, color } = TRACE_STYLE[t.kind] ?? TRACE_STYLE.note;
-              return (
-                <li key={i} className="flex animate-fade-up items-start gap-2 text-xs leading-relaxed">
-                  <Icon size={14} className={`mt-0.5 shrink-0 ${color}`} />
-                  <span className="text-foreground/90">{t.text}</span>
-                </li>
-              );
-            })}
-            {loading && (
-              <li className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="h-1.5 w-1.5 animate-pulse-glow rounded-full bg-muted-foreground" />
-                <span className="animate-pulse-glow">working…</span>
-              </li>
-            )}
-          </ol>
-          {summary && (
-            <p className="mt-3 border-t border-border/60 pt-3 text-sm italic leading-relaxed text-muted-foreground">
-              "{summary}"
-            </p>
-          )}
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Sparkles size={14} className="text-primary" />
+            Searching and scoring jobs against your CV...
+          </p>
         </div>
       )}
 
@@ -371,34 +323,24 @@ function HunterInner() {
         />
       )}
 
-      {loading && jobs.length === 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-64 rounded-xl border border-border bg-card p-5 animate-pulse">
-              <div className="h-10 w-10 rounded-full bg-muted" />
-              <div className="mt-3 h-4 w-3/4 rounded bg-muted" />
-              <div className="mt-2 h-3 w-1/2 rounded bg-muted" />
-              <div className="mt-3 space-y-2">
-                <div className="h-3 w-full rounded bg-muted" />
-                <div className="h-3 w-5/6 rounded bg-muted" />
-              </div>
-              <div className="mt-auto pt-4 flex justify-between">
-                <div className="h-3 w-20 rounded bg-muted" />
-                <div className="h-7 w-16 rounded bg-muted" />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {!loading && jobs.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {jobs.map((j) => (
-            <div key={j.id} className="animate-fade-up h-full">
-              <JobCard job={j} onDetail={(job) => setDetail(job)} />
+        <>
+          {summary && (
+            <div className="panel p-4 border-primary/20 bg-primary/[0.03]">
+              <p className="flex items-start gap-2 text-sm leading-relaxed text-foreground/80">
+                <Sparkles size={16} className="mt-0.5 shrink-0 text-primary" />
+                <span>{summary}</span>
+              </p>
             </div>
-          ))}
-        </div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {jobs.map((j) => (
+              <div key={j.id} className="animate-fade-up h-full">
+                <JobCard job={j} onDetail={(job) => setDetail(job)} />
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Detail modal */}

@@ -48,7 +48,7 @@ export function HeroSection() {
             experience — never invented, always intentional.
           </p>
           <Link href={user ? "/hunter" : "/auth?mode=signup"} className="sky-btn sky-btn--lg">
-            {user ? "Go to Dashboard" : "Start Exploring"}
+            {user ? "Search Jobs" : "Start Exploring"}
           </Link>
         </div>
 

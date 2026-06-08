@@ -10,7 +10,7 @@ export function CtaSection() {
     <section className="sky-cta">
       <h2 className="sky-cta-title">Ready to take off?</h2>
       <Link href={user ? "/hunter" : "/auth?mode=signup"} className="sky-btn sky-btn--xl">
-        {user ? "Go to your Dashboard" : "Join CareerPilot Today"}
+        {user ? "Go to Job Hunter" : "Join CareerPilot Today"}
       </Link>
     </section>
   );
