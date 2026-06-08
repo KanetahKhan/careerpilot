@@ -56,7 +56,7 @@ export const AI_BUSY_MESSAGE = "AI is busy — please wait a few seconds and try
 
 /** Detect a provider rate-limit / quota error (429 / RESOURCE_EXHAUSTED). */
 export function isRateLimitError(e: unknown): boolean {
-  const err = e as any;
+  const err = e as { statusCode?: number; status?: number; response?: { status?: number }; message?: string };
   const status = err?.statusCode ?? err?.status ?? err?.response?.status;
   if (status === 429) return true;
   const msg = String(err?.message ?? err ?? "").toLowerCase();

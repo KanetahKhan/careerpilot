@@ -25,12 +25,16 @@ export function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
 }
 
+const MAX_JSON_BYTES = 1_048_576; // 1 MB
+
 /**
  * Parse + validate a JSON request body against a zod schema.
- * Throws ApiError(400) on malformed JSON or a schema violation, so callers can
- * stay linear and let `route()` translate the throw into a 400 response.
+ * Rejects bodies over 1 MB (413) before reading, then throws ApiError(400) on
+ * malformed JSON or a schema violation. `route()` translates these into responses.
  */
 export async function parseJson<T>(req: Request, schema: ZodType<T>): Promise<T> {
+  const contentLength = parseInt(req.headers.get("content-length") ?? "0", 10);
+  if (contentLength > MAX_JSON_BYTES) throw new ApiError("Request body too large", 413);
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
