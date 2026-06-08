@@ -2,7 +2,6 @@ import { Navbar } from "@/components/landing/Navbar";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { PillarsSection } from "@/components/landing/PillarsSection";
 import { StepsSection } from "@/components/landing/StepsSection";
-import { CtaSection } from "@/components/landing/CtaSection";
 import { Footer } from "@/components/landing/Footer";
 import "@/app/landing.css";
 
@@ -13,7 +12,6 @@ export default function LandingPage() {
       <HeroSection />
       <PillarsSection />
       <StepsSection />
-      <CtaSection />
       <Footer />
     </main>
   );

@@ -47,8 +47,8 @@ export function HeroSection() {
             CareerPilot reads your CV and finds opportunities grounded in your real
             experience — never invented, always intentional.
           </p>
-          <Link href={user ? "/hunter" : "/auth?mode=signup"} className="sky-btn sky-btn--lg">
-            {user ? "Search Jobs" : "Start Exploring"}
+          <Link href={user ? "/dashboard" : "/auth?mode=signup"} className="sky-btn sky-btn--lg">
+            {user ? "Dashboard" : "Start Exploring"}
           </Link>
         </div>
 

@@ -40,8 +40,8 @@ export function Navbar() {
         {loading ? (
           <div className="sky-nav-skeleton" />
         ) : (
-          <Link href={user ? "/hunter" : "/auth"} className="sky-btn sky-btn--nav">
-            {user ? "Go to Hunter" : "Sign Up/Sign In"}
+          <Link href={user ? "/dashboard" : "/auth"} className="sky-btn sky-btn--nav">
+            {user ? "Dashboard" : "Sign Up/Sign In"}
           </Link>
         )}
       </div>
