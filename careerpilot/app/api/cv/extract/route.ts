@@ -1,76 +1,28 @@
-import { NextRequest } from "next/server";
-import { z } from "zod";
+import { NextResponse } from "next/server";
+import { extractProfileFromText } from "@/lib/services/profile";
 import { requireUser } from "@/lib/auth";
-import { generateObjectWithFallback } from "@/lib/ai";
+import { route, ApiError } from "@/lib/api";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 30;
 
-const ExtractedProfileSchema = z.object({
-  fullName: z.string().optional(),
-  email: z.string().email().optional().or(z.literal("")),
-  phone: z.string().optional(),
-  location: z.string().optional(),
-  summary: z.string().optional(),
-  skills: z.array(z.string()).optional(),
-  experience: z
-    .array(
-      z.object({
-        title: z.string(),
-        company: z.string(),
-        duration: z.string().optional(),
-        description: z.string().optional(),
-      }),
-    )
-    .optional(),
-  education: z
-    .array(
-      z.object({
-        degree: z.string(),
-        institution: z.string(),
-        year: z.string().optional(),
-      }),
-    )
-    .optional(),
-  projects: z
-    .array(
-      z.object({
-        name: z.string(),
-        description: z.string().optional(),
-        technologies: z.array(z.string()).optional(),
-        githubUrl: z.string().url().optional().or(z.literal("")),
-        liveUrl: z.string().url().optional().or(z.literal("")),
-      }),
-    )
-    .optional(),
-});
-
-export async function POST(req: NextRequest) {
+export const POST = route(async (req: Request) => {
   const user = await requireUser();
   if (user instanceof Response) return user;
 
+  let body: { text: string };
   try {
-    const { text } = await req.json();
-    if (!text || typeof text !== "string" || !text.trim()) {
-      return Response.json({ error: "No CV text provided" }, { status: 400 });
-    }
-
-    const truncatedText = text.slice(0, 12000);
-
-    const { object } = await generateObjectWithFallback({
-      schema: ExtractedProfileSchema,
-      system: `You are a precise CV parser. Extract structured information from the CV text.
-Rules:
-- Extract ONLY what is explicitly stated in the CV. Do NOT hallucinate.
-- For projects, extract GitHub/demo URLs ONLY if they appear explicitly in the text (e.g., "github.com/user/repo" or "live at example.com"). If not present, return empty string "".
-- Return empty arrays [] or omit fields if not found.
-- Be concise.`,
-      prompt: `Parse this CV into structured JSON:\n\n${truncatedText}`,
-    });
-
-    return Response.json({ extracted: object, rawTextPreview: truncatedText.slice(0, 500) });
-  } catch (err) {
-    console.error("CV extraction error:", err);
-    return Response.json({ error: "Failed to extract CV data" }, { status: 500 });
+    body = await req.json();
+  } catch {
+    throw new ApiError("Invalid JSON body", 400);
   }
-}
+
+  const text = body?.text;
+  if (!text || typeof text !== "string" || !text.trim()) {
+    throw new ApiError("No CV text provided", 400);
+  }
+
+  const extracted = extractProfileFromText(text.slice(0, 30000));
+
+  return NextResponse.json({ extracted, rawTextPreview: text.slice(0, 500) });
+});

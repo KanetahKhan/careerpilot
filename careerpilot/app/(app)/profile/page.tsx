@@ -111,7 +111,6 @@ export default function ProfilePage() {
       const formData = new FormData();
       formData.append("file", file);
 
-      setUploadStep("uploading");
       const uploadRes = await fetch("/api/cv/upload", { method: "POST", body: formData });
       if (!uploadRes.ok) {
         const err = await uploadRes.json();
@@ -119,20 +118,14 @@ export default function ProfilePage() {
       }
       const uploadData = await uploadRes.json();
 
-      setUploadStep("extracting");
-      const extractRes = await fetch("/api/cv/extract", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: uploadData.rawText ?? "" }),
-      });
+      // Upload response now includes regex-extracted profile — skip separate extract call
       let extractedData: ExtractedProfile | null = null;
-      if (extractRes.ok) {
-        const data = await extractRes.json();
-        if (data.extracted) {
-          extractedData = data.extracted as ExtractedProfile;
-          setExtracted(extractedData);
-        }
+      if (uploadData.extracted) {
+        extractedData = uploadData.extracted as ExtractedProfile;
+        setExtracted(extractedData);
       }
+
+      setUploadStep("extracting");
 
       if (extractedData) {
         const builderPayload: BuilderCv = {

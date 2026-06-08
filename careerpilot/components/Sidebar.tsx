@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
@@ -50,6 +50,13 @@ export function Sidebar() {
   const [hidden, setHidden] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
+
+  // Prefetch all nav links on mount for instant navigation
+  useEffect(() => {
+    for (const { href } of navItems) {
+      router.prefetch(href);
+    }
+  }, [router]);
 
   async function handleSwitchAccount() {
     if (switching) return;

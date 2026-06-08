@@ -32,7 +32,7 @@ function buildCsp(nonce: string): string {
   ].join("; ");
 }
 
-export async function proxy(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   // Per-request nonce — threaded to the layout so next-themes & Next.js inline
   // scripts get the nonce attribute and aren't blocked by the strict CSP.
   const nonce = crypto.randomUUID();
@@ -106,7 +106,7 @@ export async function proxy(request: NextRequest) {
     return res;
   }
 
-  if (user && isAuthRoute) {
+  if (user && (isAuthRoute || pathname === "/")) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     const res = NextResponse.redirect(url);

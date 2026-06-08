@@ -1,19 +1,317 @@
 import { createHash } from "node:crypto";
 import { extractText, chunkCv, type Chunk } from "./cv";
-import { embedBatch } from "@/lib/ai";
+import { embedBatch, isEmbeddingEnabled } from "@/lib/ai";
 import { createAdminClient } from "@/lib/supabase";
 
-export type IngestResult = { fileName: string; chunks: number; sections: string[] };
+export type IngestResult = {
+  fileName: string;
+  chunks: number;
+  sections: string[];
+  rawText: string;
+  extracted: ExtractedProfile | null;
+};
 
-const MAX_CHARS = 1200;
-const OVERLAP = 150;
+export type ExtractedProfile = {
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  summary?: string;
+  skills?: string[];
+  experience?: { title: string; company: string; duration?: string; description?: string }[];
+  education?: { degree: string; institution: string; year?: string }[];
+  projects?: { name: string; description?: string; technologies?: string[]; githubUrl?: string; liveUrl?: string }[];
+};
 
-/** SHA-256 hex digest of a string. */
+const MAX_CHARS = 1000;
+const OVERLAP = 100;
+const MAX_CHUNKS = 50;
+
+/* ── Line-based CV parser ────────────────────────────────────────────────── */
+
+interface SectionChunk {
+  section: string;
+  lines: string[];
+}
+
+const SECTION_KEYWORDS: Record<string, RegExp> = {
+  education: /education|academic|qualifications|degrees/i,
+  experience: /experience|work|employment|career|professional|internship|volunteer/i,
+  skills: /skills|technical|competencies|expertise|technologies|tools/i,
+  projects: /projects|portfolio|personal projects|academic projects/i,
+  certifications: /certifications|certificates|licenses|accreditations/i,
+  interests: /interests|hobbies|activities/i,
+  summary: /summary|profile|objective|about me|professional summary/i,
+  coursework: /coursework|courses|relevant courses/i,
+};
+
+function isContactLine(line: string): boolean {
+  return !!(
+    line.includes('@') ||
+    line.includes('github.com') ||
+    line.includes('linkedin.com') ||
+    /\+\d{10,}/.test(line) ||
+    (/\d{10,}/.test(line) && line.includes('|'))
+  );
+}
+
+function isSectionHeader(line: string): boolean {
+  if (line.length > 60) return false;
+  if (line.startsWith('#')) return true;
+  if (line === line.toUpperCase() && line.length > 3 && line.length < 30) return true;
+  for (const pattern of Object.values(SECTION_KEYWORDS)) {
+    if (pattern.test(line)) return true;
+  }
+  return false;
+}
+
+function detectSection(line: string): string {
+  const lower = line.toLowerCase().replace(/^#+\s*/, '');
+  for (const [name, pattern] of Object.entries(SECTION_KEYWORDS)) {
+    if (pattern.test(lower)) return name;
+  }
+  return 'other';
+}
+
+function parseCvToChunks(text: string): SectionChunk[] {
+  const cleaned = text
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .trim();
+
+  const rawLines = cleaned.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+  const chunks: SectionChunk[] = [];
+  let currentSection = 'header';
+  let currentLines: string[] = [];
+
+  for (const line of rawLines) {
+    if (isSectionHeader(line)) {
+      if (currentLines.length > 0) {
+        chunks.push({ section: currentSection, lines: currentLines });
+        currentLines = [];
+      }
+      currentSection = detectSection(line);
+    } else {
+      currentLines.push(line);
+    }
+  }
+
+  if (currentLines.length > 0) {
+    chunks.push({ section: currentSection, lines: currentLines });
+  }
+
+  return chunks.filter(c => c.lines.join('').length > 5);
+}
+
+/* ── Basic extractors ───────────────────────────────────────────────────── */
+
+function extractEmail(text: string): string | undefined {
+  const m = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+  return m?.[0];
+}
+
+function extractPhone(text: string): string | undefined {
+  const m = text.match(/\+\d{10,}/);
+  return m?.[0];
+}
+
+function extractLinkedIn(text: string): string | undefined {
+  const m = text.match(/linkedin\.com\/[a-zA-Z0-9_-]+/i);
+  return m ? `https://${m[0].toLowerCase()}` : undefined;
+}
+
+function extractGitHub(text: string): string | undefined {
+  const m = text.match(/github\.com\/[a-zA-Z0-9_-]+/i);
+  return m ? `https://${m[0].toLowerCase()}` : undefined;
+}
+
+/* ── Section-specific parsers ───────────────────────────────────────────── */
+
+function parseEducationChunk(lines: string[]): ExtractedProfile["education"] {
+  const entries: ExtractedProfile["education"] = [];
+  let current: { institution: string; degree: string; year?: string } | null = null;
+
+  for (const line of lines) {
+    if (/University|College|School|Institute/i.test(line) && !/GPA|CGPA|Year|Graduation|Passing|Bachelor|Master/i.test(line)) {
+      if (current) entries.push(current);
+      current = { institution: line, degree: '' };
+    } else if (/Bachelor|Master|Secondary|Higher|Certificate|Diploma|HSC|SSC|B\.?S\.?c?|M\.?S\.?c?/i.test(line)) {
+      if (current) current.degree = line;
+      else current = { institution: '', degree: line };
+    } else if (/GPA|CGPA/i.test(line)) {
+      if (!current) current = { institution: '', degree: '' };
+    } else if (/Year|Graduation|Passing|Expected/i.test(line)) {
+      if (!current) current = { institution: '', degree: '' };
+      const yM = line.match(/20\d{2}/);
+      if (yM) current.year = yM[0];
+    }
+  }
+
+  if (current) entries.push(current);
+  return entries;
+}
+
+function parseSkillsChunk(lines: string[]): string[] {
+  const skills: string[] = [];
+  for (const line of lines) {
+    if (line.includes(':')) {
+      const items = line.split(':').slice(1).join(':');
+      const parts = items.split(/[,;]/).map(s => s.replace(/\s*\(.*?\)/g, '').trim()).filter(Boolean);
+      skills.push(...parts);
+    } else {
+      const parts = line.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+      skills.push(...parts);
+    }
+  }
+  return [...new Set(skills.map(s => s.toLowerCase()))].filter(s => s.length > 0 && s.length < 40).slice(0, 30);
+}
+
+function parseProjectsChunk(lines: string[]): ExtractedProfile["projects"] {
+  const entries: ExtractedProfile["projects"] = [];
+  let current: { name: string; technologies?: string[]; description?: string; githubUrl?: string; liveUrl?: string } | null = null;
+
+  for (const line of lines) {
+    const headerMatch = line.match(/^(.+?)\s*\(([^)]+)\)\s*[–-]\s*(.+)/);
+    if (headerMatch) {
+      if (current) entries.push(current);
+      const link = headerMatch[3].trim();
+      current = {
+        name: headerMatch[1].trim(),
+        technologies: headerMatch[2].split(/[,;]/).map(s => s.trim()).filter(Boolean),
+        description: '',
+      };
+      if (/github/i.test(link) || link.includes('github.com')) {
+        current.githubUrl = link.startsWith('http') ? link : `https://github.com/${link.replace(/^https?:\/\/github\.com\//i, '')}`;
+      } else if (link.startsWith('http')) {
+        current.liveUrl = link;
+      }
+    } else if (current && line.length > 5) {
+      current.description += (current.description ? ' ' : '') + line;
+    } else if (!current && line.length > 3 && line.length < 60) {
+      current = { name: line, technologies: [], description: '' };
+    }
+  }
+
+  if (current) entries.push(current);
+  return entries;
+}
+
+function parseExperienceChunk(lines: string[]): ExtractedProfile["experience"] {
+  const entries: ExtractedProfile["experience"] = [];
+  let current: { title: string; company: string; duration?: string; description?: string } | null = null;
+
+  for (const line of lines) {
+    const sepMatch = line.match(/^(.+?)\s*[|–—-]\s*(.+?)\s*[|–—-]\s*(.+)/);
+    if (sepMatch) {
+      if (current) entries.push(current);
+      current = { title: sepMatch[1].trim(), company: sepMatch[2].trim(), duration: sepMatch[3].trim(), description: '' };
+    } else if (current) {
+      current.description += (current.description ? ' ' : '') + line;
+    } else {
+      current = { title: line, company: '', description: '' };
+    }
+  }
+
+  if (current) entries.push(current);
+  return entries;
+}
+
+/* ── Summary extraction ───────────────────────────────────────────────── */
+
+function extractSummary(lines: string[]): string | undefined {
+  const joined = lines.slice(0, 3).join(" ");
+  if (joined.length > 20) return joined.slice(0, 500);
+  return undefined;
+}
+
+/* ── Main extraction orchestrator ─────────────────────────────────────── */
+
+export function extractProfileFromText(text: string): ExtractedProfile {
+  const chunks = parseCvToChunks(text);
+
+  const headerChunk = chunks.find(c => c.section === 'header');
+  const headerText = headerChunk ? headerChunk.lines.join('\n') : text;
+
+  const name = (() => {
+    for (const line of headerChunk?.lines || []) {
+      if (line.length > 2 && line.length < 50 && !line.includes('@') && !line.includes('|') && !/^[+\d]/.test(line) && !line.match(/github|linkedin/i)) {
+        return line;
+      }
+    }
+    return undefined;
+  })();
+
+  const email = extractEmail(headerText) || extractEmail(text);
+  const phone = extractPhone(headerText) || extractPhone(text);
+  const linkedin = extractLinkedIn(headerText) || extractLinkedIn(text);
+  const github = extractGitHub(headerText) || extractGitHub(text);
+
+  const education: ExtractedProfile["education"] = [];
+  for (const c of chunks) {
+    if (c.section === 'education') {
+      const parsed = parseEducationChunk(c.lines);
+      if (parsed) education.push(...parsed);
+    }
+  }
+
+  const skills = [...new Set(
+    chunks
+      .filter(c => c.section === 'skills')
+      .flatMap(c => parseSkillsChunk(c.lines))
+      .map(s => s.toLowerCase())
+  )].slice(0, 30);
+
+  const projects: ExtractedProfile["projects"] = [];
+  for (const c of chunks) {
+    if (c.section === 'projects') {
+      const parsed = parseProjectsChunk(c.lines);
+      if (parsed) projects.push(...parsed);
+    }
+  }
+
+  const experience: ExtractedProfile["experience"] = [];
+  for (const c of chunks) {
+    if (c.section === 'experience') {
+      const parsed = parseExperienceChunk(c.lines);
+      if (parsed) experience.push(...parsed);
+    }
+  }
+
+  const summary = chunks
+    .filter(c => c.section === 'summary')
+    .flatMap(c => extractSummary(c.lines))
+    .find(Boolean);
+
+  const result: ExtractedProfile = {
+    fullName: name,
+    email,
+    phone,
+    summary,
+    skills: skills.length > 0 ? skills : undefined,
+    experience: experience.length > 0 ? experience : undefined,
+    education: education.length > 0 ? education : undefined,
+    projects: projects.length > 0 ? projects : undefined,
+  };
+
+  console.log('[EXTRACTED]', JSON.stringify({
+    name: result.fullName,
+    email: result.email,
+    phone: result.phone,
+    education: result.education?.length,
+    skills: result.skills?.length,
+    projects: result.projects?.length,
+  }, null, 2));
+
+  return result;
+}
+
+/* ── Embedding (unchanged) ────────────────────────────────────────────── */
+
 function contentHash(text: string): string {
   return createHash("sha256").update(text, "utf-8").digest("hex");
 }
 
-/** Component-wise mean of a list of equal-length vectors. */
 export function computeCentroid(embeddings: number[][]): number[] {
   if (embeddings.length === 0) return [];
   const dim = embeddings[0].length;
@@ -23,22 +321,12 @@ export function computeCentroid(embeddings: number[][]): number[] {
   return out;
 }
 
-/**
- * Embed texts with an on-disk cache keyed by SHA-256 hash.
- *
- * - For texts whose hash exists in `embedding_cache`, reuses the stored vector.
- * - For cache misses, calls `embedMany` via the Gemini API and stores results.
- * - Returns embeddings in the same order as the input `texts` array.
- */
 async function embedBatchWithCache(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return [];
 
   const supabase = createAdminClient();
-
-  // 1. Compute hashes
   const hashes = texts.map((t) => contentHash(t));
 
-  // 2. Query cache for hits
   const { data: cached } = await supabase
     .from("embedding_cache")
     .select("hash, vector")
@@ -51,7 +339,6 @@ async function embedBatchWithCache(texts: string[]): Promise<number[][]> {
     }
   }
 
-  // 3. Separate hits and misses
   const results: number[][] = [];
   const missedTexts: string[] = [];
   const missedIndices: number[] = [];
@@ -66,11 +353,9 @@ async function embedBatchWithCache(texts: string[]): Promise<number[][]> {
     }
   }
 
-  // 4. Embed cache misses (small batches to avoid heap exhaustion)
   if (missedTexts.length > 0) {
     const BATCH_SIZE = 5;
     const allEmbeddings: number[][] = [];
-
     for (let i = 0; i < missedTexts.length; i += BATCH_SIZE) {
       const batch = missedTexts.slice(i, i + BATCH_SIZE);
       const batchEmbeddings = await embedBatch(batch);
@@ -80,7 +365,6 @@ async function embedBatchWithCache(texts: string[]): Promise<number[][]> {
       }
     }
 
-    // Build rows for insertion
     const cacheRows: { hash: string; vector: number[] }[] = [];
     let embIdx = 0;
     for (let j = 0; j < missedTexts.length; j++) {
@@ -90,7 +374,6 @@ async function embedBatchWithCache(texts: string[]): Promise<number[][]> {
       cacheRows.push({ hash: hashes[idx], vector: vec });
     }
 
-    // 5. Persist new cache entries (best-effort — misses still work for this request)
     if (cacheRows.length > 0) {
       await supabase.from("embedding_cache").upsert(cacheRows, { onConflict: "hash" });
     }
@@ -99,16 +382,8 @@ async function embedBatchWithCache(texts: string[]): Promise<number[][]> {
   return results;
 }
 
-/**
- * Shared ingestion pipeline — used by both the file-upload route and the
- * in-app CV builder. Replaces ALL prior cv_chunks for the user (never
- * duplicates), then chunks, embeds, and inserts each section's text.
- *
- * @param sections  Array of { section, content } — e.g. "experience",
- *                  "education", "skills", etc. Each content block is
- *                  chunked independently (no cross-section mixing).
- * @param fileName  Optional display name for the cv_documents row.
- */
+/* ── Ingest sections (for CV builder) ─────────────────────────────────── */
+
 export async function ingestSections(
   userId: string,
   sections: { section: string; content: string }[],
@@ -125,10 +400,8 @@ export async function ingestSections(
     throw new Error(`Failed to create profile: ${profileErr.message}`);
   }
 
-  // Merge all section content for the raw_text column
   const rawText = sections.map((s) => `=== ${s.section.toUpperCase()} ===\n${s.content}`).join("\n\n");
 
-  // 1. Insert new document first
   const { data: doc, error: docErr } = await supabase
     .from("cv_documents")
     .insert({ user_id: userId, file_name: fileName, raw_text: rawText })
@@ -136,13 +409,13 @@ export async function ingestSections(
     .single();
   if (docErr) throw docErr;
 
-  // Chunk each section independently (size-based split, no heading detection)
   const allChunks: Chunk[] = [];
   let position = 0;
 
   for (const { section, content } of sections) {
+    if (allChunks.length >= MAX_CHUNKS) break;
     let start = 0;
-    while (start < content.length) {
+    while (start < content.length && allChunks.length < MAX_CHUNKS) {
       const end = Math.min(start + MAX_CHARS, content.length);
       let breakPoint = end;
       if (end < content.length) {
@@ -159,7 +432,16 @@ export async function ingestSections(
     }
   }
 
-  const embeddings = await embedBatchWithCache(allChunks.map((c) => c.content));
+  console.log(`[ingest] ${allChunks.length} chunks for user=${userId}`);
+
+  // Skip embedding when circuit breaker is active (memory saver)
+  const skipEmbedding = !isEmbeddingEnabled();
+  let embeddings: number[][];
+  if (skipEmbedding) {
+    embeddings = [];
+  } else {
+    embeddings = await embedBatchWithCache(allChunks.map((c) => c.content));
+  }
 
   const rows = allChunks.map((c, i) => ({
     user_id: userId,
@@ -167,13 +449,12 @@ export async function ingestSections(
     section: c.section,
     content: c.content,
     position: c.position,
-    embedding: embeddings[i],
+    embedding: embeddings[i] ?? null,
   }));
 
   const { error: insErr } = await supabase.from("cv_chunks").insert(rows);
   if (insErr) throw insErr;
 
-  // 2. Only after successful insert, delete old data for this user
   await supabase
     .from("cv_chunks")
     .delete()
@@ -186,7 +467,6 @@ export async function ingestSections(
     .eq("user_id", userId)
     .neq("id", doc.id);
 
-  // Store centroid for fast fit-score lookups
   const centroid = computeCentroid(embeddings);
   await supabase
     .from("cv_documents")
@@ -194,10 +474,15 @@ export async function ingestSections(
     .eq("id", doc.id);
 
   const uniqueSections = [...new Set(allChunks.map((c) => c.section))];
-  return { fileName, chunks: allChunks.length, sections: uniqueSections };
+
+  // Also regex-extract from built CV text for consistency
+  const extracted = extractProfileFromText(rawText);
+
+  return { fileName, chunks: allChunks.length, sections: uniqueSections, rawText, extracted };
 }
 
-/** Upload path: extract text from file, chunk by section, then ingest via ingestSections. */
+/* ── File upload path ─────────────────────────────────────────────────── */
+
 export async function ingestCv(
   userId: string,
   buffer: Buffer,
@@ -206,20 +491,22 @@ export async function ingestCv(
   const text = await extractText(buffer, fileName);
   if (!text.trim()) throw new Error("Could not extract text from file");
 
-  const chunks = chunkCv(text);
+  // Line-based section parsing (NO LLM)
+  const sectionChunks = parseCvToChunks(text);
+  const extracted = extractProfileFromText(text);
 
-  // Group chunks by section and concatenate their text so ingestSections
-  // handles the final chunking + embedding + storage uniformly.
-  const sectionMap = new Map<string, string[]>();
-  for (const c of chunks) {
-    const arr = sectionMap.get(c.section) ?? [];
-    arr.push(c.content);
-    sectionMap.set(c.section, arr);
+  const sections = sectionChunks
+    .filter(c => c.section !== 'header')
+    .map(c => ({
+      section: c.section,
+      content: c.lines.join("\n"),
+    }));
+
+  // If only header exists, treat whole text as summary
+  if (sections.length === 0) {
+    sections.push({ section: "summary", content: text.slice(0, 3000) });
   }
-  const sections = [...sectionMap.entries()].map(([section, contents]) => ({
-    section,
-    content: contents.join("\n\n"),
-  }));
 
-  return ingestSections(userId, sections, fileName);
+  const result = await ingestSections(userId, sections, fileName);
+  return { ...result, extracted };
 }

@@ -6,22 +6,44 @@ const mammoth = require("mammoth");
 
 export type Chunk = { section: string; content: string; position: number };
 
+const MAX_TEXT_LENGTH = 10_000; // Memory safety: cap at 10K chars
+
+/** Post-process raw PDF text to restore line breaks lost during extraction. */
+function normalizePdfText(raw: string): string {
+  let text = raw;
+  // Collapse Windows line endings
+  text = text.replace(/\r\n/g, '\n');
+  // Insert newline before capitalized section headers merged with previous text
+  text = text.replace(
+    /([a-z)])([A-Z][a-z]+ (?:Housing|University|College|School|Skills|Projects|Experience|Interests|Achievements|Volunteering|Coursework|Education))/g,
+    '$1\n$2'
+  );
+  // Ensure # headers have a space after them so splitSections picks them up
+  text = text.replace(/^#+/gm, '$& ');
+  return text;
+}
+
 /** Extract raw text from an uploaded PDF or DOCX buffer. */
 export async function extractText(
   buffer: Buffer,
   fileName: string
 ): Promise<string> {
   const lower = fileName.toLowerCase();
+  let text: string;
   if (lower.endsWith(".docx")) {
     const { value } = await mammoth.extractRawText({ buffer });
-    return value;
-  }
-  if (lower.endsWith(".pdf")) {
+    text = value;
+  } else if (lower.endsWith(".pdf")) {
     const data = await pdfParse(buffer);
-    return data.text;
+    text = normalizePdfText(data.text);
+  } else {
+    text = buffer.toString("utf-8");
   }
-  // .txt or unknown → treat as plain text
-  return buffer.toString("utf-8");
+  if (text.length > MAX_TEXT_LENGTH) {
+    console.warn(`[cv] Truncating CV text from ${text.length} to ${MAX_TEXT_LENGTH}`);
+    text = text.slice(0, MAX_TEXT_LENGTH);
+  }
+  return text;
 }
 
 const SECTION_PATTERNS: { section: string; re: RegExp }[] = [
@@ -35,7 +57,7 @@ const SECTION_PATTERNS: { section: string; re: RegExp }[] = [
 
 /** Classify a heading-ish line into a known CV section, or null. */
 function classifyHeading(line: string): string | null {
-  const trimmed = line.trim();
+  const trimmed = line.trim().replace(/^#+\s*/i, ""); // Strip optional # prefix
   // Headings are usually short and not full sentences.
   if (trimmed.length === 0 || trimmed.length > 40) return null;
   for (const { section, re } of SECTION_PATTERNS) {

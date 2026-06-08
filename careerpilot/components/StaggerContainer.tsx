@@ -1,7 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useRef, Children, cloneElement, isValidElement } from "react";
 
 export function StaggerContainer({
   children,
@@ -12,30 +11,14 @@ export function StaggerContainer({
   className?: string;
   staggerDelay?: number;
 }) {
-  const reduced = useReducedMotion();
-
-  if (reduced) {
-    return <div className={className}>{children}</div>;
-  }
-
   return (
-    <motion.div
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: "-50px" }}
-      variants={{
-        hidden: {},
-        visible: {
-          transition: {
-            staggerChildren: staggerDelay,
-          },
-        },
-      }}
-      style={{ willChange: "transform, opacity" }}
-      className={className}
-    >
-      {children}
-    </motion.div>
+    <div className={className}>
+      {Children.map(children, (child, idx) =>
+        isValidElement(child)
+          ? cloneElement(child, { style: { ...(child.props as any).style, transitionDelay: `${idx * staggerDelay}s` } } as any)
+          : child
+      )}
+    </div>
   );
 }
 
@@ -46,26 +29,30 @@ export function StaggerItem({
   children: ReactNode;
   className?: string;
 }) {
-  const reduced = useReducedMotion();
+  const ref = useRef<HTMLDivElement>(null);
 
-  if (reduced) {
-    return <div className={className}>{children}</div>;
-  }
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const timeout = setTimeout(() => {
+      el.style.opacity = "1";
+      el.style.transform = "translateY(0)";
+    }, parseFloat(el.style.transitionDelay || "0") * 1000);
+    return () => clearTimeout(timeout);
+  }, []);
 
   return (
-    <motion.div
-      variants={{
-        hidden: { opacity: 0, y: 20 },
-        visible: {
-          opacity: 1,
-          y: 0,
-          transition: { duration: 0.5, ease: [0.21, 0.47, 0.32, 0.98] },
-        },
-      }}
-      style={{ willChange: "transform, opacity" }}
+    <div
+      ref={ref}
       className={className}
+      style={{
+        opacity: 0,
+        transform: "translateY(20px)",
+        transition: "opacity 0.5s ease-out, transform 0.5s ease-out",
+        willChange: "transform, opacity",
+      }}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }

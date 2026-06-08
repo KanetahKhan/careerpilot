@@ -216,7 +216,9 @@ export const POST = route(async (req: Request) => {
     throw new ApiError("No CV found. Upload or build a CV first.", 400);
   }
 
-  const snapshot = await polishSnapshot(buildSnapshot(profile, includeContact));
+  // EMERGENCY: Skip LLM polish — use raw snapshot from stored CV data
+  const snapshot = buildSnapshot(profile, includeContact);
+  // const snapshot = await polishSnapshot(buildSnapshot(profile, includeContact));
 
   const supabase = createAdminClient();
 

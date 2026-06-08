@@ -16,7 +16,7 @@ interface AuthCharacterProps {
   state?: "idle" | "error";
 }
 
-export function AuthCharacter({ mode, state = "idle" }: AuthCharacterProps) {
+export function AuthCharacter({ state = "idle" }: AuthCharacterProps) {
   const [currentFrame, setCurrentFrame] = useState(0);
   const [playing, setPlaying] = useState(false);
 
@@ -43,21 +43,8 @@ export function AuthCharacter({ mode, state = "idle" }: AuthCharacterProps) {
     setCurrentFrame(0);
   }, [state]);
 
-  const bubbleText = () => {
-    if (state === "error") return "Oops, that's not right!";
-    return mode === "signup" ? "Let's get started!" : "Welcome back!";
-  };
-
   return (
     <div className="relative flex h-[260px] w-[220px] items-end justify-center">
-      <p
-        className={`absolute right-[-10px] top-0 z-20 whitespace-nowrap text-[11px] font-semibold text-foreground transition-all duration-200 ${
-          state === "error" ? "text-destructive animate-[bubbleShake_0.5s_ease-in-out]" : ""
-        }`}
-      >
-        {bubbleText()}
-      </p>
-
       <div
         className={`relative z-[5] h-[160px] w-[160px] ${
           playing ? "" : "animate-[breathe_4s_ease-in-out_infinite]"
@@ -86,11 +73,6 @@ export function AuthCharacter({ mode, state = "idle" }: AuthCharacterProps) {
       </div>
 
       <style jsx>{`
-        @keyframes bubbleShake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-3px); }
-          75% { transform: translateX(3px); }
-        }
         @keyframes breathe {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-3px); }

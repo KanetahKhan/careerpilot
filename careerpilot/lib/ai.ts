@@ -16,6 +16,20 @@ import type { ZodType } from "zod";
 
 const DEMO_MODE = process.env.DEMO_MODE === "1";
 
+// ── EMERGENCY CIRCUIT BREAKERS ──────────────────────────────────────────
+// Set to true when API credits are available. When false, ALL LLM/embedding
+// calls are short-circuited to prevent "JavaScript heap out of memory" errors
+// caused by repeated failed retries and provider SDK lazy-loading.
+export const LLM_ENABLED = false;
+export const EMBEDDING_ENABLED = false;
+
+export function isLLMEnabled(): boolean {
+  return LLM_ENABLED;
+}
+export function isEmbeddingEnabled(): boolean {
+  return EMBEDDING_ENABLED;
+}
+
 // ── Lazy model initializers ────────────────────────────────────────────
 
 let _chatModel: LanguageModel | undefined;
@@ -153,7 +167,7 @@ async function getEmbeddingModel() {
 
 /** Embed a single piece of text → 768-d vector. */
 export async function embedText(text: string): Promise<number[]> {
-  if (DEMO_MODE) return new Array(768).fill(0);
+  if (DEMO_MODE || !EMBEDDING_ENABLED) return new Array(768).fill(0);
   const { embed } = await import("ai");
   const { embedding } = await embed({ model: await getEmbeddingModel(), value: text });
   return embedding;
@@ -161,7 +175,7 @@ export async function embedText(text: string): Promise<number[]> {
 
 /** Embed many texts in one call (used during CV ingestion). */
 export async function embedBatch(texts: string[]): Promise<number[][]> {
-  if (DEMO_MODE) return texts.map(() => new Array(768).fill(0));
+  if (DEMO_MODE || !EMBEDDING_ENABLED) return texts.map(() => new Array(768).fill(0));
   if (texts.length === 0) return [];
   const { embedMany } = await import("ai");
   const { embeddings } = await embedMany({ model: await getEmbeddingModel(), values: texts });
@@ -206,9 +220,9 @@ type GenerateTextWithFallbackOpts = {
 export async function generateTextWithFallback(
   opts: GenerateTextWithFallbackOpts
 ) {
-  if (DEMO_MODE) {
+  if (DEMO_MODE || !LLM_ENABLED) {
     return {
-      text: "(Demo mode — AI calls disabled)",
+      text: "(LLM temporarily disabled — API quota exceeded)",
       toolCalls: [],
       toolResults: [],
       finishReason: "stop" as const,
@@ -253,7 +267,7 @@ export async function generateObjectWithFallback<OBJECT>(opts: {
   schemaDescription?: string;
   temperature?: number;
 }): Promise<{ object: OBJECT }> {
-  if (DEMO_MODE) {
+  if (DEMO_MODE || !LLM_ENABLED) {
     try {
       return { object: opts.schema.parse({}) };
     } catch {
@@ -307,16 +321,17 @@ export function streamTextWithFallback(opts: {
   /** Text to stream when every provider fails. Defaults to AI_BUSY_MESSAGE. */
   fallbackText?: string;
 }): Response {
-  if (DEMO_MODE) {
-    const { onFinish, headers } = opts;
-    const encoder2 = new TextEncoder();
-    const demoStream = new ReadableStream({
+  const { onFinish, headers, abortSignal, fallbackText } = opts;
+  const encoder = new TextEncoder();
+
+  if (DEMO_MODE || !LLM_ENABLED) {
+    const stream = new ReadableStream({
       async start(controller) {
         const { formatDataStreamPart } = await import("ai");
-        const demoText = "(Demo mode — This skill is not in your CV.)";
-        controller.enqueue(encoder2.encode(formatDataStreamPart("text", demoText)));
+        const text = fallbackText ?? "(LLM temporarily disabled — API quota exceeded)";
+        controller.enqueue(encoder.encode(formatDataStreamPart("text", text)));
         controller.enqueue(
-          encoder2.encode(
+          encoder.encode(
             formatDataStreamPart("finish_message", {
               finishReason: "stop",
               usage: { promptTokens: 0, completionTokens: 0 },
@@ -324,22 +339,21 @@ export function streamTextWithFallback(opts: {
           )
         );
         controller.close();
-        if (onFinish) { try { await onFinish(demoText); } catch { /* best-effort */ } }
+        if (onFinish) { try { await onFinish(text); } catch { /* best-effort */ } }
       },
     });
-    return new Response(demoStream, {
+    return new Response(stream, {
       headers: { "content-type": "text/plain; charset=utf-8", "x-vercel-ai-data-stream": "v1", ...headers },
     });
   }
-  const { system, messages, onFinish, headers, abortSignal, fallbackText } = opts;
-  const encoder = new TextEncoder();
+
+  const { system, messages } = opts;
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const { streamText, formatDataStreamPart } = await import("ai");
 
       let closed = false;
-      // Cleanup on client disconnect — stops token generation server-side
       if (abortSignal?.aborted) { closed = true; controller.close(); return; }
       const onAbort = () => { closed = true; try { controller.close(); } catch { /* already closed */ } };
       abortSignal?.addEventListener("abort", onAbort, { once: true });
@@ -350,7 +364,6 @@ export function streamTextWithFallback(opts: {
         try { controller.enqueue(encoder.encode(formatDataStreamPart("text", delta))); } catch { /* closed */ }
       };
 
-      // Stream from one model; returns whether it emitted any token + any error.
       const streamFrom = async (
         provider: Provider
       ): Promise<{ started: boolean; error: unknown }> => {
