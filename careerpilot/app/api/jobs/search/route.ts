@@ -6,6 +6,7 @@ import { searchJobs, webSearchJobs, tavilyEnabled, type Job } from "@/lib/servic
 import { computeFitScore, loadCvContext } from "@/lib/services/fit-score";
 import { requireUser } from "@/lib/auth";
 import { route, ApiError } from "@/lib/api";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -190,6 +191,7 @@ ${webTool ? "4" : "3"}. Stop once every job/lead has been scored, then briefly s
 
 export const POST = route(async (req: Request) => {
   const user = await requireUser();
+  await enforceRateLimit(user.id, "jobs/search", "heavy");
 
   const body = await req.json().catch(() => null);
   const query: unknown = body?.query;

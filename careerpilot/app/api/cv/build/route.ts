@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ingestSections, getCvProfile } from "@/lib/services/profile";
 import { serializeBuilderCv, parseBuilderFromSections } from "@/lib/cv-transform";
-import { AI_BUSY_MESSAGE, isRateLimitError } from "@/lib/ai";
 import { requireUser } from "@/lib/auth";
+import { route, ApiError } from "@/lib/api";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -45,40 +46,23 @@ const BuilderSchema = z.object({
   extracurricular: z.array(z.string()).optional(),
 });
 
-export async function POST(req: Request) {
-  try {
-    const user = await requireUser();
-    const body = await req.json();
+export const POST = route(async (req: Request) => {
+  const user = await requireUser();
+  await enforceRateLimit(user.id, "cv/build", "heavy");
+  const raw = await req.json().catch(() => null);
+  const parsed = BuilderSchema.safeParse(raw);
+  if (!parsed.success) throw new ApiError(parsed.error.errors[0]?.message ?? "Validation failed", 400);
+  const sections = serializeBuilderCv(parsed.data);
+  const result = await ingestSections(user.id, sections, "Built CV");
+  return NextResponse.json({ ok: true, ...result });
+});
 
-    const parsed = BuilderSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Validation failed", details: parsed.error.flatten() },
-        { status: 400 },
-      );
-    }
-
-    const sections = serializeBuilderCv(parsed.data);
-    const result = await ingestSections(user.id, sections, "Built CV");
-    return NextResponse.json({ ok: true, ...result });
-  } catch (e: any) {
-    if (isRateLimitError(e)) {
-      return NextResponse.json({ error: AI_BUSY_MESSAGE }, { status: 429 });
-    }
-    return NextResponse.json({ error: e?.message ?? "Build failed" }, { status: 500 });
+export const GET = route(async () => {
+  const user = await requireUser();
+  const profile = await getCvProfile(user.id);
+  if (!profile || !profile.sections || profile.totalChunks === 0) {
+    return NextResponse.json(null);
   }
-}
-
-export async function GET() {
-  try {
-    const user = await requireUser();
-    const profile = await getCvProfile(user.id);
-    if (!profile || !profile.sections || profile.totalChunks === 0) {
-      return NextResponse.json(null);
-    }
-    const builder = parseBuilderFromSections(profile.sections);
-    return NextResponse.json(builder);
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "Failed to load CV" }, { status: 500 });
-  }
-}
+  const builder = parseBuilderFromSections(profile.sections);
+  return NextResponse.json(builder);
+});

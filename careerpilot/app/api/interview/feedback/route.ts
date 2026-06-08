@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { generateObjectWithFallback } from "@/lib/ai";
 import { retrieveChunks, formatContext } from "@/lib/services/profile";
 import { route, parseJson } from "@/lib/api";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -35,6 +36,7 @@ const FeedbackSchema = z.object({
 
 export const POST = route(async (req: Request) => {
   const user = await requireUser();
+  await enforceRateLimit(user.id, "interview/feedback", "medium");
   const { jd, questions, transcript } = await parseJson(req, BodySchema);
 
   const cvContext = await retrieveChunks(user.id, jd, 8);

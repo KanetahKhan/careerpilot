@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
-import { AI_BUSY_MESSAGE, isRateLimitError } from "@/lib/ai";
 import { loadCvContext, computeFitScore } from "@/lib/services/fit-score/fit-score";
+import { route, parseJson, ApiError } from "@/lib/api";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -19,7 +20,6 @@ const BodySchema = z
 
 const MAX_JD_CHARS = 20_000;
 
-/** Fetch the URL and pull out readable text. Cheap, dependency-free. */
 async function fetchJdFromUrl(url: string): Promise<string> {
   const res = await fetch(url, {
     redirect: "follow",
@@ -31,14 +31,18 @@ async function fetchJdFromUrl(url: string): Promise<string> {
   });
   if (!res.ok) throw new Error(`Couldn't fetch URL (${res.status})`);
   const ct = res.headers.get("content-type") ?? "";
-  if (!ct.includes("text/") && !ct.includes("html") && !ct.includes("xml") && !ct.includes("json")) {
+  if (
+    !ct.includes("text/") &&
+    !ct.includes("html") &&
+    !ct.includes("xml") &&
+    !ct.includes("json")
+  ) {
     throw new Error("URL did not return text content");
   }
   const html = (await res.text()).slice(0, 400_000);
   return stripHtml(html).slice(0, MAX_JD_CHARS);
 }
 
-/** Drop scripts/styles, strip tags, collapse whitespace. Good enough for JDs. */
 function stripHtml(html: string): string {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -56,54 +60,30 @@ function stripHtml(html: string): string {
     .trim();
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    const user = await requireUser();
-    const body = await req.json().catch(() => null);
-    const parsed = BodySchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.errors[0]?.message ?? "Invalid input" },
-        { status: 400 }
-      );
-    }
+export const POST = route(async (req: Request) => {
+  const user = await requireUser();
+  await enforceRateLimit(user.id, "fit/score", "medium");
+  const body = await parseJson(req, BodySchema);
 
-    let jd = (parsed.data.jd ?? "").trim();
-    if (!jd && parsed.data.url) {
-      try {
-        jd = await fetchJdFromUrl(parsed.data.url);
-      } catch (e: any) {
-        return NextResponse.json(
-          { error: e?.message ?? "Could not read the URL" },
-          { status: 400 }
-        );
-      }
+  let jd = (body.jd ?? "").trim();
+  if (!jd && body.url) {
+    try {
+      jd = await fetchJdFromUrl(body.url);
+    } catch (e: any) {
+      throw new ApiError(e?.message ?? "Could not read the URL", 400);
     }
-    if (!jd) {
-      return NextResponse.json(
-        { error: "Could not extract any job text" },
-        { status: 400 }
-      );
-    }
-    jd = jd.slice(0, MAX_JD_CHARS);
+  }
+  if (!jd) throw new ApiError("Could not extract any job text", 400);
+  jd = jd.slice(0, MAX_JD_CHARS);
 
-    const cv = await loadCvContext(user.id);
-    if (cv.text.trim().length === 0) {
-      return NextResponse.json(
-        { error: "Upload your CV first so the fit score has something to compare against." },
-        { status: 400 }
-      );
-    }
-
-    const fit = await computeFitScore(user.id, jd, parsed.data.location ?? "", cv);
-    return NextResponse.json({ fit, jdPreview: jd.slice(0, 600) });
-  } catch (e: any) {
-    if (isRateLimitError(e)) {
-      return NextResponse.json({ error: AI_BUSY_MESSAGE }, { status: 429 });
-    }
-    return NextResponse.json(
-      { error: e?.message ?? "Fit scoring failed" },
-      { status: 500 }
+  const cv = await loadCvContext(user.id);
+  if (cv.text.trim().length === 0) {
+    throw new ApiError(
+      "Upload your CV first so the fit score has something to compare against.",
+      400,
     );
   }
-}
+
+  const fit = await computeFitScore(user.id, jd, body.location ?? "", cv);
+  return NextResponse.json({ fit, jdPreview: jd.slice(0, 600) });
+});

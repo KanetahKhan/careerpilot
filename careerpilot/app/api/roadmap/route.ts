@@ -1,52 +1,45 @@
 import { NextResponse } from "next/server";
 import { generateRoadmap } from "@/lib/services/assistant";
-import { AI_BUSY_MESSAGE, isRateLimitError } from "@/lib/ai";
 import { requireUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase";
+import { route, ApiError } from "@/lib/api";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-export async function POST(req: Request) {
-  try {
-    const user = await requireUser();
-    const { goal } = await req.json();
-    const plan = await generateRoadmap(user.id, typeof goal === "string" ? goal : "");
+export const POST = route(async (req: Request) => {
+  const user = await requireUser();
+  await enforceRateLimit(user.id, "roadmap", "heavy");
 
-    // Single active roadmap per user: deactivate previous, insert new.
-    const supabase = createAdminClient();
-    await supabase
-      .from("roadmaps")
-      .update({ is_active: false })
-      .eq("user_id", user.id)
-      .eq("is_active", true);
+  const { goal } = await req.json().catch(() => ({}));
+  const plan = await generateRoadmap(user.id, typeof goal === "string" ? goal : "");
 
-    const { data, error } = await supabase
-      .from("roadmaps")
-      .insert({
-        user_id: user.id,
-        goal: plan.goal,
-        summary: plan.summary,
-        plan,
-        completed: {},
-        is_active: true,
-      })
-      .select("id")
-      .single();
-    if (error) {
-      // Persistence is required for interactivity — surface a clean error.
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+  const supabase = createAdminClient();
+  await supabase
+    .from("roadmaps")
+    .update({ is_active: false })
+    .eq("user_id", user.id)
+    .eq("is_active", true);
 
-    return NextResponse.json({
-      id: (data as { id: string }).id,
-      roadmap: plan,
+  const { data, error } = await supabase
+    .from("roadmaps")
+    .insert({
+      user_id: user.id,
+      goal: plan.goal,
+      summary: plan.summary,
+      plan,
       completed: {},
-    });
-  } catch (e: any) {
-    if (isRateLimitError(e)) {
-      return NextResponse.json({ error: AI_BUSY_MESSAGE }, { status: 429 });
-    }
-    return NextResponse.json({ error: e?.message ?? "Roadmap generation failed" }, { status: 500 });
-  }
-}
+      is_active: true,
+    })
+    .select("id")
+    .single();
+
+  if (error) throw new ApiError(error.message, 500);
+
+  return NextResponse.json({
+    id: (data as { id: string }).id,
+    roadmap: plan,
+    completed: {},
+  });
+});

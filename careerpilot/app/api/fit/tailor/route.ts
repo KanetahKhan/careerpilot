@@ -1,12 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
-import {
-  AI_BUSY_MESSAGE,
-  generateObjectWithFallback,
-  isRateLimitError,
-} from "@/lib/ai";
+import { generateObjectWithFallback } from "@/lib/ai";
 import { retrieveChunks, formatContext } from "@/lib/services/profile";
+import { route, parseJson, ApiError } from "@/lib/api";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -29,7 +27,7 @@ const TailorSchema = z.object({
         why: z
           .string()
           .describe("one short sentence: why this rewrite fits the job, citing the CV section"),
-      })
+      }),
     )
     .max(6),
   gaps: z
@@ -38,32 +36,21 @@ const TailorSchema = z.object({
     .max(8),
 });
 
-export async function POST(req: NextRequest) {
-  try {
-    const user = await requireUser();
-    const body = await req.json().catch(() => null);
-    const parsed = BodySchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.errors[0]?.message ?? "Invalid input" },
-        { status: 400 }
-      );
-    }
+export const POST = route(async (req: Request) => {
+  const user = await requireUser();
+  await enforceRateLimit(user.id, "fit/tailor", "medium");
+  const { jd } = await parseJson(req, BodySchema);
 
-    const { jd } = parsed.data;
-    const chunks = await retrieveChunks(user.id, jd, 6);
-    if (chunks.length === 0) {
-      return NextResponse.json(
-        { error: "No CV content found — upload your CV first." },
-        { status: 400 }
-      );
-    }
+  const chunks = await retrieveChunks(user.id, jd, 6);
+  if (chunks.length === 0) {
+    throw new ApiError("No CV content found — upload your CV first.", 400);
+  }
 
-    const cvContext = formatContext(chunks);
+  const cvContext = formatContext(chunks);
 
-    const { object } = await generateObjectWithFallback({
-      schema: TailorSchema,
-      prompt: `You are CareerPilot's CV tailor. Rewrite up to 6 bullet points from THIS USER'S CV to better
+  const { object } = await generateObjectWithFallback({
+    schema: TailorSchema,
+    prompt: `You are CareerPilot's CV tailor. Rewrite up to 6 bullet points from THIS USER'S CV to better
 match the job description, AND list any honest gaps separately.
 
 HARD RULES — NEVER VIOLATE:
@@ -81,20 +68,11 @@ ${jd.slice(0, 8000)}
 === USER CV CHUNKS (the only source of truth) ===
 ${cvContext}
 ==================================================`,
-    });
+  });
 
-    return NextResponse.json({
-      rewrites: object.rewrites,
-      gaps: object.gaps,
-      citedSections: [...new Set(chunks.map((c) => c.section))],
-    });
-  } catch (e: any) {
-    if (isRateLimitError(e)) {
-      return NextResponse.json({ error: AI_BUSY_MESSAGE }, { status: 429 });
-    }
-    return NextResponse.json(
-      { error: e?.message ?? "Tailoring failed" },
-      { status: 500 }
-    );
-  }
-}
+  return NextResponse.json({
+    rewrites: object.rewrites,
+    gaps: object.gaps,
+    citedSections: [...new Set(chunks.map((c) => c.section))],
+  });
+});
