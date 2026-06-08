@@ -7,7 +7,7 @@
     "node": ">=18.17.0"
   },
   "scripts": {
-    "dev": "cross-env NODE_OPTIONS=--max-old-space-size=6144 next dev",
+    "dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 TURBOPACK=0 next dev",
     "dev:turbopack": "cross-env NODE_OPTIONS=--max-old-space-size=8192 next dev --turbopack",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=8192 next build",
     "start": "next start",
