@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 import type { ZodType } from "zod";
 import { AI_BUSY_MESSAGE, isRateLimitError } from "@/lib/ai";
@@ -63,6 +64,7 @@ export function route<A extends unknown[]>(handler: Handler<A>) {
       if (msg === "Unauthorized") return jsonError("Unauthorized", 401);
       if (isRateLimitError(e)) return jsonError(AI_BUSY_MESSAGE, 429);
       console.error("API route error:", e);
+      Sentry.captureException(e);
       return jsonError("Something went wrong — please try again.", 500);
     }
   };
