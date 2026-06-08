@@ -28,7 +28,8 @@ type ApplyResult = {
 
 type TraceEvent = { kind: string; text: string };
 
-const HISTORY_KEY = "hunt:history";
+const HISTORY_KEY = "careerpilot_recent_searches";
+const MAX_HISTORY = 10;
 
 function loadHistory(): string[] {
   try {
@@ -41,9 +42,11 @@ function loadHistory(): string[] {
 
 function saveHistory(query: string) {
   try {
-    const h = loadHistory().filter((q) => q !== query);
-    h.unshift(query);
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0, 20)));
+    const h = loadHistory();
+    const normalized = query.trim().toLowerCase();
+    const filtered = h.filter(q => q.trim().toLowerCase() !== normalized);
+    const next = [query.trim(), ...filtered].slice(0, MAX_HISTORY);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
   } catch { /* ignore */ }
 }
 
@@ -76,13 +79,26 @@ function HunterInner() {
   const [applyResult, setApplyResult] = useState<ApplyResult | null>(null);
   const [detail, setDetail] = useState<Job | null>(null);
   const [history, setHistory] = useState<string[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
   const autoRanRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setHistory(loadHistory());
+    const raw = loadHistory();
+    const cleaned = raw.filter(q => {
+      const t = q.trim();
+      return t.length >= 3 && !t.endsWith(" ");
+    });
+    const deduped: string[] = [];
+    const seen = new Set<string>();
+    for (const q of cleaned) {
+      const key = q.trim().toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      deduped.push(q.trim());
+    }
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(deduped));
+    setHistory(deduped);
   }, []);
 
   const run = useCallback(async (q: string) => {
@@ -95,10 +111,6 @@ function HunterInner() {
     setSummary(null);
     setRunError(null);
     setJobs([]);
-    setShowHistory(false);
-    saveHistory(q.trim());
-    setHistory(loadHistory());
-
     const cacheKey = `hunt:${q}`;
     try {
       const cached = sessionStorage.getItem(cacheKey);
@@ -158,6 +170,14 @@ function HunterInner() {
       setLoading(false);
     }
   }, []);
+
+  const handleSubmit = useCallback((q: string) => {
+    const trimmed = q.trim();
+    if (!trimmed) return;
+    saveHistory(trimmed);
+    setHistory(loadHistory());
+    run(trimmed);
+  }, [run]);
 
   const debouncedQuery = useDebounce(query, 300);
   const hasChanged = useRef(false);
@@ -253,39 +273,15 @@ function HunterInner() {
               id="hunter-query"
               aria-label="Job search query"
               value={query}
-              onFocus={() => { if (!loading && !query.trim()) setShowHistory(true); }}
-              onBlur={() => setTimeout(() => setShowHistory(false), 200)}
-              onChange={(e) => { setQuery(e.target.value); if (e.target.value.trim()) setShowHistory(false); }}
-              onKeyDown={(e) => e.key === "Enter" && query.trim() && run(query)}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(query); }}
               placeholder='e.g. "React developer remote"'
               className="w-full rounded-xl border border-border bg-background/60 pl-9 pr-4 py-3 text-foreground outline-none placeholder:text-muted-foreground focus:border-primary/60"
             />
-            {showHistory && history.length > 0 && (
-              <div className="absolute left-0 right-0 top-full z-30 mt-1 rounded-xl border border-border bg-background shadow-lg">
-                <div className="flex items-center justify-between px-3 py-2">
-                  <span className="text-[10px] font-medium text-muted-foreground">Recent searches</span>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); clearHistory(); setHistory([]); }}
-                    className="text-[10px] text-muted-foreground hover:text-foreground"
-                  >
-                    Clear
-                  </button>
-                </div>
-                {history.map((q, i) => (
-                  <button
-                    key={i}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground hover:bg-secondary/50 last:rounded-b-xl"
-                    onMouseDown={(e) => { e.preventDefault(); setQuery(q); run(q); }}
-                  >
-                    <HistoryIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                    <span className="truncate">{q}</span>
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
           <button
-            onClick={() => query.trim() && run(query)}
+            type="button"
+            onClick={() => handleSubmit(query)}
             disabled={loading || !query.trim()}
             aria-busy={loading || undefined}
             className="btn-primary shrink-0 disabled:opacity-50"
@@ -293,6 +289,29 @@ function HunterInner() {
             {loading ? "Searching…" : "Search"}
           </button>
         </div>
+
+        {history.length > 0 && !loading && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {history.map((q) => (
+              <button
+                type="button"
+                key={q}
+                onClick={() => handleSubmit(q)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-sm text-primary hover:bg-primary/20 transition-colors"
+              >
+                <HistoryIcon className="h-3 w-3" />
+                {q}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => { clearHistory(); setHistory([]); }}
+              className="text-xs text-muted-foreground hover:text-foreground ml-1"
+            >
+              Clear
+            </button>
+          </div>
+        )}
       </div>
 
       {runError && (
