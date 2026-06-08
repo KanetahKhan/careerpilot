@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCvProfile } from "@/lib/services/profile";
 import { parseBuilderFromSections, transformBackendData } from "@/lib/cv-transform";
-import { generateObjectWithFallback, AI_BUSY_MESSAGE, isRateLimitError } from "@/lib/ai";
+import { generateObjectWithFallback } from "@/lib/ai";
 import { requireUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase";
+import { route, ApiError } from "@/lib/api";
 import type { PortfolioData } from "@/types/portfolio";
 
 export const runtime = "nodejs";
@@ -178,111 +179,89 @@ function buildSnapshot(
 // ── handlers ───────────────────────────────────────────────────────────────
 
 /** POST — generate/publish: snapshot the CV, polish it, assign a slug, publish. */
-export async function POST(req: Request) {
-  try {
-    const user = await requireUser();
-    const body = await req.json().catch(() => ({}));
-    const includeContact = body?.includeContact === true;
+export const POST = route(async (req: Request) => {
+  const user = await requireUser();
+  const body = await req.json().catch(() => ({}));
+  const includeContact = body?.includeContact === true;
 
-    const profile = await getCvProfile(user.id);
-    if (!profile || profile.totalChunks === 0) {
-      return NextResponse.json(
-        { error: "No CV found. Upload or build a CV first." },
-        { status: 400 },
-      );
-    }
-
-    const snapshot = await polishSnapshot(buildSnapshot(profile, includeContact));
-
-    const supabase = createAdminClient();
-
-    // Reuse the existing slug on regenerate so shared links stay stable.
-    const { data: existing } = await supabase
-      .from("portfolios")
-      .select("slug")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    const slug = (existing as { slug: string } | null)?.slug
-      ?? (await resolveSlug(supabase, snapshot.name || "portfolio", user.id));
-
-    const { error } = await supabase.from("portfolios").upsert(
-      {
-        user_id: user.id,
-        slug,
-        data: snapshot,
-        published: true,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id" },
-    );
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ slug, url: `${originOf(req)}/p/${slug}`, published: true });
-  } catch (e: any) {
-    if (isRateLimitError(e)) {
-      return NextResponse.json({ error: AI_BUSY_MESSAGE }, { status: 429 });
-    }
-    return NextResponse.json({ error: e?.message ?? "Failed to generate portfolio" }, { status: 500 });
+  const profile = await getCvProfile(user.id);
+  if (!profile || profile.totalChunks === 0) {
+    throw new ApiError("No CV found. Upload or build a CV first.", 400);
   }
-}
+
+  const snapshot = await polishSnapshot(buildSnapshot(profile, includeContact));
+
+  const supabase = createAdminClient();
+
+  // Reuse the existing slug on regenerate so shared links stay stable.
+  const { data: existing } = await supabase
+    .from("portfolios")
+    .select("slug")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const slug = (existing as { slug: string } | null)?.slug
+    ?? (await resolveSlug(supabase, snapshot.name || "portfolio", user.id));
+
+  const { error } = await supabase.from("portfolios").upsert(
+    {
+      user_id: user.id,
+      slug,
+      data: snapshot,
+      published: true,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" },
+  );
+  if (error) throw new ApiError(error.message, 500);
+
+  return NextResponse.json({ slug, url: `${originOf(req)}/p/${slug}`, published: true });
+});
 
 /** GET — return the caller's own portfolio + published state (or null). */
-export async function GET(req: Request) {
-  try {
-    const user = await requireUser();
-    const supabase = createAdminClient();
-    const { data } = await supabase
-      .from("portfolios")
-      .select("slug, published, updated_at")
-      .eq("user_id", user.id)
-      .maybeSingle();
+export const GET = route(async (req: Request) => {
+  const user = await requireUser();
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("portfolios")
+    .select("slug, published, updated_at")
+    .eq("user_id", user.id)
+    .maybeSingle();
 
-    if (!data) return NextResponse.json({ portfolio: null });
-    const row = data as { slug: string; published: boolean; updated_at: string };
-    return NextResponse.json({
-      portfolio: {
-        slug: row.slug,
-        published: row.published,
-        url: `${originOf(req)}/p/${row.slug}`,
-        updatedAt: row.updated_at,
-      },
-    });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "Failed to load portfolio" }, { status: 500 });
-  }
-}
+  if (!data) return NextResponse.json({ portfolio: null });
+  const row = data as { slug: string; published: boolean; updated_at: string };
+  return NextResponse.json({
+    portfolio: {
+      slug: row.slug,
+      published: row.published,
+      url: `${originOf(req)}/p/${row.slug}`,
+      updatedAt: row.updated_at,
+    },
+  });
+});
 
 const PatchSchema = z.object({ published: z.boolean() });
 
 /** PATCH — toggle published without regenerating the snapshot. */
-export async function PATCH(req: Request) {
-  try {
-    const user = await requireUser();
-    const parsed = PatchSchema.safeParse(await req.json().catch(() => ({})));
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Expected { published: boolean }" }, { status: 400 });
-    }
+export const PATCH = route(async (req: Request) => {
+  const user = await requireUser();
+  const parsed = PatchSchema.safeParse(await req.json().catch(() => ({})));
+  if (!parsed.success) throw new ApiError("Expected { published: boolean }", 400);
 
-    const supabase = createAdminClient();
-    const { data, error } = await supabase
-      .from("portfolios")
-      .update({ published: parsed.data.published, updated_at: new Date().toISOString() })
-      .eq("user_id", user.id)
-      .select("slug, published")
-      .maybeSingle();
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("portfolios")
+    .update({ published: parsed.data.published, updated_at: new Date().toISOString() })
+    .eq("user_id", user.id)
+    .select("slug, published")
+    .maybeSingle();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    if (!data) return NextResponse.json({ error: "No portfolio to update" }, { status: 404 });
+  if (error) throw new ApiError(error.message, 500);
+  if (!data) throw new ApiError("No portfolio to update", 404);
 
-    const row = data as { slug: string; published: boolean };
-    return NextResponse.json({
-      slug: row.slug,
-      published: row.published,
-      url: `${originOf(req)}/p/${row.slug}`,
-    });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "Failed to update portfolio" }, { status: 500 });
-  }
-}
+  const row = data as { slug: string; published: boolean };
+  return NextResponse.json({
+    slug: row.slug,
+    published: row.published,
+    url: `${originOf(req)}/p/${row.slug}`,
+  });
+});

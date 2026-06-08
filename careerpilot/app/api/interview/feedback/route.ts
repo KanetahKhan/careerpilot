@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
-import { AI_BUSY_MESSAGE, isRateLimitError, generateObjectWithFallback } from "@/lib/ai";
+import { generateObjectWithFallback } from "@/lib/ai";
 import { retrieveChunks, formatContext } from "@/lib/services/profile";
+import { route, parseJson } from "@/lib/api";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -32,31 +33,24 @@ const FeedbackSchema = z.object({
   strongRecommend: z.boolean(),
 });
 
-export async function POST(req: NextRequest) {
-  try {
-    const user = await requireUser();
-    const body = await req.json().catch(() => null);
-    const parsed = BodySchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
+export const POST = route(async (req: Request) => {
+  const user = await requireUser();
+  const { jd, questions, transcript } = await parseJson(req, BodySchema);
 
-    const { jd, questions, transcript } = parsed.data;
+  const cvContext = await retrieveChunks(user.id, jd, 8);
+  const contextStr = formatContext(cvContext);
 
-    const cvContext = await retrieveChunks(user.id, jd, 8);
-    const contextStr = formatContext(cvContext);
+  const questionList = questions
+    .map((q, i) => `Q${i + 1} (${q.type}): ${q.question} (${q.rationale})`)
+    .join("\n");
 
-    const questionList = questions
-      .map((q, i) => `Q${i + 1} (${q.type}): ${q.question} (${q.rationale})`)
-      .join("\n");
+  const interviewLog = transcript
+    .map((m) => `${m.role === "assistant" ? "Interviewer" : "Candidate"}: ${m.content}`)
+    .join("\n\n");
 
-    const interviewLog = transcript
-      .map((m) => `${m.role === "assistant" ? "Interviewer" : "Candidate"}: ${m.content}`)
-      .join("\n\n");
-
-    const { object } = await generateObjectWithFallback({
-      schema: FeedbackSchema,
-      prompt: `You are a senior hiring manager providing structured interview feedback.
+  const { object } = await generateObjectWithFallback({
+    schema: FeedbackSchema,
+    prompt: `You are a senior hiring manager providing structured interview feedback.
 
 Based on the job description, question plan, and interview transcript below, generate per-competency feedback.
 
@@ -79,15 +73,9 @@ ${questionList}
 
 INTERVIEW TRANSCRIPT:
 ${interviewLog}`,
-      schemaName: "interview_feedback",
-      temperature: 0.3,
-    });
+    schemaName: "interview_feedback",
+    temperature: 0.3,
+  });
 
-    return NextResponse.json({ feedback: object });
-  } catch (e: any) {
-    if (isRateLimitError(e)) {
-      return NextResponse.json({ error: AI_BUSY_MESSAGE }, { status: 429 });
-    }
-    return NextResponse.json({ error: e?.message ?? "Failed to generate feedback" }, { status: 500 });
-  }
-}
+  return NextResponse.json({ feedback: object });
+});

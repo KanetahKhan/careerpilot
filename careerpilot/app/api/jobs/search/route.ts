@@ -5,7 +5,7 @@ import { generateTextWithFallback, AI_BUSY_MESSAGE, isRateLimitError } from "@/l
 import { searchJobs, webSearchJobs, tavilyEnabled, type Job } from "@/lib/services/jobs";
 import { computeFitScore, loadCvContext } from "@/lib/services/fit-score";
 import { requireUser } from "@/lib/auth";
-import { jsonError } from "@/lib/api";
+import { route, ApiError } from "@/lib/api";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -188,18 +188,13 @@ ${webTool ? "4" : "3"}. Stop once every job/lead has been scored, then briefly s
   return { jobs: top, summary };
 }
 
-export async function POST(req: Request) {
-  let user;
-  try {
-    user = await requireUser();
-  } catch {
-    return jsonError("Unauthorized", 401);
-  }
+export const POST = route(async (req: Request) => {
+  const user = await requireUser();
 
   const body = await req.json().catch(() => null);
   const query: unknown = body?.query;
   if (typeof query !== "string" || query.trim().length === 0) {
-    return jsonError("query is required", 400);
+    throw new ApiError("query is required", 400);
   }
 
   const wantsStream = (req.headers.get("accept") ?? "").includes("x-ndjson");
@@ -243,4 +238,4 @@ export async function POST(req: Request) {
       "x-accel-buffering": "no",
     },
   });
-}
+});

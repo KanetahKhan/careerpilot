@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import {
@@ -8,6 +8,7 @@ import {
 } from "@/lib/ai";
 import { retrieveChunks, formatContext } from "@/lib/services/profile";
 import { createApplication, createEvent } from "@/lib/services/tracker";
+import { route, parseJson, ApiError } from "@/lib/api";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -47,16 +48,9 @@ function daysFromToday(days: number): string {
  * Steps 2 & 3 run first so the tracker/calendar update even if the LLM is
  * rate-limited; the cover letter is returned when it succeeds.
  */
-export async function POST(req: NextRequest) {
+export const POST = route(async (req: Request) => {
   const user = await requireUser();
-  const parsed = BodySchema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.errors[0]?.message ?? "Invalid input" },
-      { status: 400 }
-    );
-  }
-  const { role, company, location, description, link, fit_score, deadline } = parsed.data;
+  const { role, company, location, description, link, fit_score, deadline } = await parseJson(req, BodySchema);
   const warnings: string[] = [];
 
   // 1. Tracker application (guaranteed — independent of the LLM).
@@ -69,10 +63,7 @@ export async function POST(req: NextRequest) {
     status: "applied",
   });
   if (appErr || !application) {
-    return NextResponse.json(
-      { error: appErr?.message ?? "Could not create the application" },
-      { status: 500 }
-    );
+    throw new ApiError(appErr?.message ?? "Could not create the application", 500);
   }
 
   // 2. Calendar event — real deadline, else a 7-day follow-up reminder.
@@ -132,4 +123,4 @@ ${formatContext(chunks)}
     coverLetter,
     warning: warnings.length ? warnings.join(" · ") : null,
   });
-}
+});
